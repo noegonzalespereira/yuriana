@@ -1,0 +1,1 @@
+SELECT 'Base de datos yuriana_db iniciada correctamente' AS mensaje;
