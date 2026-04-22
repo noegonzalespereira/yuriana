@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsuarioModule } from './modules/usuario/usuario.module';
 import { RolModule } from './modules/rol/rol.module';
@@ -49,6 +50,7 @@ import { CierreMensualModule } from './modules/cierre-mensual/cierre-mensual.mod
       }),
       inject: [ConfigService],
     }),
+    CloudinaryModule,
     AuthModule, UsuarioModule, RolModule, PersonaModule, 
     ConductorModule, ClienteModule, ColaboradorModule, 
     UnidadModule, EmpresaModule, AsignacionModule, 

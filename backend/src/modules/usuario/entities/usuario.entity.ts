@@ -14,7 +14,7 @@ export class Usuario {
 
     @PrimaryGeneratedColumn()
     id_usuario!: number;
-
+  
     @Column()
     nombre!: string;
 
