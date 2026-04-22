@@ -23,6 +23,9 @@ export class Usuario {
     
     @Column({select: false})
     password!: string;
+
+    @Column()
+    id_rol!: number;
     
     @Column({default: 'activo'})
     estado!: string;
@@ -33,10 +36,10 @@ export class Usuario {
     @UpdateDateColumn()
     updatedAt!: Date;
 
-    @Column({ nullable: true })
+    @Column({ nullable: true})
     CreatedId!: number;
 
-    @Column({ nullable: true })
+    @Column({ nullable: true})
     UpdatedId!: number;
 
     @Column({ default: true })

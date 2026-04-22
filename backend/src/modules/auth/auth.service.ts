@@ -12,8 +12,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly usuarioService: UsuarioService,
   ) {}
-  async login(dto: LoginDto) {
-    const usuario = await this.usuarioService.findByCorreo(dto.correo);
+  async login(loginDto: LoginDto) {
+    const usuario = await this.usuarioService.findByCorreo(loginDto.correo);
     if(!usuario){
       throw new UnauthorizedException('Credenciales incorrectas');
 
@@ -22,8 +22,10 @@ export class AuthService {
       throw new UnauthorizedException('Usuario inactivo');
 
     }
+    console.log('Password enviada:', loginDto.password);
+    console.log('Password en DB:', usuario?.password);
     const passwordValid = await bcrypt.compare(
-      dto.password,
+      loginDto.password,
       usuario.password
     );
     if(!passwordValid){

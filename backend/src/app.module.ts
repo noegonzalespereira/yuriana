@@ -31,6 +31,7 @@ import { CierreMensualModule } from './modules/cierre-mensual/cierre-mensual.mod
   imports: [
     ConfigModule.forRoot({
       isGlobal: true, 
+      envFilePath: '.env',
     }),
 
      TypeOrmModule.forRootAsync({
