@@ -42,7 +42,7 @@ export class PersonaService {
 
   async findOne(id: number): Promise<Persona> {
     const persona = await this.personaRepository.findOne({
-      where: {id_persona: id}
+      where: {id_persona: id, status: true}
     });
     if(!persona){
       throw new NotFoundException('Persona no encontrada');
