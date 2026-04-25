@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity('persona')
 export class Persona {
@@ -6,6 +6,7 @@ export class Persona {
     id_persona!: number;
 
     @Column()
+    @Index({ unique: true })
     ci!: number;
     
     @Column()
@@ -17,10 +18,10 @@ export class Persona {
     @Column()
     telefono!: number;
 
-    @Column()
-    telefono2!: number;
+    @Column({nullable: true})
+    telefono2?: number;
 
-    @Column()
+    @Column({nullable: true})
     ciudad?: string
 
     @CreateDateColumn()

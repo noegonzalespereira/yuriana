@@ -16,7 +16,7 @@ export class UsuarioService {
   
   async create(createUsuarioDto: CreateUsuarioDto,userId: number): Promise<Usuario> {
     const existe_usuario = await this.usuarioRepository.findOneBy({
-      correo: createUsuarioDto.correo});
+      correo: createUsuarioDto.correo, status: true});
       
     if (existe_usuario) {
       throw new ConflictException("Correo electrónico ya registrado");

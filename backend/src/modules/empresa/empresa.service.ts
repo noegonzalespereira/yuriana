@@ -39,7 +39,7 @@ export class EmpresaService {
 
   async findOne(id: number): Promise<Empresa> {
     const empresa  = await this.empresaRepository.findOne({
-      where: {id_empresa: id}
+      where: {id_empresa: id},
     });
     if(!empresa){
       throw new NotFoundException("Empresa no encontrada");

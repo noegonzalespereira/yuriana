@@ -15,10 +15,10 @@ export class PersonaService {
   
   async create(createPersonaDto: CreatePersonaDto, userId: number): Promise<Persona> {
     const existe_persona = await this.personaRepository.findOneBy({
-      ci: createPersonaDto.ci});
+      ci: createPersonaDto.ci, status: true});
     
     if(existe_persona){
-      throw new ConflictException('Persona con este ci ya registrado')
+      throw new ConflictException('ci ya registrado')
     }
     const nuevaPersona = this.personaRepository.create({
       ...createPersonaDto,

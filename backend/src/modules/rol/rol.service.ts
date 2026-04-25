@@ -14,7 +14,7 @@ export class RolService {
 
   async create(createRolDto: CreateRolDto, userId: number): Promise<Rol> {
     const existe_rol = await this.rolRepository.findOneBy({
-      nombre: createRolDto.nombre});
+      nombre: createRolDto.nombre, status: true});
     if (existe_rol){
       throw new ConflictException("El nombre del rol ya existe");
     }

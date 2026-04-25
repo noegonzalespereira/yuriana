@@ -45,7 +45,7 @@ export class Usuario {
     @Column({ default: true })
     status!: boolean
 
-    @ManyToOne(() =>Rol)
+    @ManyToOne(() =>Rol,  {onDelete: 'RESTRICT'})
     @JoinColumn({name: 'id_rol'})
     rol!: Rol;
 

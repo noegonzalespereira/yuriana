@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 
 export class CreatePersonaDto {
     @IsNotEmpty({ message: 'La cédula es obligatoria' })
@@ -16,12 +16,14 @@ export class CreatePersonaDto {
     @IsNotEmpty({ message: 'El teléfono es obligatorio' })
     @IsNumber()
     telefono!: number;
-
+    
+    @IsOptional()
     @IsNumber()
     telefono2?: number;
 
+    @IsOptional()
     @IsString()
-    ciudad!: string;
+    ciudad?: string;
 
 
 
