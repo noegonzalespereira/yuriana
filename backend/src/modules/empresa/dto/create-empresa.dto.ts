@@ -11,8 +11,8 @@ export class CreateEmpresaDto {
     nit!: string;
     
     @IsNotEmpty({message: 'El teléfono es obligatorio'})
-    @IsNumber()
-    telefono!: number;
+    @IsString()
+    telefono!: string;
         
     @IsNotEmpty({message: 'La dirección es obligatorio'})
     @IsString()

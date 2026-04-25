@@ -12,7 +12,7 @@ export class Empresa {
     nit!: string;
 
     @Column()
-    telefono!: number;
+    telefono!: string;
     
     @Column()
     direccion!: string;
