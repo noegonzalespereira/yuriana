@@ -1,34 +1,81 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { 
+  Controller, Get, Post, Body, Patch, Param, 
+  Delete, Request, UseGuards, ParseIntPipe, 
+  Query, UseInterceptors, UploadedFile 
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { DocumentoService } from './documento.service';
 import { CreateDocumentoDto } from './dto/create-documento.dto';
 import { UpdateDocumentoDto } from './dto/update-documento.dto';
+import { RolesGuard } from '../../common/guards/role.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('documento')
 export class DocumentoController {
   constructor(private readonly documentoService: DocumentoService) {}
 
+
   @Post()
-  create(@Body() createDocumentoDto: CreateDocumentoDto) {
-    return this.documentoService.create(createDocumentoDto);
+  @Roles('ADMIN')
+  @UseInterceptors(FileInterceptor('archivo')) // 'archivo' es el campo del FormData
+  create(
+    @Body() createDocumentoDto: CreateDocumentoDto,
+    @UploadedFile() file: Express.Multer.File,
+    @Request() req
+  ) {
+    return this.documentoService.create(createDocumentoDto, file, req.user.id);
   }
+
 
   @Get()
-  findAll() {
-    return this.documentoService.findAll();
+  findAll(
+    @Query('id_conductor', new ParseIntPipe({ optional: true })) id_conductor?: number,
+    @Query('id_unidad',    new ParseIntPipe({ optional: true })) id_unidad?: number,
+    @Query('id_servicio',  new ParseIntPipe({ optional: true })) id_servicio?: number,
+  ) {
+    return this.documentoService.findAll({ id_conductor, id_unidad, id_servicio });
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.documentoService.findOne(+id);
+ 
+  @Get('alertas/vencidos')
+  obtenerVencidos() {
+    return this.documentoService.obtenerVencidos();
   }
+
+  
+  @Get('alertas/por-vencer')
+  obtenerPorVencer() {
+    return this.documentoService.obtenerPorVencer();
+  }
+
+  
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.documentoService.findOne(id);
+  }
+
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDocumentoDto: UpdateDocumentoDto) {
-    return this.documentoService.update(+id, updateDocumentoDto);
+  @Roles('ADMIN')
+  @UseInterceptors(FileInterceptor('archivo'))
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateDocumentoDto: UpdateDocumentoDto,
+    @UploadedFile() file: Express.Multer.File,
+    @Request() req
+  ) {
+    return this.documentoService.update(id, updateDocumentoDto, file, req.user.id);
   }
 
+  
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.documentoService.remove(+id);
+  @Roles('ADMIN')
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req
+  ) {
+    return this.documentoService.remove(id, req.user.id);
   }
 }

@@ -1,26 +1,248 @@
-import { Injectable } from '@nestjs/common';
+import { 
+  BadRequestException, 
+  Injectable, 
+  NotFoundException 
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, LessThan, Between } from 'typeorm';
+import { Documento } from './entities/documento.entity';
 import { CreateDocumentoDto } from './dto/create-documento.dto';
 import { UpdateDocumentoDto } from './dto/update-documento.dto';
-
+import { CloudinaryService } from '../../cloudinary/cloudinary.service';
+import { RequisitoDocumentoService } from '../requisito-documento/requisito-documento.service';
+import { Multer } from 'multer';
 @Injectable()
 export class DocumentoService {
-  create(createDocumentoDto: CreateDocumentoDto) {
-    return 'This action adds a new documento';
+  constructor(
+    @InjectRepository(Documento)
+    private readonly documentoRepository: Repository<Documento>,
+    private readonly cloudinaryService: CloudinaryService,
+    private readonly requisitoService: RequisitoDocumentoService,
+  ) {}
+
+  
+  private calcularEstado(fecha_vencimiento: Date | null | undefined): {
+    estado: string;
+    dias_restantes: number | null;
+  } 
+  
+  {
+    if (!fecha_vencimiento) {
+      return { estado: 'vigente', dias_restantes: null };
+    }
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    const fechaVenc = new Date(fecha_vencimiento);
+    fechaVenc.setHours(0, 0, 0, 0);
+
+    const dias_restantes = Math.ceil(
+      (fechaVenc.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+
+    if (dias_restantes < 0)   return { estado: 'vencido',    dias_restantes };
+    if (dias_restantes <= 15) return { estado: 'por_vencer', dias_restantes };
+    return { estado: 'vigente', dias_restantes };
   }
 
-  findAll() {
-    return `This action returns all documento`;
+  
+  private obtenerCarpeta(dto: { id_conductor?: number; id_unidad?: number; id_servicio?: number; }): string {
+    if (dto.id_conductor) return 'yuriana/documentos/conductor';
+    if (dto.id_unidad)    return 'yuriana/documentos/unidad';
+    if (dto.id_servicio)  return 'yuriana/documentos/viaje';
+    return 'yuriana/documentos/otros';
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} documento`;
+  
+  async create(createDocumentoDto: CreateDocumentoDto,file: Express.Multer.File,userId: number): Promise<Documento> {
+
+    if (!file) {
+      throw new BadRequestException('El archivo del documento es obligatorio');
+    }
+
+    const tiposPermitidos = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    if (!tiposPermitidos.includes(file.mimetype)) {
+      throw new BadRequestException(
+        'Solo se permiten archivos PDF, JPG o PNG'
+      );
+    }
+
+    const propietarios = [
+      createDocumentoDto.id_conductor,
+      createDocumentoDto.id_unidad,
+      createDocumentoDto.id_servicio,
+    ].filter(Boolean); 
+
+    if (propietarios.length !== 1) {
+      throw new BadRequestException(
+        'El documento debe pertenecer exactamente a un conductor, unidad o viaje'
+      );
+    }
+
+    
+    const requisito = await this.requisitoService.findOne(
+      createDocumentoDto.id_requisito
+    );
+
+    if (requisito.requiere_vencimiento && !createDocumentoDto.fecha_vencimiento) {
+      throw new BadRequestException(
+        `El documento "${requisito.nombre_documento}" requiere fecha de vencimiento`
+      );
+    }
+
+    const fecha_vencimiento = requisito.requiere_vencimiento
+      ? new Date(createDocumentoDto.fecha_vencimiento!)
+      : null;
+
+    const carpeta = this.obtenerCarpeta(createDocumentoDto);
+    const { url } = await this.cloudinaryService.subirArchivo(file, carpeta);
+
+    const documento = this.documentoRepository.create({
+      requisito_documento: requisito,  
+      url_documento:     url,
+      tipo_documento:    file.mimetype,   
+      fecha_vencimiento: fecha_vencimiento ?? undefined,
+      id_conductor:      createDocumentoDto.id_conductor,
+      id_unidad:         createDocumentoDto.id_unidad,
+      id_servicio:       createDocumentoDto.id_servicio,
+      CreatedId:         userId,
+    });
+
+    const guardado = await this.documentoRepository.save(documento);
+
+    return {
+      ...guardado,
+      ...this.calcularEstado(guardado.fecha_vencimiento),
+    } as any;
   }
 
-  update(id: number, updateDocumentoDto: UpdateDocumentoDto) {
-    return `This action updates a #${id} documento`;
+
+  async findAll(filters: {id_conductor?: number;id_unidad?: number;id_servicio?: number;}): Promise<Documento[]> {
+    const query = this.documentoRepository
+      .createQueryBuilder('documento')
+      .leftJoinAndSelect('documento.requisito_documento', 'requisito')
+      .leftJoinAndSelect('requisito.categoria', 'categoria')
+      .where('documento.status = :status', { status: true });
+
+    if (filters.id_conductor) {
+      query.andWhere('documento.id_conductor = :id', { id: filters.id_conductor });
+    }
+    if (filters.id_unidad) {
+      query.andWhere('documento.id_unidad = :id', { id: filters.id_unidad });
+    }
+    if (filters.id_servicio) {
+      query.andWhere('documento.id_servicio = :id', { id: filters.id_servicio });
+    }
+
+    const documentos = await query.getMany();
+
+    return documentos.map(doc => ({
+      ...doc,
+      ...this.calcularEstado(doc.fecha_vencimiento),
+    }));
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} documento`;
+  async findOne(id: number): Promise<Documento> {
+    const documento = await this.documentoRepository.findOne({
+      where: { id_documento: id, status: true },
+      relations: ['requisito_documento', 'requisito_documento.categoria'],
+    });
+    if (!documento) {
+      throw new NotFoundException('Documento no encontrado');
+    }
+    return {
+      ...documento,
+      ...this.calcularEstado(documento.fecha_vencimiento),
+    };
+  }
+
+  async obtenerVencidos(): Promise<any[]> {
+    const hoy = new Date();
+    hoy.setHours(23, 59, 59, 999); 
+    const documentos = await this.documentoRepository
+      .createQueryBuilder('documento')
+      .leftJoinAndSelect('documento.requisito_documento', 'requisito')
+      .where('documento.status = :status', { status: true })
+      .andWhere('documento.fecha_vencimiento IS NOT NULL')
+      .andWhere('documento.fecha_vencimiento < :hoy', { hoy })
+      .getMany();
+
+    return documentos.map(doc => ({
+      ...doc,
+      ...this.calcularEstado(doc.fecha_vencimiento),
+    }));
+  }
+
+  async obtenerPorVencer(): Promise<any[]> {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    
+    const en15Dias = new Date();
+    en15Dias.setDate(hoy.getDate() + 15);
+    en15Dias.setHours(23, 59, 59, 999);
+
+    const documentos = await this.documentoRepository
+      .createQueryBuilder('documento')
+      .leftJoinAndSelect('documento.requisito_documento', 'requisito')
+      .where('documento.status = :status', { status: true })
+      .andWhere('documento.fecha_vencimiento IS NOT NULL')
+      .andWhere('documento.fecha_vencimiento BETWEEN :hoy AND :en15Dias', 
+        { hoy, en15Dias })
+      .getMany();
+
+    return documentos.map(doc => ({
+      ...doc,
+      ...this.calcularEstado(doc.fecha_vencimiento),
+    }));
+  }
+
+
+  async update(id: number,updateDocumentoDto: UpdateDocumentoDto,file: Express.Multer.File,userId: number): Promise<Documento> {
+    const documento = await this.findOne(id);
+
+    let url_documento = documento.url_documento;
+    let tipo_documento = documento.tipo_documento;
+
+    if (file) {
+      const tiposPermitidos = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+      if (!tiposPermitidos.includes(file.mimetype)) {
+        throw new BadRequestException('Solo se permiten archivos PDF, JPG o PNG');
+      }
+
+      if (documento.url_documento) {
+        await this.cloudinaryService.eliminarArchivo(documento.url_documento);
+      }
+
+      const carpeta = this.obtenerCarpeta(documento);
+      const { url } = await this.cloudinaryService.subirArchivo(file, carpeta);
+      url_documento = url;
+      tipo_documento = file.mimetype;
+    }
+
+    const fecha_vencimiento = updateDocumentoDto.fecha_vencimiento
+      ? new Date(updateDocumentoDto.fecha_vencimiento)
+      : documento.fecha_vencimiento;
+
+    Object.assign(documento, {
+      ...updateDocumentoDto,
+      url_documento,
+      tipo_documento,
+      fecha_vencimiento,
+      UpdatedId: userId,
+    });
+
+    const actualizado = await this.documentoRepository.save(documento);
+    return {
+      ...actualizado,
+      ...this.calcularEstado(actualizado.fecha_vencimiento),
+    };
+  }
+
+  async remove(id: number, userId: number): Promise<Documento> {
+    const documento = await this.findOne(id);
+    documento.status = false;
+    documento.UpdatedId = userId;
+    return this.documentoRepository.save(documento);
   }
 }
