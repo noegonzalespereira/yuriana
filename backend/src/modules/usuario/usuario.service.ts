@@ -2,7 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { FilterUsuarioDto } from './dto/filter-usuario.dto';
-import { Usuario } from './entities/usuario.entity';
+import { Usuario,EstadoUsuario } from './entities/usuario.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
@@ -77,11 +77,11 @@ export class UsuarioService {
     });
 
     const activos = await this.usuarioRepository.count({
-      where: { status:true, estado: 'activo'}
+      where: { status:true, estado: EstadoUsuario.ACTIVO }
     });
 
     const inactivos = await this.usuarioRepository.count({
-      where: { status: true, estado: 'inactivo' }
+      where: { status: true, estado: EstadoUsuario.INACTIVO }
     });
     return { total, activos, inactivos };
   }

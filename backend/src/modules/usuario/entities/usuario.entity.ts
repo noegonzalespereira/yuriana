@@ -8,7 +8,10 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Rol } from '../../rol/entities/rol.entity';
-
+export enum EstadoUsuario {
+  ACTIVO = 'activo',
+  INACTIVO = 'inactivo',
+}
 @Entity('usuario')
 export class Usuario {
 
@@ -27,8 +30,8 @@ export class Usuario {
     @Column()
     id_rol!: number;
     
-    @Column({default: 'activo'})
-    estado!: string;
+    @Column({type: 'enum', enum: EstadoUsuario, default: EstadoUsuario.ACTIVO})
+    estado!: EstadoUsuario;
 
     @CreateDateColumn()
     createdAt!: Date;
