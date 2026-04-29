@@ -1,34 +1,42 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards,Body, Patch, Param, Delete, Query, ParseIntPipe } from '@nestjs/common';
 import { CategoriaEntidadService } from './categoria-entidad.service';
 import { CreateCategoriaEntidadDto } from './dto/create-categoria-entidad.dto';
 import { UpdateCategoriaEntidadDto } from './dto/update-categoria-entidad.dto';
+import { RolesGuard } from '../../common/guards/role.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Roles} from '../../common/decorators/roles.decorator';
+import { FilterCategoriaEntidadDto } from './dto/filter-categoria-entidad.dto';
 
-@Controller('categoria-entidad')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Controller('categoria_entidad')
 export class CategoriaEntidadController {
   constructor(private readonly categoriaEntidadService: CategoriaEntidadService) {}
 
   @Post()
+  @Roles('ADMIN')
   create(@Body() createCategoriaEntidadDto: CreateCategoriaEntidadDto) {
     return this.categoriaEntidadService.create(createCategoriaEntidadDto);
   }
 
   @Get()
-  findAll() {
-    return this.categoriaEntidadService.findAll();
+  findAll(@Query() filters: FilterCategoriaEntidadDto) {
+    return this.categoriaEntidadService.findAll(filters);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.categoriaEntidadService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.categoriaEntidadService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCategoriaEntidadDto: UpdateCategoriaEntidadDto) {
-    return this.categoriaEntidadService.update(+id, updateCategoriaEntidadDto);
+  @Roles('ADMIN')
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateCategoriaEntidadDto: UpdateCategoriaEntidadDto) {
+    return this.categoriaEntidadService.update(id, updateCategoriaEntidadDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.categoriaEntidadService.remove(+id);
+  @Roles('ADMIN')
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.categoriaEntidadService.remove(id);
   }
 }
