@@ -1,34 +1,48 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, UseGuards,Query, Request,Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
 import { ConductorService } from './conductor.service';
 import { CreateConductorDto } from './dto/create-conductor.dto';
 import { UpdateConductorDto } from './dto/update-conductor.dto';
+import { RolesGuard } from '../../common/guards/role.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Roles} from '../../common/decorators/roles.decorator';
+import { FilterConductorDto } from './dto/filter-conductor.dto';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('conductor')
 export class ConductorController {
   constructor(private readonly conductorService: ConductorService) {}
 
   @Post()
-  create(@Body() createConductorDto: CreateConductorDto) {
-    return this.conductorService.create(createConductorDto);
+  @Roles('ADMIN')
+  create(@Body() createConductorDto: CreateConductorDto, @Request() req) {
+    return this.conductorService.create(createConductorDto, req.user.id);
   }
 
   @Get()
-  findAll() {
-    return this.conductorService.findAll();
+  findAll(@Query() filters: FilterConductorDto) {
+    return this.conductorService.findAll(filters);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.conductorService.findOne(+id);
+  @Get('contador')
+  contador() {
+    return this.conductorService.contador();
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateConductorDto: UpdateConductorDto) {
-    return this.conductorService.update(+id, updateConductorDto);
+
+  @Get(':ci')
+  findOne(@Param('ci', ParseIntPipe) ci: number) {
+    return this.conductorService.findOne(ci);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.conductorService.remove(+id);
+  @Patch(':ci')
+  @Roles('ADMIN')
+  update(@Param('ci', ParseIntPipe) ci: number, @Body() updateConductorDto: UpdateConductorDto, @Request() req) {
+    return this.conductorService.update(ci, updateConductorDto, req.user.id);
+  }
+
+  @Delete(':ci')
+  @Roles('ADMIN')
+  remove(@Param('ci', ParseIntPipe) ci: number, @Request() req) {
+    return this.conductorService.remove(ci, req.user.id);
   }
 }
