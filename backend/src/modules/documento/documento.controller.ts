@@ -19,7 +19,7 @@ export class DocumentoController {
 
   @Post()
   @Roles('ADMIN')
-  @UseInterceptors(FileInterceptor('archivo')) // 'archivo' es el campo del FormData
+  @UseInterceptors(FileInterceptor('file')) 
   create(
     @Body() createDocumentoDto: CreateDocumentoDto,
     @UploadedFile() file: Express.Multer.File,
@@ -59,7 +59,7 @@ export class DocumentoController {
 
   @Patch(':id')
   @Roles('ADMIN')
-  @UseInterceptors(FileInterceptor('archivo'))
+  @UseInterceptors(FileInterceptor('file'))
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDocumentoDto: UpdateDocumentoDto,

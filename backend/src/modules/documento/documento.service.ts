@@ -50,7 +50,7 @@ export class DocumentoService {
   private obtenerCarpeta(dto: { id_conductor?: number; id_unidad?: number; id_servicio?: number; }): string {
     if (dto.id_conductor) return 'yuriana/documentos/conductor';
     if (dto.id_unidad)    return 'yuriana/documentos/unidad';
-    if (dto.id_servicio)  return 'yuriana/documentos/viaje';
+    if (dto.id_servicio)  return 'yuriana/documentos/servicio';
     return 'yuriana/documentos/otros';
   }
 
@@ -76,7 +76,7 @@ export class DocumentoService {
 
     if (propietarios.length !== 1) {
       throw new BadRequestException(
-        'El documento debe pertenecer exactamente a un conductor, unidad o viaje'
+        'El documento debe pertenecer exactamente a un conductor, unidad o servicio'
       );
     }
 
@@ -196,6 +196,51 @@ export class DocumentoService {
       ...this.calcularEstado(doc.fecha_vencimiento),
     }));
   }
+
+  async getEstadoDocumentosPorEntidad(
+    referencia_id: number,
+    tipo_entidad: 'conductor' | 'unidad' | 'viaje'
+  ): Promise<{ estado: string; documento_critico: string | null }> {
+
+    
+    const columnaFk = 
+      tipo_entidad === 'conductor' ? 'documento.id_conductor' :
+      tipo_entidad === 'unidad'    ? 'documento.id_unidad'    :
+                                    'documento.id_servicio';
+    const documentos = await this.documentoRepository
+      .createQueryBuilder('documento')
+      .leftJoinAndSelect('documento.requisito_documento', 'requisito')
+      .where('documento.status = :status', { status: true })
+      .andWhere(`${columnaFk} = :referencia_id`, { referencia_id })
+      .getMany();
+
+    if (documentos.length === 0) {
+      return { estado: 'sin_documentos', documento_critico: null };
+    }
+
+    
+    let estadoFinal = 'vigente';         
+    let documento_critico: string | null = null; 
+
+    for (const doc of documentos) {
+      const { estado } = this.calcularEstado(doc.fecha_vencimiento);
+      
+
+      if (estado === 'vencido') {
+        estadoFinal = 'vencido';
+        documento_critico = doc.requisito_documento?.nombre_documento ?? 'Documento desconocido';
+        break;
+      }
+
+      if (estado === 'por_vencer' && estadoFinal !== 'vencido') {
+        estadoFinal = 'por_vencer';
+        documento_critico = doc.requisito_documento?.nombre_documento ?? 'Documento desconocido';
+      }
+    }
+
+    return { estado: estadoFinal, documento_critico };
+  }
+
 
 
   async update(id: number,updateDocumentoDto: UpdateDocumentoDto,file: Express.Multer.File,userId: number): Promise<Documento> {
