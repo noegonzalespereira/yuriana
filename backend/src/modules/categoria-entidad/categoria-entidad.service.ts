@@ -3,7 +3,7 @@ import { CreateCategoriaEntidadDto } from './dto/create-categoria-entidad.dto';
 import { UpdateCategoriaEntidadDto } from './dto/update-categoria-entidad.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CategoriaEntidad } from './entities/categoria-entidad.entity';
+import { CategoriaEntidad, TipoCategoria } from './entities/categoria-entidad.entity';
 import { FilterCategoriaEntidadDto } from './dto/filter-categoria-entidad.dto';
 @Injectable()
 export class CategoriaEntidadService {
@@ -33,6 +33,15 @@ export class CategoriaEntidadService {
     }
     return query.getMany();
 
+  }
+  async findOneByNombre(tipo_categoria: TipoCategoria): Promise<CategoriaEntidad> {
+    const categoriaEntidad = await this.categoriaEntidadRepository.findOneBy({
+      tipo_categoria: tipo_categoria
+    });
+    if(!categoriaEntidad){
+      throw new NotFoundException('No se encontró la categoría de entidad');
+    }
+    return categoriaEntidad;
   }
 
   async findOne(id_categoria: number) {
