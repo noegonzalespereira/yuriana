@@ -5,7 +5,6 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Empresa } from './entities/empresa.entity';
 import { CloudinaryService } from '../../cloudinary/cloudinary.service';
-import { Multer } from 'multer';
 @Injectable()
 export class EmpresaService {
   constructor(
