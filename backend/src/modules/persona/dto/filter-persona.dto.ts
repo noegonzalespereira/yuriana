@@ -9,5 +9,9 @@ export class FilterPersonaDto {
     @IsString()
     nombre?: string;
 
+    @IsOptional()
+    @IsString()
+    ciudad?: string;
+
 
 }
