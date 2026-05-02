@@ -1,12 +1,13 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity('persona')
+@Index(['ci'], {unique: true , where: '"status" = true'})
+
 export class Persona {
     @PrimaryGeneratedColumn()
     id_persona!: number;
 
     @Column()
-    @Index({ unique: true })
     ci!: number;
     
     @Column()
