@@ -12,6 +12,7 @@ export class FilterConductorDto extends FilterPersonaDto{
         @IsOptional()
         @IsEnum(EstadoLaboral,{message: 'El estado laboral debe ser activo o inactivo'})
         estado_laboral?: EstadoLaboral
+        
         @IsOptional()
         @IsIn(['vigente', 'por_vencer', 'vencido', 'sin_documentos'], {
         message: 'estado_documentos debe ser vigente, por_vencer, vencido o sin_documentos'

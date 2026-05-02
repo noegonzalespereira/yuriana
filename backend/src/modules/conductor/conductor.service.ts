@@ -90,7 +90,7 @@ export class ConductorService {
       where: { 
         persona: {ci: ci, status: true },
       status: true },
-      relations: ['persona','categoria_entidad']
+      relations: ['persona','categoria']
 
     });
     if (!conductor) {

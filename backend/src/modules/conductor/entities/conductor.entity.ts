@@ -4,6 +4,7 @@ import { Persona } from "../../persona/entities/persona.entity";
 
 export enum EstadoOperativo {
         DISPONIBLE = 'disponible',
+        ASIGNADO = 'asignado',
         VIAJE = 'en viaje',
     }
 
