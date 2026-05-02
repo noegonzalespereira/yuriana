@@ -1,1 +1,40 @@
-export class CreateUnidadDto {}
+import { IsEnum,Min, Max, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
+import { EstadoUnidad } from "../entities/unidad.entity";
+
+export class CreateUnidadDto {
+    @IsNotEmpty({message: 'El numero de placa es obligatio'})
+    @IsString()
+    placa!: string;
+
+    @IsNotEmpty({message: 'El tipo de unidad es obligatorio '})
+    @IsNumber({},{message: 'El tipo de unidad debe ser un número'})
+    id_categoria!: number;
+
+
+    @IsNotEmpty({message: 'El numero de chasisi es obligatio'})
+    @IsString()
+    num_chasis!: string;
+
+    @IsNotEmpty({message: 'La marca es obligatio'})
+    @IsString()
+    marca!: string;
+
+    @IsNotEmpty({message: 'El color es obligatio'})
+    @IsString()
+    color!: string;
+
+    @IsNotEmpty({message: 'El año es obligatio'})
+    @IsNumber({},{message: 'El año debe ser un número'})
+    @Min(1990, { message: 'El año no puede ser menor a 1990' })
+    @Max(new Date().getFullYear(), { message: 'El año no puede ser mayor al año actual' })
+    anio!: number;  
+
+    @IsNotEmpty({message: 'El modelo es obligatio'})
+    @IsString()
+    modelo!: string;
+
+    @IsOptional()
+    @IsEnum(EstadoUnidad,{message: 'El estado de la unidad debe ser disponible, en viaje o mantenimiento'})
+    estado_unidad?: EstadoUnidad
+
+}

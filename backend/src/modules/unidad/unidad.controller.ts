@@ -1,34 +1,42 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch,Request, UseGuards,Param, Delete, Query } from '@nestjs/common';
 import { UnidadService } from './unidad.service';
 import { CreateUnidadDto } from './dto/create-unidad.dto';
 import { UpdateUnidadDto } from './dto/update-unidad.dto';
+import { RolesGuard } from '../../common/guards/role.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Roles} from '../../common/decorators/roles.decorator';
+import { FilterUnidadDto } from './dto/filter-unidad.dto';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('unidad')
 export class UnidadController {
   constructor(private readonly unidadService: UnidadService) {}
 
   @Post()
-  create(@Body() createUnidadDto: CreateUnidadDto) {
-    return this.unidadService.create(createUnidadDto);
+  @Roles('ADMIN')
+  create(@Body() createUnidadDto: CreateUnidadDto, @Request() req){
+    return this.unidadService.create(createUnidadDto,req.user.id);
   }
 
   @Get()
-  findAll() {
-    return this.unidadService.findAll();
+  findAll(@Query() filters: FilterUnidadDto){
+    return this.unidadService.findAll(filters);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.unidadService.findOne(+id);
+  @Get(':placa')
+  findOne(@Param('placa') placa: string) {
+    return this.unidadService.findOne(placa);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUnidadDto: UpdateUnidadDto) {
-    return this.unidadService.update(+id, updateUnidadDto);
+  @Patch(':placa')
+  @Roles('ADMIN')
+  update(@Param('placa') placa: string, @Body() updateUnidadDto: UpdateUnidadDto, @Request() req){
+    return this.unidadService.update(placa, updateUnidadDto, req.user.id);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.unidadService.remove(+id);
+  @Delete(':placa')
+  @Roles('ADMIN')
+  remove(@Param('placa') placa: string, @Request() req){
+    return this.unidadService.remove(placa, req.user.id);
   }
 }
