@@ -14,11 +14,11 @@ export class CreatePersonaDto {
     correo!: string;
 
     @IsNotEmpty({ message: 'El teléfono es obligatorio' })
-    @IsNumber()
+    @IsNumber({}, { message: 'El telefono debe ser un número' })
     telefono!: number;
     
     @IsOptional()
-    @IsNumber()
+    @IsNumber({}, { message: 'El telefono debe ser un número' })
     telefono2?: number;
 
     @IsOptional()
