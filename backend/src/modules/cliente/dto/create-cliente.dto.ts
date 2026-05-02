@@ -5,7 +5,7 @@ export class CreateClienteDto extends CreatePersonaDto{
     
 
     @IsNotEmpty({ message: 'El NIT es obligatorio' })
-    @IsNumber()
+    @IsNumber({}, { message: 'El NIT debe ser un número' })
     nit!: number;
 
     @IsNotEmpty({ message: 'La razón social es obligatoria' })

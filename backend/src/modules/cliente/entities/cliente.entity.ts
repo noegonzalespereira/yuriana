@@ -53,6 +53,4 @@ export class Cliente {
     
     @Column({ default: true })
     status!: boolean
-
-
 }
