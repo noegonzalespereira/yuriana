@@ -1,34 +1,36 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param,ParseIntPipe, Delete,UseGuards, Request, Query} from '@nestjs/common';
 import { AsignacionService } from './asignacion.service';
 import { CreateAsignacionDto } from './dto/create-asignacion.dto';
-import { UpdateAsignacionDto } from './dto/update-asignacion.dto';
+import { FilterAsignacionDto } from './dto/filter-asignacion.dto';
+import { RolesGuard } from '../../common/guards/role.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Roles} from '../../common/decorators/roles.decorator';
+@UseGuards(JwtAuthGuard, RolesGuard)
 
 @Controller('asignacion')
 export class AsignacionController {
   constructor(private readonly asignacionService: AsignacionService) {}
 
   @Post()
-  create(@Body() createAsignacionDto: CreateAsignacionDto) {
-    return this.asignacionService.create(createAsignacionDto);
+  @Roles('ADMIN')
+  create(@Body() createAsignacionDto: CreateAsignacionDto, @Request() req){
+    return this.asignacionService.create(createAsignacionDto, req.user.id );
   }
 
   @Get()
-  findAll() {
-    return this.asignacionService.findAll();
+  findAll(@Query() filters: FilterAsignacionDto) {
+    return this.asignacionService.findAll(filters);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.asignacionService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id:number) {
+    return this.asignacionService.findOne(id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAsignacionDto: UpdateAsignacionDto) {
-    return this.asignacionService.update(+id, updateAsignacionDto);
-  }
-
+ 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.asignacionService.remove(+id);
+  @Roles('ADMIN')
+  remove(@Param('id', ParseIntPipe) id:number, @Request() req){
+    return this.asignacionService.remove(id, req.user.id);
   }
 }
