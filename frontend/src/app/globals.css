@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* --- PALETA DE COLORES YURIANA --- */
+  --color-yuriana-orange: #E64D24;    /* Naranja Principal */
+  --color-yuriana-green: #44FF00;     /* Éxito / Operaciones */
+  --color-yuriana-yellow: #F69F2C;    /* Acentos / Secundario */
+  --color-yuriana-red: #F50909;       /* Errores Críticos */
+  --color-yuriana-warning: #E3D043;   /* Alertas de Advertencia */
+  --color-yuriana-white: #FFFFFF;
+
+  /* --- MAPEO PARA SHADCN UI --- */
+  /* Esto hace que los componentes 'ui/' usen automáticamente tu naranja */
+  --color-primary: #E64D24;
+  --color-primary-foreground: #ffffff;
+  
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: #E64D24; /* Anillo de enfoque naranja */
+
+  /* --- RADIOS --- */
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --radius: 0.5rem;
+}
+
+/* ... resto del archivo (body, dark mode, etc) ... */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    --border: #1e293b;
+    --input: #1e293b;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
