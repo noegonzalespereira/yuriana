@@ -1,7 +1,7 @@
 "use client"; // Necesario para usar hooks
 import { Settings, LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext"; // Importamos el hook de autenticación
-
+import { SidebarConfigMenu } from "../atoms/SidebarConfigMenu";
 export const UserCard = () => {
   const { user, logout } = useAuth(); // Extraemos el usuario y la función de salida
 
@@ -24,7 +24,7 @@ export const UserCard = () => {
             {user?.nombre || "Cargando..."} {/* Nombre real del backend */}
           </span>
           <span className="text-white/70 text-[10px] font-medium uppercase tracking-tighter">
-            {user?.rol || "Usuario"} {/* Rol real (ADMIN, etc) */}
+            {typeof user?.rol === 'object' ? user.rol.nombre : (user?.rol || "Usuario")}
           </span>
         </div>
         
@@ -38,10 +38,7 @@ export const UserCard = () => {
       
       {/* Botones de Acción Inferiores */}
       <div className="flex justify-center gap-6">
-          <Settings 
-            className="text-white/50 hover:text-white cursor-pointer transition-colors" 
-            size={22} 
-          />
+          <SidebarConfigMenu />
           <LogOut 
             onClick={logout} // Acción de cerrar sesión
             className="text-white/50 hover:text-yuriana-red cursor-pointer transition-colors" 
