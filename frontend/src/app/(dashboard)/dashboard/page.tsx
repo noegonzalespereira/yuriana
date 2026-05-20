@@ -1,12 +1,11 @@
-// app/(dashboard)/dashboard/page.tsx
-import { TopBar } from "@/components/organisms/TopBar";
+import { ModuleHeader } from "@/components/organisms/ModuleHeader";
 
 export default function DashboardPage() {
   return (
     <div className="max-w-7xl mx-auto">
-      <TopBar 
+      <ModuleHeader 
         title="Dashboard Principal" 
-        subtitle="Panel de control de transporte y logística" 
+        subtitle="Panel de control de transporte y logística - Yuriana S.R.L." 
       />
 
       {/* Grid de Cards de Resumen */}

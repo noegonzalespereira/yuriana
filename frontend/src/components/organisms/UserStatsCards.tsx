@@ -1,3 +1,4 @@
+// src/components/organisms/UserStatsCards.tsx
 import { Users, CheckCircle, XCircle } from "lucide-react";
 import { StatCard } from "../atoms/StatCard";
 
@@ -14,25 +15,25 @@ export const UserStatsCards = ({ total, activos, inactivos }: UserStatsCardsProp
         label="Total Usuarios" 
         value={total} 
         icon={<Users size={24} />} 
-        borderColor="border-gray-200" 
+        borderColor="border-[var(--yuriana-card-border)]" 
         iconBg="bg-orange-50" 
-        iconColor="text-orange-500" 
+        iconColor="text-[var(--yuriana-base-orange)]" 
       />
       <StatCard 
         label="Activos" 
         value={activos} 
         icon={<CheckCircle size={24} />} 
-        borderColor="border-green-400" 
-        iconBg="bg-green-50" 
-        iconColor="text-green-600" 
+        borderColor="border-emerald-200" 
+        iconBg="bg-emerald-50" 
+        iconColor="text-emerald-600" 
       />
       <StatCard 
         label="Inactivos" 
         value={inactivos} 
         icon={<XCircle size={24} />} 
-        borderColor="border-red-400" 
+        borderColor="border-red-200" 
         iconBg="bg-red-50" 
-        iconColor="text-red-600" 
+        iconColor="text-[var(--yuriana-input-error)]" 
       />
     </div>
   );

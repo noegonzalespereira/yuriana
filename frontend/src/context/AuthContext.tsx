@@ -3,11 +3,11 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { setCookie, deleteCookie, getCookie } from 'cookies-next'; // Manejo de cookies para el Proxy
-import { User, AuthResponse } from '@/types/auth.types';
+import { SessionUser, AuthResponse } from '@/types/auth.types';
 import { apiFetch } from '@/lib/api';
 
 interface AuthContextType {
-  user: User | null;
+  user: SessionUser | null;
   login: (correo: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
@@ -16,7 +16,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<SessionUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 

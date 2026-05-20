@@ -7,7 +7,7 @@ interface LogoProps {
 export const Logo = ({ size = 150 }: LogoProps) => {
   return (
     <div 
-      className="bg-white rounded-full flex items-center justify-center shadow-xl border-4 border-yuriana-orange/20"
+      className="bg-[var(--yuriana-base-white)] rounded-full flex items-center justify-center shadow-xl border-4 border-[var(--yuriana-card-border)]"
       style={{ width: size, height: size }}
     >
       <Image 

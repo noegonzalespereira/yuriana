@@ -4,52 +4,104 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@theme inline {
-  /* --- PALETA DE COLORES YURIANA --- */
-  --color-yuriana-orange: #E64D24;    /* Naranja Principal */
-  --color-yuriana-green: #44FF00;     /* Éxito / Operaciones */
-  --color-yuriana-yellow: #F69F2C;    /* Acentos / Secundario */
-  --color-yuriana-red: #F50909;       /* Errores Críticos */
-  --color-yuriana-warning: #E3D043;   /* Alertas de Advertencia */
-  --color-yuriana-white: #FFFFFF;
+/* ==========================================================================
+   1. VARIABLES NATIVAS (:root)
+   Declararlas aquí hará que VS Code reconozca los colores y muestre los cuadritos.
+   ========================================================================== */
+:root {
+  /* --- PALETA BASE (PRIMITIVOS) --- */
+  --yuriana-base-orange: #E64D24;    /* Naranja Identitario principal */
+  --yuriana-base-yellow: #F69F2C;    /* Amarillo/Oro para botones principales de acción */
+  --yuriana-base-green: #44FF00;     /* Éxito / Operativo */
+  --yuriana-base-red: #F50909;       /* Errores Críticos / Bordes de error */
+  --yuriana-base-warning: #E3D043;   /* Alertas / Advertencias */
+  --yuriana-base-white: #FFFFFF;     /* Fondos de tarjetas y contenedores */
+  --yuriana-base-black: #000000;     /* Texto de inputs introducido por usuario */
+  --yuriana-base-gray-dark: #171717; /* Texto principal de labels, títulos de sección */
+  --yuriana-base-gray-light: #94A3B8;/* Placeholders suaves y textos secundarios de apoyo */
 
-  /* --- MAPEO PARA SHADCN UI --- */
-  /* Esto hace que los componentes 'ui/' usen automáticamente tu naranja */
-  --color-primary: #E64D24;
-  --color-primary-foreground: #ffffff;
+  /* --- VARIABLES SEMÁNTICAS (ATOMIC DESIGN CONTROLLERS) --- */
   
+  /* Estructura Global y Sidebar */
+  --yuriana-sidebar-bg: var(--yuriana-base-orange);
+  --yuriana-layout-bg: #F8FAFC; /* Un gris sumamente suave para que resalten las tarjetas blancas */
+  
+  /* Tarjetas y Contenedores (Organisms/Forms) */
+  --yuriana-card-bg: var(--yuriana-base-white);
+  --yuriana-card-border: var(--yuriana-base-orange); /* Naranja Yuriana al 20% de opacidad para bordes elegantes */
+  
+  /* Inputs y Formularios (Atoms/Molecules) */
+  --yuriana-input-bg: var(--yuriana-base-white);
+  --yuriana-input-border: rgba(230, 77, 36, 0.5); /* Borde inicial naranja sutil */
+  --yuriana-input-border-focus: var(--yuriana-base-orange); /* Al hacer foco se intensifica */
+  --yuriana-input-text: var(--yuriana-base-black); /* Texto introducido en riguroso negro */
+  --yuriana-input-label: var(--yuriana-base-gray-dark); /* Labels oscuros y legibles */
+  --yuriana-input-placeholder: var(--yuriana-base-gray-light); /* Placeholders claros */
+  --yuriana-input-error: var(--yuriana-base-red);
+
+  /* Botonería (Atoms) */
+  --yuriana-btn-save-bg: var(--yuriana-base-yellow);
+  --yuriana-btn-save-text: var(--yuriana-base-black);
+  --yuriana-btn-cancel-bg: #475569; /* Gris pizarra elegante para cancelar/cerrar */
+  --yuriana-btn-cancel-text: var(--yuriana-base-white);
+  --yuriana-btn-filter-border: var(--yuriana-base-orange);
+  --yuriana-btn-filter-text: var(--yuriana-base-gray-dark);
+
+  /* --- COMPATIBILIDAD SHADCN / NEXT.JS --- */
+  --background: var(--yuriana-layout-bg);
+  --foreground: var(--yuriana-base-gray-dark);
+  --border: rgba(230, 77, 36, 0.5);
+  --input: rgba(230, 77, 36, 0.3);
+  --radius: 1.5rem; /* Esquinas redondeadas personalizadas de tu diseño */
+}
+
+/* ==========================================================================
+   2. CONFIGURACIÓN DEL TEMA TAILWIND CSS v4
+   Mapeamos las variables para poder usarlas como clases utilitarias (ej: bg-yuriana-orange)
+   ========================================================================== */
+@theme inline {
+  /* Mapeo de Colores Primitivos */
+  --color-yuriana-orange: var(--yuriana-base-orange);
+  --color-yuriana-yellow: var(--yuriana-base-yellow);
+  --color-yuriana-green: var(--yuriana-base-green);
+  --color-yuriana-red: var(--yuriana-base-red);
+  --color-yuriana-warning: var(--yuriana-base-warning);
+  
+  /* Mapeo de Colores de Componentes */
+  --color-yuriana-card-border: var(--yuriana-card-border);
+  --color-yuriana-input-text: var(--yuriana-input-text);
+  --color-yuriana-input-placeholder: var(--yuriana-input-placeholder);
+
+  /* Re-mapeo para componentes de la carpeta ui/ (Shadcn) */
+  --color-primary: var(--yuriana-base-orange);
+  --color-primary-foreground: #FFFFFF;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-border: var(--border);
   --color-input: var(--input);
-  --color-ring: #E64D24; /* Anillo de enfoque naranja */
+  --color-ring: var(--yuriana-base-orange);
 
-  /* --- RADIOS --- */
+  /* Radios de curvatura uniformes */
   --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-sm: calc(var(--radius) - 8px);
 }
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --radius: 0.5rem;
-}
-
-/* ... resto del archivo (body, dark mode, etc) ... */
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --border: #1e293b;
-    --input: #1e293b;
-  }
-}
-
+/* ==========================================================================
+   3. ESTILOS BASE DE LA APLICACIÓN
+   ========================================================================== */
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background-color: var(--yuriana-layout-bg);
+  color: var(--yuriana-base-gray-dark);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+/* Estilos globales para inputs nativos basados en tus especificaciones */
+input, textarea {
+  color: var(--yuriana-input-text) !important;
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--yuriana-input-placeholder) !important;
+  opacity: 1;
 }

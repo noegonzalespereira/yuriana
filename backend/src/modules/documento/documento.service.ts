@@ -57,6 +57,23 @@ export class DocumentoService {
   
   async create(createDocumentoDto: CreateDocumentoDto,file: Express.Multer.File,userId: number): Promise<Documento> {
 
+    const buscarExistente = await this.documentoRepository.findOne({
+      where: {
+        id_requisito: createDocumentoDto.id_requisito,
+        id_conductor: createDocumentoDto.id_conductor ?? undefined,
+        id_unidad: createDocumentoDto.id_unidad ?? undefined,
+        id_servicio: createDocumentoDto.id_servicio ?? undefined,
+        status: true
+      }
+    });
+    if (buscarExistente) {
+      console.log(`Documento existente detectado (ID: ${buscarExistente.id_documento}). Derivando a actualización de expediente...`);
+      const dtoUpdate: UpdateDocumentoDto = {
+        fecha_vencimiento: createDocumentoDto.fecha_vencimiento
+      };
+      return this.update(buscarExistente.id_documento, dtoUpdate, file, userId);
+    }
+
     if (!file) {
       throw new BadRequestException('El archivo del documento es obligatorio');
     }
@@ -243,18 +260,20 @@ export class DocumentoService {
 
 
 
-  async update(id: number,updateDocumentoDto: UpdateDocumentoDto,file: Express.Multer.File,userId: number): Promise<Documento> {
+  async update(id: number, updateDocumentoDto: UpdateDocumentoDto, file: Express.Multer.File, userId: number): Promise<Documento> {
     const documento = await this.findOne(id);
 
     let url_documento = documento.url_documento;
     let tipo_documento = documento.tipo_documento;
 
+    // PERMITIR ACTUALIZAR POR SEPARADO: Si no viene archivo, omitimos la carga en Cloudinary
     if (file) {
       const tiposPermitidos = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
       if (!tiposPermitidos.includes(file.mimetype)) {
         throw new BadRequestException('Solo se permiten archivos PDF, JPG o PNG');
       }
 
+      // Eliminamos el archivo anterior de forma limpia usando el destructor optimizado
       if (documento.url_documento) {
         await this.cloudinaryService.eliminarArchivo(documento.url_documento);
       }
@@ -265,12 +284,12 @@ export class DocumentoService {
       tipo_documento = file.mimetype;
     }
 
+    // Sincronizamos la fecha de vencimiento solo si el DTO la incluye
     const fecha_vencimiento = updateDocumentoDto.fecha_vencimiento
       ? new Date(updateDocumentoDto.fecha_vencimiento)
       : documento.fecha_vencimiento;
 
     Object.assign(documento, {
-      ...updateDocumentoDto,
       url_documento,
       tipo_documento,
       fecha_vencimiento,
@@ -278,10 +297,11 @@ export class DocumentoService {
     });
 
     const actualizado = await this.documentoRepository.save(documento);
+    
     return {
       ...actualizado,
       ...this.calcularEstado(actualizado.fecha_vencimiento),
-    };
+    } as any;
   }
 
   async remove(id: number, userId: number): Promise<Documento> {

@@ -12,12 +12,13 @@ import {
 } from 'typeorm';
 import { Persona } from "../../persona/entities/persona.entity";
 @Entity('cliente')
+@Index(['codigo_cliente'], {unique: true , where: '"status" = true'})
+
 export class Cliente {
     @PrimaryGeneratedColumn()
     id_cliente!: number;
 
     @Column({nullable: true})
-    @Index({ unique: true })
     codigo_cliente!: string;
 
     @Column()

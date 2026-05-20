@@ -42,7 +42,8 @@ export class ClienteService {
       .leftJoinAndSelect('cliente.persona', 'persona')
       .where('cliente.status = :status', { status: true });
     if (filters.codigo_cliente){
-      query.andWhere('cliente.codigo_cliente ILIKE :codigo_cliente', { codigo_cliente: `%${filters.codigo_cliente.toUpperCase()}%` });
+      const codigo = filters.codigo_cliente.trim().toUpperCase();
+      query.andWhere('cliente.codigo_cliente ILIKE :codigo_cliente', { codigo_cliente: `%${codigo}%` });
     }
     if (filters.ci){
       query.andWhere('persona.ci = :ci', { ci: filters.ci });
@@ -50,6 +51,7 @@ export class ClienteService {
     if (filters.nombre){
       query.andWhere('persona.nombre ILIKE :nombre', { nombre: `%${filters.nombre}%` });
     }
+    query.orderBy('cliente.id_cliente', 'DESC');
     return query.getMany();
   
     

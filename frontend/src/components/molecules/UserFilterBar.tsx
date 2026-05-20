@@ -1,4 +1,3 @@
-// src/components/molecules/UserFilterBar.tsx
 import { FilterSelect } from "../atoms/FilterSelect";
 import { Rol, EstadoUsuario } from "@/types/auth.types";
 

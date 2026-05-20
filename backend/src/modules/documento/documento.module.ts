@@ -5,6 +5,7 @@ import { RequisitoDocumentoModule } from '../requisito-documento/requisito-docum
 import { CloudinaryModule } from '../../cloudinary/cloudinary.module';
 import { Documento } from './entities/documento.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 
 @Module({
   imports:[

@@ -1,6 +1,8 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { RequisitoDocumento } from "../../requisito-documento/entities/requisito-documento.entity";
-
+import { Servicio } from "../../servicio/entities/servicio.entity";
+import { Conductor } from "../../conductor/entities/conductor.entity";
+import { Unidad } from "../../unidad/entities/unidad.entity";
 @Entity('documento')
 export class Documento {
     @PrimaryGeneratedColumn()
@@ -22,11 +24,23 @@ export class Documento {
     @Column({ nullable: true , type: 'date'})
     fecha_vencimiento?: Date;
 
+    @ManyToOne(() => Conductor, { nullable: true, onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'id_conductor' })
+    conductor?: Conductor;
+
     @Column({ nullable: true })
     id_conductor?: number;
 
+    @ManyToOne(() => Unidad, { nullable: true, onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'id_unidad' })
+    unidad?: Unidad;
+
     @Column({ nullable: true })
     id_unidad?: number;
+
+    @ManyToOne(() => Servicio, (servicio) => servicio.documentos, { nullable: true, onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'id_servicio' })
+    servicio?: Servicio;
 
     @Column({ nullable: true })
     id_servicio?: number;

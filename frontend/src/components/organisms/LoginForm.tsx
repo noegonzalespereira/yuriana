@@ -11,7 +11,6 @@ export const LoginForm = () => {
   const { register, handleSubmit } = useForm();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
 
   const onSubmit = async (data: any) => {
     setLoading(true);
@@ -26,9 +25,9 @@ export const LoginForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="bg-[var(--yuriana-base-white)] p-8 rounded-3xl shadow-2xl w-full max-w-md space-y-6 border border-slate-100">
       {error && (
-        <div className="bg-red-100 text-red-600 p-3 rounded-lg text-sm text-center font-medium">
+        <div className="bg-red-50 text-[var(--yuriana-base-error)] p-3 rounded-xl text-xs text-center font-black uppercase border border-red-200 animate-pulse">
           {error}
         </div>
       )}
@@ -49,7 +48,7 @@ export const LoginForm = () => {
       <div className="pt-4 flex justify-center">
         <Button 
           disabled={loading}
-          className="w-2/3 bg-yuriana-yellow hover:bg-yuriana-yellow/90 text-white rounded-full py-6 text-xl font-bold"
+          className="w-2/3 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-[var(--yuriana-base-black)] rounded-full py-6 text-lg font-black uppercase tracking-wider shadow-lg transition-transform active:scale-95"
         >
           {loading ? <Loader className="animate-spin" /> : "Ingresar"}
         </Button>

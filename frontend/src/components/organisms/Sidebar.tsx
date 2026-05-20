@@ -1,7 +1,7 @@
 "use client";
 import { Logo } from "@/components/atoms/Logo";
 import { SidebarLink } from "@/components/molecules/SidebarLink";
-import { UserCard } from "@/components/molecules/UseCard";
+import { UserCard } from "@/components/molecules/UserCard";
 import { 
   LayoutDashboard, 
   Truck, 
@@ -30,7 +30,7 @@ const menuOptions = [
 
 export const Sidebar = () => {
   return (
-    <aside className="w-72 bg-yuriana-orange min-h-screen flex flex-col shadow-2xl relative z-50">
+    <aside className="w-72 bg-[var(--yuriana-sidebar-bg)] min-h-screen flex flex-col shadow-2xl relative z-50">
       {/* Contenedor del Logo */}
       <div className="py-10 flex justify-center">
         <Logo size={150} />
@@ -48,7 +48,7 @@ export const Sidebar = () => {
         ))}
       </nav>
 
-      {/* Sección de Usuario e Información Inferior */}
+      {/* Sección de Usuario Inferior */}
       <div className="p-4 border-t border-white/10">
         <UserCard />
       </div>

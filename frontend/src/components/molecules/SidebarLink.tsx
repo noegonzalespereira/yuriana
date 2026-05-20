@@ -11,7 +11,6 @@ interface SidebarLinkProps {
 
 export const SidebarLink = ({ icon, label, href }: SidebarLinkProps) => {
   const pathname = usePathname();
-  // Verificamos si la ruta actual coincide con el link para iluminarlo
   const active = pathname === href;
 
   return (
@@ -20,7 +19,7 @@ export const SidebarLink = ({ icon, label, href }: SidebarLinkProps) => {
       className={`
         group flex items-center gap-4 px-4 py-3 rounded-l-full transition-all duration-300
         ${active 
-          ? 'bg-white/10 border-r-4 border-yuriana-yellow text-white shadow-md' 
+          ? 'bg-white/10 border-r-4 border-[var(--yuriana-base-yellow)] text-white shadow-md' 
           : 'text-white/70 hover:bg-white/5 hover:text-white'
         }
       `}

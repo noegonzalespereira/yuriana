@@ -6,13 +6,13 @@ interface UserStatusBadgeProps {
 
 export const UserStatusBadge = ({ status }: UserStatusBadgeProps) => {
   const styles = {
-    [EstadoUsuario.ACTIVO]: "bg-green-100 text-green-700 border-green-200",
-    [EstadoUsuario.INACTIVO]: "bg-red-100 text-red-700 border-red-200",
+    [EstadoUsuario.ACTIVO]: "bg-green-50 text-emerald-600 border-emerald-200",
+    [EstadoUsuario.INACTIVO]: "bg-red-50 text-[var(--yuriana-base-error)] border-red-200",
   };
 
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${styles[status]}`}>
-      {status.toUpperCase()}
+    <span className={`px-3 py-1 rounded-full text-xs font-black border uppercase tracking-wider ${styles[status]}`}>
+      {status}
     </span>
   );
 };

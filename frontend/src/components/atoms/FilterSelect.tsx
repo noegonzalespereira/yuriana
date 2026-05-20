@@ -1,4 +1,3 @@
-// src/components/atoms/FilterSelect.tsx
 interface Option {
   value: string;
   label: string;
@@ -14,11 +13,11 @@ export const FilterSelect = ({ placeholder, options, onChange }: FilterSelectPro
   return (
     <select 
       onChange={(e) => onChange(e.target.value)}
-      className="bg-white border-2 border-gray-100 text-gray-700 text-sm rounded-xl px-4 py-2 outline-none focus:border-yuriana-orange transition-colors cursor-pointer shadow-sm"
+      className="bg-[var(--yuriana-input-bg)] border border-[var(--yuriana-input-border)] text-[var(--yuriana-base-black)] text-sm rounded-xl px-4 py-2 outline-none focus:border-[var(--yuriana-input-border-focus)] transition-colors cursor-pointer shadow-sm font-medium"
     >
-      <option value="">{placeholder}</option>
+      <option value="" className="text-[var(--yuriana-input-placeholder)]">{placeholder}</option>
       {options.map((opt) => (
-        <option key={opt.value} value={opt.value}>
+        <option key={opt.value} value={opt.value} className="text-[var(--yuriana-base-black)]">
           {opt.label}
         </option>
       ))}
