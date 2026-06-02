@@ -1,179 +1,143 @@
 "use client";
+
 import { useEffect, useState, useCallback } from "react";
 import { ModuleHeader } from "@/components/organisms/ModuleHeader";
+import { ColaboradorTable } from "@/components/organisms/ColaboradorTable";
+import { ColaboradorForm } from "@/components/organisms/ColaboradorForm"; // Cambiado a Form
 import { FilterSelect } from "@/components/atoms/FilterSelect";
-import { AsignacionTable } from "@/components/organisms/AsignacionTable";
-import { AsignacionForm } from "@/components/organisms/AsignacionForm";
-import { getAsignaciones, createAsignacion, desengancharUnidad } from "@/lib/api/asignacion.api";
-import { Asignacion, EstadoAsignacion } from "@/types/asignacion.types";
-import { toast } from "sonner";
-import { AlertCircle } from "lucide-react";
+import { 
+  getColaboradores, 
+  deleteColaborador, 
+  createColaborador, 
+  updateColaborador 
+} from "@/lib/api/colaborador.api";
+import { Colaborador, TipoColaborador } from "@/types/colaborador.types";
 
-export default function AsignacionesPage() {
+export default function ColaboradoresPage() {
+  // --- ESTADOS ---
   const [view, setView] = useState<'list' | 'form'>('list');
-  const [loading, setLoading] = useState(true);
-  const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
-  
-  // Sincronización del estado de filtros unificado
-  const [filters, setFilters] = useState({ 
-    estado_asignacion: "activo", 
-    ci_conductor: "", 
-    placa_tracto: "", 
-    placa_remolque: "" 
-  });
-  
-  const [selectedAsignacion, setSelectedAsignacion] = useState<Asignacion | null>(null);
+  const [data, setData] = useState<Colaborador[]>([]);
+  const [filters, setFilters] = useState({ nombre: "", ciudad: "", tipo_colaborador: "" });
+  const [selectedColab, setSelectedColab] = useState<Colaborador | null>(null);
   const [isReadOnly, setIsReadOnly] = useState(false);
-  
-  const [showDesengancheModal, setShowDesengancheModal] = useState(false);
-  const [idParaDesenganchar, setIdParaDesenganchar] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const syncAsignaciones = useCallback(async () => {
+  // --- CARGA DE DATOS ---
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await getAsignaciones(filters);
-      setAsignaciones(res);
-    } catch (err: any) {
-      console.error(err);
-      toast.error("Error al sincronizar el mapa logístico de enganches.");
+      const res = await getColaboradores(filters as any);
+      setData(res);
+    } catch (error) {
+      console.error("Error cargando colaboradores:", error);
     } finally {
       setLoading(false);
     }
   }, [filters]);
 
   useEffect(() => {
-    syncAsignaciones();
-  }, [syncAsignaciones]);
+    loadData();
+  }, [loadData]);
 
-  // BUSCADOR UNIVERSAL: Al escribir en la barra de cabecera, búscame en todas las variables simultáneamente
-  const handleSearchUniversal = (valor: string) => {
-    const termino = valor.trim();
-    setFilters(prev => ({
-      ...prev,
-      ci_conductor: termino,
-      placa_tracto: termino,
-      placa_remolque: termino
-    }));
+  // --- MANEJADORES ---
+  const handleDelete = async (ci: number) => {
+    if (confirm("¿Estás seguro de eliminar este colaborador?")) {
+      await deleteColaborador(ci);
+      loadData();
+    }
   };
 
-  const handleFormSubmit = async (payload: { ci_conductor: number; placa_tracto: string; placa_remolque: string }) => {
+  const handleFormSubmit = async (formData: any) => {
     try {
-      const response = await createAsignacion(payload);
-      
-      toast.success("Operación Exitosa", {
-        description: "El enganche transaccional ha sido registrado con éxito en la flota.",
-      });
-
-      if (response.alertas && response.alertas.length > 0) {
-        response.alertas.forEach((alerta: any) => {
-          toast.warning("Alerta Documental Preventiva", {
-            description: alerta.mensaje,
-            duration: 8000
-          });
-        });
+      if (selectedColab) {
+        // En tu backend usas el CI para actualizar
+        await updateColaborador(selectedColab.persona.ci, formData);
+      } else {
+        await createColaborador(formData);
       }
-
-      setView('list');
-      // Reseteamos el buscador al volver al listado
-      setFilters({ estado_asignacion: "activo", ci_conductor: "", placa_tracto: "", placa_remolque: "" });
+      setView('list'); // Volver a la tabla
+      loadData();
     } catch (error: any) {
-      console.error(error);
-      toast.error("Fallo de Validación", { description: error.message || "Unidades o tripulación no disponibles." });
+      console.error("Error en el servidor:", error);
+      alert("Error al procesar la solicitud");
     }
+  };
+
+  const handleOpenCreate = () => {
+    setSelectedColab(null);
+    setIsReadOnly(false);
+    setView('form');
+  };
+
+  const handleOpenEdit = (colab: Colaborador) => {
+    setSelectedColab(colab);
+    setIsReadOnly(false);
+    setView('form');
+  };
+
+  const handleOpenView = (colab: Colaborador) => {
+    setSelectedColab(colab);
+    setIsReadOnly(true);
+    setView('form');
   };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
+      {/* Encabezado dinámico según la vista */}
       <ModuleHeader 
-        title={view === 'list' ? "Gestión de asignaciones" : selectedAsignacion ? (isReadOnly ? "Detalles del Enganche" : "Modificar Asignación") : "Registrar Nueva Asignación"}
-        subtitle={view === 'list' ? "Controle el acoplamiento y emparejamiento de transportes de carga" : "Vincule la tripulación con las unidades de arrastre autorizadas"}
-        searchPlaceholder="Buscar por CI, tracto o remolque..."
-        onSearch={view === 'list' ? handleSearchUniversal : undefined} // Conectamos el buscador de la maqueta
-        buttonLabel={view === 'list' ? "Nueva Asignación" : undefined}
-        onButtonClick={() => { 
-          setSelectedAsignacion(null); 
-          setIsReadOnly(false); 
-          setView('form'); 
-        }}
+        title={view === 'list' ? "Gestión de Colaboradores" : selectedColab ? (isReadOnly ? "Datos del Colaborador" : "Editar Colaborador") : "Registrar Nuevo Colaborador"}
+        subtitle={view === 'form' ? "Complete el formulario para añadir o modificar un colaborador" : undefined}
+        onSearch={view === 'list' ? (v) => setFilters({...filters, nombre: v}) : undefined}
+        buttonLabel={view === 'list' ? "Nuevo Colaborador" : undefined}
+        onButtonClick={handleOpenCreate}
       />
 
       {view === 'list' ? (
-        <div className="bg-white rounded-3xl shadow-xl p-6 border border-border min-h-[400px] animate-in fade-in duration-300">
+        /* VISTA DE TABLA */
+        <div className="bg-white rounded-3xl shadow-xl p-6 border border-border animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="font-bold text-gray-700 uppercase text-sm tracking-tighter px-2">Listado de Asignaciones</h2>
+            <h2 className="font-bold text-gray-700 uppercase tracking-tighter">Listado de Colaboradores</h2>
             <div className="flex gap-4">
-              {/* Opciones del selector de estados corregido a Activos y Asignados */}
-              <FilterSelect 
-                placeholder="Estado" 
-                options={[
-                  { value: "activo", label: "Activos " }, 
-                  { value: "asignado", label: "Asignados " }
-                ]} 
-                onChange={(v) => setFilters({ ...filters, estado_asignacion: v })} 
-              />
+               <FilterSelect 
+                 placeholder="Ciudad" 
+                 options={[
+                   {value:"Sucre", label:"Sucre"}, 
+                   {value:"Oruro", label:"Oruro"},
+                   {value:"Potosi", label:"Potosí"},
+                   {value:"Santa Cruz", label:"Santa Cruz"}
+                 ]} 
+                 onChange={(v) => setFilters({...filters, ciudad: v})}
+               />
+               <FilterSelect 
+                 placeholder="Tipo" 
+                 options={[
+                   {value: TipoColaborador.ATA, label: "ATA"}, 
+                   {value: TipoColaborador.DESPACHANTE, label: "Despachante"}
+                 ]} 
+                 onChange={(v) => setFilters({...filters, tipo_colaborador: v as any})}
+               />
             </div>
           </div>
 
           {loading ? (
-            <div className="py-24 text-center text-gray-400 italic text-sm font-medium">Consultando base de datos logísticos...</div>
+            <div className="py-20 text-center text-gray-400 italic">Cargando colaboradores...</div>
           ) : (
-            <AsignacionTable 
-              data={asignaciones} 
-              onView={(asig) => { setSelectedAsignacion(asig); setIsReadOnly(true); setView('form'); }} 
-              onEdit={(asig) => { setSelectedAsignacion(asig); setIsReadOnly(false); setView('form'); }}
-              onDelete={(id) => { setIdParaDesenganchar(id); setShowDesengancheModal(true); }}
+            <ColaboradorTable 
+              data={data} 
+              onDelete={handleDelete}
+              onEdit={handleOpenEdit}
+              onView={handleOpenView}
             />
           )}
         </div>
       ) : (
-        <AsignacionForm 
-          initialData={selectedAsignacion} 
-          isReadOnly={isReadOnly} 
-          onSubmit={handleFormSubmit} 
-          onCancel={() => setView('list')} 
+        /* VISTA DE FORMULARIO (Toda la página) */
+        <ColaboradorForm 
+          initialData={selectedColab}
+          isReadOnly={isReadOnly}
+          onSubmit={handleFormSubmit}
+          onCancel={() => setView('list')}
         />
-      )}
-
-      {/* MODAL CON IDENTIDAD CORPORATIVA NARANJA-AMARILLO VIVO */}
-      {showDesengancheModal && (
-        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center z-[100] animate-in fade-in duration-300">
-          <div className="bg-white p-8 rounded-[2.5rem] border-2 border-[var(--yuriana-base-orange)] shadow-2xl max-w-md w-full text-center space-y-6 mx-4">
-            <div className="w-16 h-16 bg-orange-50 text-[var(--yuriana-base-orange)] rounded-2xl flex items-center justify-center mx-auto border border-orange-100 shadow-inner">
-              <AlertCircle size={32} className="animate-bounce" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-black text-slate-800 uppercase tracking-tight text-lg">¿Eliminar Asignación?</h3>
-              <p className="text-xs text-slate-500 leading-relaxed max-w-[320px] mx-auto">
-                Al procesar la eliminación del enganche, el chofer y los vehículos se desligarán de inmediato y volverán al estado <span className="text-emerald-600 font-bold uppercase">Disponible</span>.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <button type="button" onClick={() => { setShowDesengancheModal(false); setIdParaDesenganchar(null); }} className="w-full py-3.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-xl font-bold text-xs uppercase tracking-wider transition-all">
-                Cancelar
-              </button>
-              <button 
-                type="button" 
-                onClick={async () => {
-                  if (idParaDesenganchar) {
-                    try {
-                      await desengancharUnidad(idParaDesenganchar);
-                      toast.success("Asignación eliminada y unidades liberadas.");
-                      syncAsignaciones();
-                    } catch { 
-                      toast.error("Error al procesar la baja de la asignación."); 
-                    } finally { 
-                      setShowDesengancheModal(false); 
-                      setIdParaDesenganchar(null); 
-                    }
-                  }
-                }} 
-                className="w-full py-3.5 bg-[var(--yuriana-base-yellow)] text-[var(--yuriana-base-black)] hover:bg-amber-500 rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md"
-              >
-                Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
