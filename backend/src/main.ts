@@ -13,7 +13,7 @@ async function bootstrap() {
     transform: true,             
   }));
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
   });
   const port = process.env.BACKEND_PORT || 4000;
   await app.listen(port);
