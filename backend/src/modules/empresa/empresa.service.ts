@@ -59,9 +59,10 @@ export class EmpresaService {
       logoUrl=url;
     }
 
-    Object.assign(empresa,{
-
-      ...updateEmpresaDto, UpdatedId: userId, logo_url: logoUrl
+    Object.assign(empresa, {
+      ...updateEmpresaDto,
+      UpdatedId: userId,
+      ...(logoUrl && { logo_url: logoUrl }),
     });
     return this.empresaRepository.save(empresa);
   }
