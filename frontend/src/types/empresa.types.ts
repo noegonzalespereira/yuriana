@@ -6,5 +6,6 @@ export interface Empresa {
   direccion: string;
   num_paut: string;
   num_permiso_internacional: string;
+  correo?: string;
   logo_url?: string;
 }

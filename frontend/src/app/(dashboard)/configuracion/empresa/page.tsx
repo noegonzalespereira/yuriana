@@ -30,6 +30,7 @@ export default function EmpresaPage() {
           direccion: data.direccion,
           num_paut: data.num_paut,
           num_permiso_internacional: data.num_permiso_internacional,
+          correo: data.correo ?? "",
         });
         if (data.logo_url) setLogoPreview(data.logo_url);
       }
@@ -90,6 +91,7 @@ export default function EmpresaPage() {
         direccion: empresa.direccion,
         num_paut: empresa.num_paut,
         num_permiso_internacional: empresa.num_permiso_internacional,
+        correo: empresa.correo ?? "",
       });
       setLogoFile(null);
       setLogoPreview(empresa.logo_url ?? null);
@@ -145,6 +147,19 @@ export default function EmpresaPage() {
                   rules={{ required: "El teléfono es obligatorio" }}
                   placeholder="Ej. +591 70000000"
                   error={errors.telefono}
+                />
+                <ModuleField
+                  label="Correo Electrónico"
+                  name="correo"
+                  register={register}
+                  rules={{
+                    pattern: {
+                      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                      message: "Ingrese un correo válido",
+                    },
+                  }}
+                  placeholder="Ej. contacto@yuriana.com"
+                  error={errors.correo}
                 />
                 <ModuleField
                   label="Dirección"

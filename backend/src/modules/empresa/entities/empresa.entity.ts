@@ -23,6 +23,9 @@ export class Empresa {
     @Column()
     num_permiso_internacional!: string;
 
+    @Column({ nullable: true })
+    correo!: string;
+
     @Column({type: 'text'})
     logo_url!: string;
 

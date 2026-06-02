@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { IsEmail, IsNotEmpty, IsOptional, IsString } from "class-validator";
 
 export class CreateEmpresaDto {
     
@@ -25,6 +25,10 @@ export class CreateEmpresaDto {
     @IsNotEmpty({message: 'El número de permiso internacional es obligatorio'})
     @IsString()
     num_permiso_internacional!: string;
-    
-    
+
+    @IsOptional()
+    @IsEmail({}, { message: 'El correo debe ser un email válido' })
+    correo?: string;
+
+
 }
