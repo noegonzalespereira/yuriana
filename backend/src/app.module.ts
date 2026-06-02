@@ -39,14 +39,17 @@ import { CierreMensualModule } from './modules/cierre-mensual/cierre-mensual.mod
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        host: 'postgres', 
-        port: configService.get<number>('POSTGRES_PORT'),
-        username: configService.get<string>('POSTGRES_USER'),
-        password: configService.get<string>('POSTGRES_PASSWORD'),
-        database: configService.get<string>('POSTGRES_DB'),
+        host: configService.get<string>('DATABASE_HOST'),      
+        port: configService.get<number>('DATABASE_PORT'),
+        username: configService.get<string>('DATABASE_USER'),
+        password: configService.get<string>('DATABASE_PASSWORD'),
+        database: configService.get<string>('DATABASE_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true, // ⚠️ solo desarrollo
-        logging: true,     // muestra queries SQL en consola
+        synchronize: false, // ⚠️ solo desarrollo
+        logging: false,     // muestra queries SQL en consola
+        ssl: {
+          rejectUnauthorized: false  // ← necesario para Supabase
+        }
       }),
       inject: [ConfigService],
     }),
