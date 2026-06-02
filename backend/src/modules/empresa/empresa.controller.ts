@@ -7,17 +7,16 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles} from '../../common/decorators/roles.decorator';
 import { UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('empresa')
 export class EmpresaController {
   constructor(private readonly empresaService: EmpresaService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @UseInterceptors(FileInterceptor('logo'))
-
-  async create(@Body() createEmpresaDto: CreateEmpresaDto,@UploadedFile() file: Express.Multer.File, @Request() req) {
-    return this.empresaService.create(createEmpresaDto, file,req.user.id);
+  async create(@Body() createEmpresaDto: CreateEmpresaDto, @UploadedFile() file: Express.Multer.File, @Request() req) {
+    return this.empresaService.create(createEmpresaDto, file, req.user.id);
   }
 
   @Get()
@@ -31,12 +30,10 @@ export class EmpresaController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @UseInterceptors(FileInterceptor('logo'))
-
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateEmpresaDto: UpdateEmpresaDto,@UploadedFile() file: Express.Multer.File, @Request() req) {
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateEmpresaDto: UpdateEmpresaDto, @UploadedFile() file: Express.Multer.File, @Request() req) {
     return this.empresaService.update(id, updateEmpresaDto, file, req.user.id);
   }
-
-  
 }

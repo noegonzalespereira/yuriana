@@ -1,5 +1,5 @@
 import { LoginForm } from "@/components/organisms/LoginForm";
-import Image from "next/image";
+import { DynamicLogo } from "@/components/molecules/DynamicLogo";
 
 export default function LoginPage() {
   return (
@@ -8,11 +8,11 @@ export default function LoginPage() {
         <h1 className="text-4xl font-black text-white uppercase tracking-wider drop-shadow-md">
           Yuriana S.R.L.
         </h1>
-        <div className="bg-[var(--yuriana-base-white)] rounded-full p-6 w-44 h-44 flex items-center justify-center mx-auto shadow-2xl border-4 border-white/20 animate-in fade-in zoom-in-75 duration-500">
-          <Image src="/logo-yuriana.png" alt="Yuriana Logo" width={130} height={130} priority />
+        <div className="animate-in fade-in zoom-in-75 duration-500 flex justify-center">
+          <DynamicLogo size={150} />
         </div>
       </div>
-      
+
       <LoginForm />
     </main>
   );

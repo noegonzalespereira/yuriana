@@ -1,18 +1,18 @@
 "use client";
-import { Logo } from "@/components/atoms/Logo";
+import { DynamicLogo } from "@/components/molecules/DynamicLogo";
 import { SidebarLink } from "@/components/molecules/SidebarLink";
 import { UserCard } from "@/components/molecules/UserCard";
-import { 
-  LayoutDashboard, 
-  Truck, 
-  Users, 
-  UserCircle, 
-  Handshake, 
-  Map, 
-  ClipboardCheck, 
-  TrendingUp, 
-  Receipt, 
-  FileCheck 
+import {
+  LayoutDashboard,
+  Truck,
+  Users,
+  UserCircle,
+  Handshake,
+  Map,
+  ClipboardCheck,
+  TrendingUp,
+  Receipt,
+  FileCheck
 } from "lucide-react";
 
 const menuOptions = [
@@ -33,7 +33,7 @@ export const Sidebar = () => {
     <aside className="w-72 bg-[var(--yuriana-sidebar-bg)] min-h-screen flex flex-col shadow-2xl relative z-50">
       {/* Contenedor del Logo */}
       <div className="py-10 flex justify-center">
-        <Logo size={150} />
+        <DynamicLogo size={150} />
       </div>
 
       {/* Menú de Navegación */}
