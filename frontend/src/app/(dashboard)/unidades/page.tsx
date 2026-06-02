@@ -1,0 +1,285 @@
+"use client";
+import { useEffect, useState, useCallback } from "react";
+import { ModuleHeader } from "@/components/organisms/ModuleHeader";
+import { StatCard } from "@/components/atoms/StatCard";
+import { FilterSelect } from "@/components/atoms/FilterSelect";
+import { UnidadTable } from "@/components/organisms/UnidadTable";
+import { UnidadForm } from "@/components/organisms/UnidadForm";
+import { ModuleAlertsPanel } from "@/components/organisms/ModuleAlertsPanel";
+import { 
+  getUnidades, 
+  createUnidad, 
+  updateUnidad, 
+  deleteUnidad,
+  getCategoriasEntidad
+} from "@/lib/api/unidad.api";
+import { apiFetch } from "@/lib/api";
+import { toast } from "sonner";
+import { Truck, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
+import { Unidad, EstadoUnidad } from "@/types/unidad.types";
+
+export default function UnidadesPage() {
+  const [view, setView] = useState<'list' | 'form'>('list');
+  const [loading, setLoading] = useState(true);
+  const [unidades, setUnidades] = useState<Unidad[]>([]);
+  const [categorias, setCategorias] = useState<any[]>([]);
+  const [selectedUnidad, setSelectedUnidad] = useState<Unidad | null>(null);
+  const [isReadOnly, setIsReadOnly] = useState(false);
+
+  const [vencidos, setVencidos] = useState<any[]>([]);
+  const [porVencer, setPorVencer] = useState<any[]>([]);
+  const [filters, setFilters] = useState({ placa: "", id_categoria: "", estado_unidad: "", estado_documentos: "" });
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [placaParaEliminar, setPlacaParaEliminar] = useState<string | null>(null);
+
+  const syncPageData = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      const resUnidades = await getUnidades(filters);
+      setUnidades(resUnidades);
+
+      setVencidos(resUnidades.filter((u: Unidad) => u.estado === 'vencido').map((u: Unidad) => ({
+        id_documento: u.id_unidad,
+        nombre_documento: u.documento_critico || "SOAT / Inspección",
+        entityId: u.placa,
+        entityName: `Placa: ${u.placa}`
+      })));
+
+      setPorVencer(resUnidades.filter((u: Unidad) => u.estado === 'por_vencer').map((u: Unidad) => ({
+        id_documento: u.id_unidad,
+        nombre_documento: u.documento_critico || "RUAT",
+        entityId: u.placa,
+        entityName: `Placa: ${u.placa}`,
+        dias_restantes: 15
+      })));
+
+    } catch (err) {
+      console.error(err);
+      toast.error("Error operacional al sincronizar la unidad.");
+    } finally {
+      setLoading(false);
+    }
+  }, [filters]);
+
+  useEffect(() => {
+    syncPageData();
+
+    // Consumimos a través de la capa API limpia de unidades con validación de arreglos integrada
+    getCategoriasEntidad()
+      .then(data => {
+        if (Array.isArray(data)) {
+          const filtradas = data.filter((c: any) => 
+            ['tracto', 'semiremolque', 'remolque'].includes(c.tipo_categoria.toLowerCase())
+          );
+          setCategorias(filtradas);
+        } else {
+          console.error("Estructura de respuesta no válida para categorías:", data);
+          setCategorias([]);
+        }
+      })
+      .catch(err => {
+        console.error("Error cargando el catálogo de categorías:", err);
+        setCategorias([]);
+      });
+  }, [syncPageData]);
+
+const handleFormSubmitUnificado = async (
+  payloadUnidad: any,
+  archivos: Record<number, File>,
+  fechas: Record<number, string>,
+  fotosFlota: File[],
+  fotosEliminar: number[] = []
+) => {
+  let unidadProvisionalPlaca: string | null = null;
+
+  try {
+    let unidadPersistida: Unidad;
+
+    if (selectedUnidad) {
+      // ─── MODO EDICIÓN ─────────────────────────────────────────────
+      const { placa: _omitir, ...datosParaActualizar } = payloadUnidad;
+
+      // SIEMPRE FormData — FilesInterceptor/Multer no puede parsear JSON
+      // @Transform en el DTO convierte los strings a numbers automáticamente
+      const formData = new FormData();
+      Object.keys(datosParaActualizar).forEach(key => {
+        const valor = datosParaActualizar[key];
+        if (valor !== undefined && valor !== null) {
+          formData.append(key, valor.toString());
+        }
+      });
+      fotosFlota.forEach(file => formData.append("fotos", file));
+
+      if (fotosEliminar.length > 0) {
+        formData.append("fotos_eliminar", fotosEliminar.join(','));
+      }
+
+      unidadPersistida = await updateUnidad(selectedUnidad.placa, formData);
+      console.log("Unidad actualizada.");
+
+    } else {
+      // ─── MODO CREACIÓN ────────────────────────────────────────────
+      const formData = new FormData();
+      Object.keys(payloadUnidad).forEach(key => {
+        const valor = payloadUnidad[key];
+        if (valor !== undefined && valor !== null) {
+          formData.append(key, valor.toString());
+        }
+      });
+      fotosFlota.forEach(file => formData.append("fotos", file));
+
+      unidadPersistida = await createUnidad(formData);
+      unidadProvisionalPlaca = unidadPersistida.placa;
+      console.log("Unidad creada con placa:", unidadProvisionalPlaca);
+    }
+
+    // ─── DOCUMENTOS ───────────────────────────────────────────────
+    const idUnidadAsignado = unidadPersistida.id_unidad;
+    const todosIdsRequisitos = Array.from(new Set([
+      ...Object.keys(archivos).map(Number),
+      ...Object.keys(fechas).map(Number)
+    ]));
+
+    for (const idReqNum of todosIdsRequisitos) {
+      const fileObj = archivos[idReqNum];
+      const fechaVenc = fechas[idReqNum];
+      if (!fileObj && !fechaVenc) continue;
+
+      const formDocumento = new FormData();
+      formDocumento.append("id_requisito", idReqNum.toString());
+      formDocumento.append("id_unidad", idUnidadAsignado.toString());
+      if (fileObj) formDocumento.append("file", fileObj);
+      if (fechaVenc) formDocumento.append("fecha_vencimiento", new Date(fechaVenc).toISOString());
+
+      await apiFetch("/documento", { method: "POST", body: formDocumento });
+    }
+
+    toast.success("Operación Exitosa", {
+      description: selectedUnidad
+        ? "Los datos de la unidad se actualizaron correctamente."
+        : "Unidad registrada con éxito."
+    });
+    setView('list');
+    syncPageData();
+
+  } catch (error: any) {
+    console.error(error);
+    toast.error("Fallo de Persistencia", { description: error.message });
+
+    if (!selectedUnidad && unidadProvisionalPlaca) {
+      try { await deleteUnidad(unidadProvisionalPlaca); }
+      catch (e) { console.error("Rollback fallido:", e); }
+    }
+  }
+};
+
+  const handleOpenDeleteConfirmation = (placa: string) => {
+    setPlacaParaEliminar(placa);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (placaParaEliminar) {
+      try {
+        await deleteUnidad(placaParaEliminar);
+        toast.success("Unidad Eliminada", { description: "La unidad ha sido eliminada" });
+        syncPageData();
+      } catch (e) {
+        toast.error("No se pudo eliminar la unidad.");
+      } finally {
+        setShowDeleteModal(false);
+        setPlacaParaEliminar(null);
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto pb-10">
+      <ModuleHeader 
+        title={view === 'list' ? "Gestión de Unidades de Carga" : selectedUnidad ? (isReadOnly ? "Detalles de la Unidad" : "Editar Ficha de Unidad") : "Registrar Nueva Unidad"}
+        subtitle={view === 'list' ? "Controle el estado operativo y vigencia técnica de tractos y remolques" : "Ingrese los datos mecánicos estructurales de la flota"}
+        searchPlaceholder="Buscar unidad por placa..."
+        onSearch={view === 'list' ? (val) => setFilters({ ...filters, placa: val }) : undefined}
+        buttonLabel={view === 'list' ? "Nueva Unidad" : undefined}
+        onButtonClick={() => { setSelectedUnidad(null); setIsReadOnly(false); setView('form'); }}
+      />
+
+      {view === 'list' ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+            <StatCard label="Total Unidades en Flota" value={unidades.length} icon={<Truck size={24} />} borderColor="border-border" iconBg="bg-orange-50" iconColor="text-[var(--yuriana-base-orange)]" />
+            <StatCard label="Disponibles" value={unidades.filter(u => u.estado_unidad === EstadoUnidad.DISPONIBLE).length} icon={<CheckCircle size={24} />} borderColor="border-[var(--yuriana-base-green)]" iconBg="bg-emerald-50" iconColor="text-emerald-600" />
+            <StatCard label="En Mantenimiento Taller" value={unidades.filter(u => u.estado_unidad === EstadoUnidad.MANTENIMIENTO).length} icon={<AlertTriangle size={24} />} borderColor="border-[var(--yuriana-base-red)]" iconBg="bg-red-50" iconColor="text-[var(--yuriana-input-error)]" />
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-xl p-6 border border-border min-h-[400px]">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="font-bold text-gray-700 uppercase text-sm tracking-tighter px-2">Listado Operacional de Transporte</h2>
+              <div className="flex gap-4">
+                <FilterSelect placeholder="Tipo de Unidad" options={categorias.map(c => ({ value: c.id_categoria.toString(), label: c.tipo_categoria }))} onChange={(v) => setFilters({ ...filters, id_categoria: v })} />
+                <FilterSelect placeholder="Documentación" options={[{ value: "vencido", label: "Vencidos" }, { value: "por_vencer", label: "Por Vencer" }, { value: "vigente", label: "Vigentes" }]} onChange={(v) => setFilters({ ...filters, estado_documentos: v })} />
+                <FilterSelect placeholder="Estado" options={[{ value: "disponible", label: "Disponibles" }, { value: "en_viaje", label: "En Viaje" }, { value: "asignado", label: "Asignados" }, { value: "mantenimiento", label: "En Mantenimiento" }]} onChange={(v) => setFilters({ ...filters, estado_unidad: v })} />
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="py-24 text-center text-gray-400 italic text-sm">Consultando estado de la flota vehicular...</div>
+            ) : (
+              <UnidadTable 
+                data={unidades}
+                onDelete={handleOpenDeleteConfirmation}
+                onEdit={(u) => { setSelectedUnidad(u); setIsReadOnly(false); setView('form'); }}
+                onView={(u) => { setSelectedUnidad(u); setIsReadOnly(true); setView('form'); }}
+              />
+            )}
+          </div>
+
+          <ModuleAlertsPanel vencidos={vencidos} porVencer={porVencer} entityType="unidad" onAction={(placa) => setFilters({ ...filters, placa })} />
+        </div>
+      ) : (
+        <UnidadForm initialData={selectedUnidad} categoriasValidadas={categorias} isReadOnly={isReadOnly} onSubmit={handleFormSubmitUnificado} onCancel={() => setView('list')} />
+      )}
+
+      {/* MODAL DE CONFIRMACIÓN DE ELIMINACIÓN PREMIUM */}
+  {showDeleteModal && (
+    <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center z-[100] animate-in fade-in duration-300">
+      <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-2xl max-w-md w-full text-center space-y-6 animate-in zoom-in-95 duration-300 mx-4">
+        
+        {/* Contenedor del Icono de Alerta Estilizado */}
+        <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center mx-auto border border-rose-100/60 shadow-inner">
+          <XCircle size={32} className="animate-pulse" />
+        </div>
+
+        {/* Textos Informativos Administrativos */}
+        <div className="space-y-2">
+          <h3 className="font-black text-slate-800 uppercase tracking-tight text-lg">
+            ¿Eliminar esta Unidad?
+          </h3>
+          
+        </div>
+
+        {/* Botonería Corporativa */}
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <button 
+            type="button" 
+            onClick={() => { setShowDeleteModal(false); setPlacaParaEliminar(null); }} 
+            className="w-full py-3.5 bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60 rounded-xl font-bold text-xs uppercase tracking-wider transition-all active:scale-98"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="button" 
+            onClick={handleConfirmDelete} 
+            className="w-full py-3.5 bg-rose-500 text-white hover:bg-rose-600 rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-rose-500/10 active:scale-98"
+          >
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
+    </div>
+  );
+}

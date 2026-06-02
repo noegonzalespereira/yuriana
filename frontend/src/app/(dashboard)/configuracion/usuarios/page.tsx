@@ -1,5 +1,6 @@
 "use client";
-
+import { toast } from "sonner";
+import { XCircle } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { User, Rol } from "@/types/auth.types";
 
@@ -24,7 +25,8 @@ export default function UsuariosPage() {
   // --- NAVEGACIÓN Y COMPORTAMIENTO ---
   const [view, setView] = useState<'list' | 'form'>('list');
   const [loading, setLoading] = useState(true);
-
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [idParaEliminar, setIdParaEliminar] = useState<number | null>(null);
   // --- ESTADOS DE DATOS ---
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Rol[]>([]);
@@ -84,30 +86,49 @@ export default function UsuariosPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (confirm("¿Está seguro de que desea dar de baja a este usuario operario?")) {
-      try {
-        await deleteUsuario(id);
-        loadPageData(); 
-      } catch (error) {
-        console.error("ERROR EN PROCESO DE ELIMINACIÓN DE OPERARIO:", error);
-        alert("No se pudo dar de baja al usuario");
-      }
-    }
-  };
+  const handleOpenDeleteConfirmation = (id: number) => {
+  setIdParaEliminar(id);
+  setShowDeleteModal(true);
+};
+
+const handleConfirmDelete = async () => {
+  if (!idParaEliminar) return;
+  try {
+    await deleteUsuario(idParaEliminar);
+    toast.success("Usuario desactivado", {
+      description: "El operario fue dado de baja del sistema."
+    });
+    loadPageData();
+  } catch (error: any) {
+    toast.error("Error al eliminar", {
+      description: error.message || "No se pudo dar de baja al usuario."
+    });
+  } finally {
+    setShowDeleteModal(false);
+    setIdParaEliminar(null);
+  }
+};
 
   const handleFormSubmit = async (formData: any) => {
     try {
       if (selectedUser) {
         await updateUsuario(selectedUser.id_usuario, formData);
+        toast.success("Usuario actualizado", {
+          description: "Los datos del operario fueron actualizados."
+        });
       } else {
         await createUsuario(formData);
+        toast.success("Usuario registrado", {
+          description: "El nuevo operario fue registrado con éxito."
+        });
       }
       setView('list'); // Retorno automático al listado principal
       loadPageData(); 
     } catch (error: any) {
       console.error("ERROR REGISTRADO DESDE EL SERVIDOR DE USUARIOS:", error);
-      alert(error.message || "Error al procesar la solicitud. Verifique los datos.");
+      toast.error("Error al guardar", {
+        description: error.message || "Verifique los datos e intente de nuevo."
+      });
     }
   };
 
@@ -145,7 +166,7 @@ export default function UsuariosPage() {
             ) : (
               <UserTable 
                 users={users} 
-                onDelete={handleDelete}
+                onDelete={handleOpenDeleteConfirmation}
                 onEdit={handleOpenEdit}
                 onView={handleOpenView}
               />
@@ -162,6 +183,31 @@ export default function UsuariosPage() {
           onCancel={() => setView('list')}
         />
       )}
+      
+      {showDeleteModal && (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+        <div className="bg-white p-6 rounded-3xl border border-border shadow-2xl max-w-sm w-full text-center space-y-4 animate-in zoom-in-95 duration-200">
+          <div className="w-12 h-12 bg-red-50 text-[var(--yuriana-input-error)] rounded-full flex items-center justify-center mx-auto border border-red-100">
+            <XCircle size={24} />
+          </div>
+          <div>
+            <h3 className="font-black text-gray-800 uppercase tracking-tighter text-base">¿Dar de Baja al Operario?</h3>
+            <p className="text-xs text-gray-500 mt-1">El usuario perderá acceso al sistema inmediatamente.</p>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={() => { setShowDeleteModal(false); setIdParaEliminar(null); }}
+              className="w-full py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-xs uppercase hover:bg-slate-200 transition-colors">
+              Cancelar
+            </button>
+            <button type="button" onClick={handleConfirmDelete}
+              className="w-full py-2.5 bg-[var(--yuriana-input-error)] text-white rounded-xl font-bold text-xs uppercase hover:opacity-90 transition-colors shadow-md">
+              Dar de Baja
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
     </div>
   );
 }

@@ -11,12 +11,11 @@ import {
   getConductorContador, 
   deleteConductor, 
   createConductor, 
-  updateConductor,
-  getDocumentosVencidos,
-  getDocumentosPorVencer
+  updateConductor
 } from "@/lib/api/conductor.api";
+import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
-import { Conductor, EstadoLaboral, EstadoOperativo } from "@/types/conductor.types";
+import { Conductor, EstadoLaboral } from "@/types/conductor.types";
 import { Users, CheckCircle, XCircle } from "lucide-react";
 
 export default function ConductoresPage() {
@@ -34,34 +33,49 @@ export default function ConductoresPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [ciParaEliminar, setCiParaEliminar] = useState<number | null>(null);
 
+  // SINCRONIZACIÓN DE ALERTAS DOCUMENTALES LOCALES EXACTAS
   const loadPageData = useCallback(async () => {
     try {
       setLoading(true);
-      const [list, totalCounters, alertVencidos, alertPorVencer] = await Promise.all([
+      const [listConductores, totalCounters] = await Promise.all([
         getConductores(filters),
-        getConductorContador(),
-        getDocumentosVencidos(),
-        getDocumentosPorVencer()
+        getConductorContador()
       ]);
-      setConductores(list);
+      setConductores(listConductores);
       setStats(totalCounters);
-      
-      setVencidos(alertVencidos.map(doc => ({
-        id_documento: doc.id_documento,
-        nombre_documento: doc.requisito_documento?.nombre_documento || "Documento",
-        entityId: doc.conductor?.persona?.ci?.toString() || "0",
-        entityName: doc.conductor?.persona?.nombre || "Chofer Desconocido"
-      })));
 
-      setPorVencer(alertPorVencer.map(doc => ({
-        id_documento: doc.id_documento,
-        nombre_documento: doc.requisito_documento?.nombre_documento || "Documento",
-        entityId: doc.conductor?.persona?.ci?.toString() || "0",
-        entityName: doc.conductor?.persona?.nombre || "Chofer Desconocido",
-        dias_restantes: doc.dias_restantes
-      })));
+      // Mapeo de vencidos utilizando únicamente c.persona.nombre
+      setVencidos(
+        listConductores
+          .filter((c: Conductor) => c.estado === 'vencido')
+          .map((c: Conductor) => ({
+            id_documento: c.id_conductor,
+            nombre_documento: c.documento_critico || "Licencia de Conducir / Categoría",
+            entityId: c.persona.ci?.toString() || '0',
+            entityName: c.persona.nombre.trim(), // ◄ CORREGIDO: Solo nombre unificado
+            entityType: 'conductor'
+          }))
+      );
+
+      // Mapeo de por vencer utilizando únicamente c.persona.nombre
+      setPorVencer(
+        listConductores
+          .filter((c: Conductor) => c.estado === 'por_vencer')
+          .map((c: Conductor) => ({
+            id_documento: c.id_conductor,
+            nombre_documento: c.documento_critico || "Vigencia de Categoría",
+            entityId: c.persona.ci?.toString() || '0',
+            entityName: c.persona.nombre.trim(), // ◄ CORREGIDO: Solo nombre unificado
+            entityType: 'conductor',
+            dias_restantes: 15 
+          }))
+      );
+
     } catch (err) {
       console.error("ERROR AL CARGAR FLUJO OPERATIVO DE CONDUCTORES:", err);
+      toast.error("Error al cargar", {
+        description: "No se pudo obtener la lista de conductores."
+      });
     } finally {
       setLoading(false);
     }
@@ -85,15 +99,11 @@ export default function ConductoresPage() {
         conductorPersistido = await createConductor(payloadConductor);
         conductorCreadoId = conductorPersistido.id_conductor;
         conductorCreadoCi = conductorPersistido.persona?.ci || payloadConductor.ci;
-        console.log("Conductor registrado provisionalmente con ID:", conductorCreadoId);
+        console.log("Conductor registered provisionalmente con ID:", conductorCreadoId);
       }
 
       const idConductorAsignado = selectedConductor ? selectedConductor.id_conductor : conductorCreadoId;
-      const token = localStorage.getItem('yuriana_token');
-
-      if (!token) throw new Error('No hay sesión activa. Por favor inicia sesión.');
       
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
       const todosLosIdsRequisitos = Array.from(new Set([
         ...Object.keys(archivos).map(Number),
         ...Object.keys(fechas).map(Number)
@@ -111,40 +121,27 @@ export default function ConductoresPage() {
         if (fileObj) formMultipart.append("file", fileObj);
         if (fechaVenc) formMultipart.append("fecha_vencimiento", new Date(fechaVenc).toISOString());
 
-        console.log(`Enviando transacción documental para requisito ID ${idReqNum} al backend...`);
-        
-        const resUpload = await fetch(`${baseUrl}/documento`, {
+        await apiFetch("/documento", {
           method: "POST",
-          headers: { "Authorization": `Bearer ${token}` },
           body: formMultipart
         });
-
-        if (!resUpload.ok) {
-          const errRes = await resUpload.json().catch(() => ({ message: "Error en el formato o tamaño del archivo." }));
-          throw new Error(errRes.message || `Fallo en el documento ID ${idReqNum}`);
-        }
       }
 
       toast.success("Operación Exitosa", {
-        description: selectedConductor ? "Los datos del operador se actualizaron correctamente." : "Conductor y expediente digital registrados con éxito."
+        description: selectedConductor ? "Los datos del conductor se actualizaron correctamente." : "Conductor y expediente digital registrados con éxito."
       });
       setView('list');
       loadPageData();
 
     } catch (error: any) {
       console.error("ERROR CRÍTICO EN EL PROCESO DE REGISTRO:", error);
-      
       toast.error("Error de Sincronización", {
         description: error.message || "Verifique los datos e intente de nuevo."
       });
 
       if (!selectedConductor && conductorCreadoCi) {
-        console.warn(`Iniciando Rollback automático: eliminando conductor incompleto con CI: ${conductorCreadoCi}`);
-        try {
-          await deleteConductor(conductorCreadoCi);
-        } catch (rollbackError) {
-          console.error("Error crítico en Rollback:", rollbackError);
-        }
+        try { await deleteConductor(conductorCreadoCi); }
+        catch (rollbackError) { console.error("Error crítico en Rollback:", rollbackError); }
       }
     }
   };
@@ -190,7 +187,7 @@ export default function ConductoresPage() {
 
           <div className="bg-white rounded-3xl shadow-xl p-6 border border-border min-h-[400px]">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="font-bold text-gray-700 uppercase tracking-tighter text-sm px-2">Listado de Operadores de Carga</h2>
+              <h2 className="font-bold text-gray-700 uppercase tracking-tighter text-sm px-2">Listado de Conductores</h2>
               <div className="flex gap-4">
                 <FilterSelect placeholder="Estado Laboral" options={[{ value: EstadoLaboral.ACTIVO, label: "Activo" }, { value: EstadoLaboral.INACTIVO, label: "Inactivo" }]} onChange={(v) => setFilters({ ...filters, estado_laboral: v })} />
                 <FilterSelect placeholder="Documentos" options={[{ value: "vencido", label: "Vencidos" }, { value: "por_vencer", label: "Por Vencer" }, { value: "vigente", label: "Vigentes" }]} onChange={(v) => setFilters({ ...filters, estado_documentos: v })} />
@@ -198,7 +195,7 @@ export default function ConductoresPage() {
             </div>
 
             {loading ? (
-              <div className="py-24 text-center text-gray-400 italic text-sm font-medium">Sincronizando operadores de viaje...</div>
+              <div className="py-24 text-center text-gray-400 italic text-sm font-medium">Sincronizando conductores...</div>
             ) : (
               <ConductorTable 
                 data={conductores}
@@ -225,31 +222,31 @@ export default function ConductoresPage() {
         />
       )}
 
-      {/* MODAL DE CONFIRMACIÓN DE ELIMINACIÓN PERSONALIZADO */}
+      {/* MODAL DE CONFIRMACIÓN DE ELIMINACIÓN */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
-          <div className="bg-white p-6 rounded-3xl border border-border shadow-2xl max-w-sm w-full text-center space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="w-12 h-12 bg-red-50 text-[var(--yuriana-input-error)] rounded-full flex items-center justify-center mx-auto border border-red-100">
-              <XCircle size={24} />
+        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center z-50 animate-in fade-in duration-300">
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-2xl max-w-md w-full text-center space-y-6 animate-in zoom-in-95 duration-300 mx-4">
+            <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center mx-auto border border-rose-100/60 shadow-inner">
+              <XCircle size={32} className="animate-pulse" />
             </div>
-            <div>
-              <h3 className="font-black text-gray-800 uppercase tracking-tighter text-base">¿Confirmar Baja Lógica?</h3>
-              <p className="text-xs text-gray-500 mt-1">El operador pasará a estado inactivo pero sus datos históricos se preservarán.</p>
+            <div className="space-y-2">
+              <h3 className="font-black text-slate-800 uppercase tracking-tight text-lg">¿Confirmar Baja del Conductor?</h3>
+              <p className="text-xs text-slate-500 leading-relaxed max-w-[320px] mx-auto">El operario pasará a estar inactivo laboralmente, liberando cualquier enganche vehicular de inmediato.</p>
             </div>
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button 
                 type="button"
                 onClick={() => { setShowDeleteModal(false); setCiParaEliminar(null); }} 
-                className="w-full py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-xs uppercase hover:bg-slate-200 transition-colors"
+                className="w-full py-3.5 bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60 rounded-xl font-bold text-xs uppercase tracking-wider transition-all active:scale-98"
               >
                 Cancelar
               </button>
               <button 
                 type="button"
                 onClick={handleConfirmDeleteEjecucion} 
-                className="w-full py-2.5 bg-[var(--yuriana-input-error)] text-white rounded-xl font-bold text-xs uppercase hover:opacity-90 transition-colors shadow-md"
+                className="w-full py-3.5 bg-rose-500 text-white hover:bg-rose-600 rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-rose-500/10 active:scale-98"
               >
-                Dar de Baja
+                Confirmar Baja
               </button>
             </div>
           </div>

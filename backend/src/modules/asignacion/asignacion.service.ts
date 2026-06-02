@@ -239,7 +239,7 @@ async findAll(filters: FilterAsignacionDto) {
   }
 
   if (filters.ci_conductor) {
-    query.andWhere('persona.ci = :ci', { ci: filters.ci_conductor });
+    query.andWhere('CAST(persona.ci AS VARCHAR) ILIKE :ci', { ci: `%${filters.ci_conductor}%` });
   }
 
   if (filters.placa_tracto) {
@@ -269,7 +269,7 @@ async findOne(id_asignacion: number) {
   });
 
   if (!asignacion) {
-    throw new NotFoundException('Asignación no encontrada o finalizada');
+    throw new NotFoundException('Asignación no encontrada o eliminada');
   }
 
   return asignacion;
@@ -288,7 +288,6 @@ async remove(id_asignacion: number, userId: number) {
       Asignacion,
       { id_asignacion },
       { 
-        estado_asignacion: EstadoAsignacion.FINALIZADA,
         status: false,
         UpdatedId: userId
 

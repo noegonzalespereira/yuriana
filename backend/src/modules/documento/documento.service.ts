@@ -180,9 +180,20 @@ export class DocumentoService {
     const documentos = await this.documentoRepository
       .createQueryBuilder('documento')
       .leftJoinAndSelect('documento.requisito_documento', 'requisito')
+      .leftJoinAndSelect('documento.conductor', 'conductor')
+      .leftJoinAndSelect('conductor.persona', 'persona')
+      .leftJoinAndSelect('documento.unidad', 'unidad')
+      .leftJoinAndSelect('documento.servicio', 'servicio')
       .where('documento.status = :status', { status: true })
       .andWhere('documento.fecha_vencimiento IS NOT NULL')
       .andWhere('documento.fecha_vencimiento < :hoy', { hoy })
+      .andWhere('(conductor.status = true OR conductor.id_conductor IS NULL)')
+      .andWhere(
+        '(unidad.status = true OR unidad.id_unidad IS NULL)'
+      )
+      .andWhere(
+        '(servicio.status = true OR servicio.id_servicio IS NULL)'
+      )
       .getMany();
 
     return documentos.map(doc => ({
@@ -202,10 +213,21 @@ export class DocumentoService {
     const documentos = await this.documentoRepository
       .createQueryBuilder('documento')
       .leftJoinAndSelect('documento.requisito_documento', 'requisito')
+      .leftJoinAndSelect('documento.conductor', 'conductor')
+      .leftJoinAndSelect('conductor.persona', 'persona')
+      .leftJoinAndSelect('documento.unidad', 'unidad')
+      .leftJoinAndSelect('documento.servicio', 'servicio')
       .where('documento.status = :status', { status: true })
       .andWhere('documento.fecha_vencimiento IS NOT NULL')
       .andWhere('documento.fecha_vencimiento BETWEEN :hoy AND :en15Dias', 
         { hoy, en15Dias })
+      .andWhere('(conductor.status = true OR conductor.id_conductor IS NULL)')
+      .andWhere(
+        '(unidad.status = true OR unidad.id_unidad IS NULL)'
+      )
+      .andWhere(
+        '(servicio.status = true OR servicio.id_servicio IS NULL)'
+      )
       .getMany();
 
     return documentos.map(doc => ({

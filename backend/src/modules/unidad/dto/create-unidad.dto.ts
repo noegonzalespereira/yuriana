@@ -1,12 +1,13 @@
 import { IsEnum,Min, Max, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 import { EstadoUnidad } from "../entities/unidad.entity";
-
+import { Transform } from "class-transformer";
 export class CreateUnidadDto {
     @IsNotEmpty({message: 'El numero de placa es obligatio'})
     @IsString()
     placa!: string;
 
     @IsNotEmpty({message: 'El tipo de unidad es obligatorio '})
+    @Transform(({ value }) => parseInt(value, 10))
     @IsNumber({},{message: 'El tipo de unidad debe ser un número'})
     id_categoria!: number;
 
@@ -24,6 +25,7 @@ export class CreateUnidadDto {
     color!: string;
 
     @IsNotEmpty({message: 'El año es obligatio'})
+    @Transform(({ value }) => parseInt(value, 10))
     @IsNumber({},{message: 'El año debe ser un número'})
     @Min(1990, { message: 'El año no puede ser menor a 1990' })
     @Max(new Date().getFullYear(), { message: 'El año no puede ser mayor al año actual' })

@@ -55,9 +55,7 @@ export class DocumentoController {
     return this.documentoService.obtenerPorVencer();
   }
 
-  // ─── RETORNA URL DE ACCESO — NO mueve bytes ───────────────────────
-  // Frontend recibe JSON { url: "https://..." } y abre esa URL
-  // El navegador carga el PDF directamente desde Cloudinary
+  
   @Get('ver/:id')
   async verDocumento(
     @Param('id', ParseIntPipe) id: number,

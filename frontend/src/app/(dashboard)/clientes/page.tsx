@@ -5,6 +5,8 @@ import { ClienteTable } from "@/components/organisms/ClienteTable";
 import { ClienteForm } from "@/components/organisms/ClienteForm";
 import { getClientes, deleteCliente, createCliente, updateCliente } from "@/lib/api/cliente.api";
 import { Cliente } from "@/types/cliente.types";
+import { toast } from "sonner";
+import { XCircle } from "lucide-react";
 
 export default function ClientesPage() {
   const [view, setView] = useState<'list' | 'form'>('list');
@@ -14,6 +16,10 @@ export default function ClientesPage() {
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // ─── Modal de confirmación de eliminación ───────────────────────
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [codigoParaEliminar, setCodigoParaEliminar] = useState<string | null>(null);
+
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
@@ -21,6 +27,9 @@ export default function ClientesPage() {
       setData(res);
     } catch (error) {
       console.error("ERROR CARGANDO CLIENTES:", error);
+      toast.error("Error al cargar", {
+        description: "No se pudo obtener la lista de clientes."
+      });
     } finally {
       setLoading(false);
     }
@@ -28,14 +37,27 @@ export default function ClientesPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const handleDelete = async (codigo: string) => {
-    if (confirm(`¿Eliminar cliente ${codigo}?`)) {
-      try {
-        await deleteCliente(codigo);
-        loadData();
-      } catch (error) {
-        console.error("ERROR AL ELIMINAR CLIENTE:", error);
-      }
+  // Abre el modal en lugar de confirm()
+  const handleOpenDeleteConfirmation = (codigo: string) => {
+    setCodigoParaEliminar(codigo);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!codigoParaEliminar) return;
+    try {
+      await deleteCliente(codigoParaEliminar);
+      toast.success("Cliente eliminado", {
+        description: `El cliente ${codigoParaEliminar} fue eliminado correctamente.`
+      });
+      loadData();
+    } catch (error: any) {
+      toast.error("Error al eliminar", {
+        description: error.message || "No se pudo eliminar el cliente."
+      });
+    } finally {
+      setShowDeleteModal(false);
+      setCodigoParaEliminar(null);
     }
   };
 
@@ -43,22 +65,30 @@ export default function ClientesPage() {
     try {
       if (selectedCliente) {
         await updateCliente(selectedCliente.codigo_cliente, formData);
+        toast.success("Cliente actualizado", {
+          description: "Los datos del cliente fueron actualizados correctamente."
+        });
       } else {
         await createCliente(formData);
+        toast.success("Cliente registrado", {
+          description: "El nuevo cliente fue registrado con éxito."
+        });
       }
       setView('list');
       loadData();
     } catch (error: any) {
       console.error("ERROR EN EL SERVIDOR (CLIENTES):", error);
-      alert(`Error al procesar cliente: ${error.message}`);
+      toast.error("Error al guardar", {
+        description: error.message || "Verifique los datos e intente de nuevo."
+      });
     }
   };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
-      <ModuleHeader 
+      <ModuleHeader
         title={view === 'list' ? "Gestión de Clientes" : selectedCliente ? (isReadOnly ? "Datos de la Empresa" : "Editar Parámetros de Cliente") : "Registrar Nuevo Cliente"}
-        subtitle={view === 'form' ? "Complete las casillas fiscales y la información de la persona de contacto corporativo" : undefined}
+        subtitle={view === 'form' ? "Complete las casillas fiscales y la información de la persona de contacto" : undefined}
         searchPlaceholder="Escriba código o empresa..."
         onSearch={view === 'list' ? (val) => setFilters({ nombre: val, codigo_cliente: val }) : undefined}
         buttonLabel={view === 'list' ? "Nuevo Cliente" : undefined}
@@ -67,29 +97,53 @@ export default function ClientesPage() {
 
       {view === 'list' ? (
         <div className="bg-white rounded-3xl shadow-xl p-6 border border-border">
-           <div className="flex justify-between items-center mb-6 px-4">
-              <h2 className="font-bold text-gray-700 uppercase tracking-tighter text-sm">Listado de Clientes Activos</h2>
-              <span className="text-xs text-[var(--yuriana-base-gray-light)] font-black uppercase">Mostrando {data.length} registros</span>
-           </div>
-           
-           {loading ? (
-             <div className="py-20 text-center text-gray-400 italic text-sm font-medium">Sincronizando cuentas con el servidor...</div>
-           ) : (
-             <ClienteTable 
-               data={data} 
-               onDelete={handleDelete}
-               onEdit={(c) => { setSelectedCliente(c); setIsReadOnly(false); setView('form'); }}
-               onView={(c) => { setSelectedCliente(c); setIsReadOnly(true); setView('form'); }}
-             />
-           )}
+          <div className="flex justify-between items-center mb-6 px-4">
+            <h2 className="font-bold text-gray-700 uppercase tracking-tighter text-sm">Listado de Clientes Activos</h2>
+            <span className="text-xs text-[var(--yuriana-base-gray-light)] font-black uppercase">Mostrando {data.length} registros</span>
+          </div>
+          {loading ? (
+            <div className="py-20 text-center text-gray-400 italic text-sm font-medium">Sincronizando cuentas con el servidor...</div>
+          ) : (
+            <ClienteTable
+              data={data}
+              onDelete={handleOpenDeleteConfirmation}
+              onEdit={(c) => { setSelectedCliente(c); setIsReadOnly(false); setView('form'); }}
+              onView={(c) => { setSelectedCliente(c); setIsReadOnly(true); setView('form'); }}
+            />
+          )}
         </div>
       ) : (
-        <ClienteForm 
+        <ClienteForm
           initialData={selectedCliente}
           isReadOnly={isReadOnly}
           onSubmit={handleFormSubmit}
           onCancel={() => setView('list')}
         />
+      )}
+
+      {/* Modal de confirmación */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+          <div className="bg-white p-6 rounded-3xl border border-border shadow-2xl max-w-sm w-full text-center space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 bg-red-50 text-[var(--yuriana-input-error)] rounded-full flex items-center justify-center mx-auto border border-red-100">
+              <XCircle size={24} />
+            </div>
+            <div>
+              <h3 className="font-black text-gray-800 uppercase tracking-tighter text-base">¿Eliminar Cliente?</h3>
+              <p className="text-xs text-gray-500 mt-1">Esta acción desactivará el cliente del sistema.</p>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => { setShowDeleteModal(false); setCodigoParaEliminar(null); }}
+                className="w-full py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-xs uppercase hover:bg-slate-200 transition-colors">
+                Cancelar
+              </button>
+              <button type="button" onClick={handleConfirmDelete}
+                className="w-full py-2.5 bg-[var(--yuriana-input-error)] text-white rounded-xl font-bold text-xs uppercase hover:opacity-90 transition-colors shadow-md">
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

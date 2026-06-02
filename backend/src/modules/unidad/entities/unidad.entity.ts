@@ -1,6 +1,6 @@
-import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { CategoriaEntidad } from "../../categoria-entidad/entities/categoria-entidad.entity";
-
+import { FotoUnidad } from "../../foto_unidad/entities/foto-unidad.entity";
 export enum EstadoUnidad {
     DISPONIBLE = 'disponible',
     ASIGNADO = 'asignado',
@@ -42,6 +42,9 @@ export class Unidad {
 
     @Column({type: 'enum', enum: EstadoUnidad, default: EstadoUnidad.DISPONIBLE})
     estado_unidad!: EstadoUnidad;
+
+    @OneToMany(() => FotoUnidad, (fotoUnidad) => fotoUnidad.unidad)
+    fotos!: FotoUnidad[];
 
     @CreateDateColumn()
     createdAt!: Date;

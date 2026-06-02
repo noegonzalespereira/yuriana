@@ -5,7 +5,9 @@ import { Unidad } from "../../unidad/entities/unidad.entity";
 
 export enum EstadoAsignacion {
         ACTIVA = 'activo',
-        FINALIZADA = 'finalizada',
+        ASIGNADO = 'asignado',
+        // FINALIZADA = 'finalizada',
+
 }
 
 @Entity('asignacion_unidad')

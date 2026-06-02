@@ -1,4 +1,8 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateUnidadDto } from './create-unidad.dto';
-
-export class UpdateUnidadDto extends PartialType(CreateUnidadDto) {}
+import { IsOptional, IsString } from 'class-validator';
+export class UpdateUnidadDto extends PartialType(CreateUnidadDto) {
+    @IsOptional()
+    @IsString()
+    fotos_eliminar?: string;
+}

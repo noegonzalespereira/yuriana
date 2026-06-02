@@ -39,6 +39,9 @@
   --yuriana-input-placeholder: var(--yuriana-base-gray-light); /* Placeholders claros */
   --yuriana-input-error: var(--yuriana-base-red);
 
+  /* Iconos de Sección (Organisms/Headers) */
+  --yuriana-section-icon: var(--yuriana-base-yellow); /* Icono decorativo de encabezado de tarjeta */
+
   /* Botonería (Atoms) */
   --yuriana-btn-save-bg: var(--yuriana-base-yellow);
   --yuriana-btn-save-text: var(--yuriana-base-black);
@@ -46,13 +49,16 @@
   --yuriana-btn-cancel-text: var(--yuriana-base-white);
   --yuriana-btn-filter-border: var(--yuriana-base-orange);
   --yuriana-btn-filter-text: var(--yuriana-base-gray-dark);
-
+/*texto*/
+  --yuriana-text: var(--yuriana-base-black);
   /* --- COMPATIBILIDAD SHADCN / NEXT.JS --- */
   --background: var(--yuriana-layout-bg);
   --foreground: var(--yuriana-base-gray-dark);
   --border: rgba(230, 77, 36, 0.5);
   --input: rgba(230, 77, 36, 0.3);
   --radius: 1.5rem; /* Esquinas redondeadas personalizadas de tu diseño */
+
+
 }
 
 /* ==========================================================================
@@ -66,11 +72,12 @@
   --color-yuriana-green: var(--yuriana-base-green);
   --color-yuriana-red: var(--yuriana-base-red);
   --color-yuriana-warning: var(--yuriana-base-warning);
-  
+  --color-yuriana-text: var(--yuriana-text);
   /* Mapeo de Colores de Componentes */
   --color-yuriana-card-border: var(--yuriana-card-border);
   --color-yuriana-input-text: var(--yuriana-input-text);
   --color-yuriana-input-placeholder: var(--yuriana-input-placeholder);
+  --color-yuriana-section-icon: var(--yuriana-section-icon);
 
   /* Re-mapeo para componentes de la carpeta ui/ (Shadcn) */
   --color-primary: var(--yuriana-base-orange);

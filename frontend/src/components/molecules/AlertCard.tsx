@@ -24,8 +24,8 @@ export const AlertCard = ({ data, type, entityType, onAction }: AlertCardProps) 
   return (
     <div className={`border p-4 rounded-2xl flex flex-col gap-3 transition-all hover:shadow-sm ${
       isVencido 
-        ? "bg-red-50/60 border-red-200" 
-        : "bg-amber-50/40 border-amber-200"
+        ? "bg-red-100/90 border-red-200" 
+        : "bg-amber-100/90 border-amber-200"
     }`}>
       
       {/* Encabezado de la tarjeta */}

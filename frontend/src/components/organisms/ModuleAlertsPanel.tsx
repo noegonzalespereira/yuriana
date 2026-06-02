@@ -17,7 +17,7 @@ export const ModuleAlertsPanel = ({ vencidos, porVencer, entityType, onAction }:
       
       {/* COLUMNA ROJA: VENCIDOS */}
       <div className="bg-[var(--yuriana-base-white)] p-6 rounded-[2.5rem] border border-border shadow-sm flex flex-col gap-4 text-left">
-        <div className="flex items-center justify-between text-[var(--yuriana-base-red)] border-b border-red-100 pb-3">
+        <div className="flex items-center justify-between text-[var(--yuriana-base-red)] border-b border-red-500 pb-3">
           <h3 className="font-black text-sm uppercase tracking-tight">
             Documentación Vencida ({entityLabel})
           </h3>
@@ -27,7 +27,7 @@ export const ModuleAlertsPanel = ({ vencidos, porVencer, entityType, onAction }:
         <div className="space-y-4 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
           {vencidos.length === 0 ? (
             <p className="text-[var(--yuriana-input-placeholder)] text-xs italic text-center py-8">
-              No se registran documentos vencidos en este módulo.
+              No se encontraron documentos vencidos.
             </p>
           ) : (
             vencidos.map((doc) => (
@@ -45,7 +45,7 @@ export const ModuleAlertsPanel = ({ vencidos, porVencer, entityType, onAction }:
 
       {/* COLUMNA AMARILLA: POR VENCER */}
       <div className="bg-[var(--yuriana-base-white)] p-6 rounded-[2.5rem] border border-border shadow-sm flex flex-col gap-4 text-left">
-        <div className="flex items-center justify-between text-[var(--yuriana-base-yellow)] border-b border-amber-100 pb-3">
+        <div className="flex items-center justify-between text-[var(--yuriana-base-yellow)] border-b border-amber-500 pb-3">
           <h3 className="font-black text-sm uppercase tracking-tight">
             Documentación Por Vencer ({entityLabel})
           </h3>
@@ -55,7 +55,7 @@ export const ModuleAlertsPanel = ({ vencidos, porVencer, entityType, onAction }:
         <div className="space-y-4 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
           {porVencer.length === 0 ? (
             <p className="text-[var(--yuriana-input-placeholder)] text-xs italic text-center py-8">
-              No existen alertas de vencimiento próximas.
+              No se encontraron documentos por vencer.
             </p>
           ) : (
             porVencer.map((doc) => (

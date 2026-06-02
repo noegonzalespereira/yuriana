@@ -1,28 +1,20 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { Unidad } from "../../unidad/entities/unidad.entity";
-import { Gasto } from "../../gasto/entities/gasto.entity";
 
-@Entity('gasto_operativo')
-export class GastoOperativo {
+@Entity('foto_unidad')
+export class FotoUnidad {
   @PrimaryGeneratedColumn()
-  id_gasto_operativo!: number;
+  id_foto!: number;
 
-  @ManyToOne(() => Unidad, { onDelete: 'RESTRICT' })
+  @ManyToOne(() => Unidad, (unidad) => unidad.fotos, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'id_unidad' })
   unidad!: Unidad;
 
   @Column()
   id_unidad!: number;
 
-  @ManyToOne(() => Gasto, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'id_gasto' })
-  gasto!: Gasto;
-
   @Column()
-  id_gasto!: number;
-
-  @Column() 
-  tipo_gasto!: string;
+  url_foto!: string;
 
   @CreateDateColumn()
   createdAt!: Date;

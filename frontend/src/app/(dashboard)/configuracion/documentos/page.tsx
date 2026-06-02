@@ -10,6 +10,7 @@ import {
   updateRequisito, 
   deleteRequisito 
 } from "@/lib/api/requisito.api";
+import { toast } from "sonner";
 import { RequisitoDocumento, CategoriaEntidad, TipoCategoria } from "@/types/documento.types";
 import { Plus } from "lucide-react";
 
@@ -77,28 +78,43 @@ export default function DocumentosPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm("¿Está seguro de remover este requisito de documentación?")) {
-      try {
-        await deleteRequisito(id);
-        loadRequisitos();
-      } catch (err) {
-        console.error("ERROR DE ELIMINACIÓN DESDE EL FRONT:", err);
+    toast.error("¿Eliminar requisito?", {
+    description: "Esta acción no se puede deshacer.",
+    action: {
+      label: "Confirmar",
+      onClick: async () => {
+        try {
+          await deleteRequisito(id);
+          toast.success("Requisito eliminado");
+          loadRequisitos();
+        } catch (err: any) {
+          toast.error("Error al eliminar", {
+            description: err.message || "No se pudo eliminar el requisito."
+          });
+        }
       }
     }
-  };
+  });
+};
 
   const handleFormSubmit = async (formData: any) => {
     try {
       if (selectedReq) {
         await updateRequisito(selectedReq.id_requisito_documento, formData);
+        toast.success("Requisito actualizado");
       } else {
         await createRequisito(formData);
+        toast.success("Requisito registrado", {
+          description: "El nuevo requisito fue añadido correctamente."
+        });
       }
       setView('list');
       loadRequisitos();
     } catch (error: any) {
       console.error("ERROR LANZADO POR EL SERVIDOR (REQUISITOS):", error);
-      alert(error.message || "Conflicto interno: el requisito ya existe para esta categoría.");
+      toast.error("Error al guardar", {
+        description: error.message || "El requisito ya existe para esta categoría."
+      });
     }
   };
 

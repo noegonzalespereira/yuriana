@@ -1,19 +1,17 @@
 // filter-asignacion.dto.ts
-import { IsEnum, IsNumber, IsOptional, IsString } from "class-validator";
-import { Transform } from "class-transformer";
+import { IsEnum, IsOptional, IsString } from "class-validator";
 import { EstadoAsignacion } from "../entities/asignacion.entity";
 
 export class FilterAsignacionDto {
 
   @IsOptional()
-  @IsEnum(EstadoAsignacion, { message: 'estado debe ser activa o finalizada' })
+  @IsEnum(EstadoAsignacion, { message: 'estado debe ser activa o asignado' })
   estado_asignacion?: EstadoAsignacion;
   
 
   @IsOptional()
-  @Transform(({ value }) => parseInt(value))
-  @IsNumber()
-  ci_conductor?: number;
+  @IsString()
+  ci_conductor?: string;
 
   @IsOptional()
   @IsString()

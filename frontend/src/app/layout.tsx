@@ -8,6 +8,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           {children}
         </AuthProvider>
+        <Toaster
+          position="top-right"
+          richColors
+          expand={false}
+          duration={4000}
+        />
       </body>
     </html>
   );
