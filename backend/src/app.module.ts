@@ -45,7 +45,7 @@ import { CierreMensualModule } from './modules/cierre-mensual/cierre-mensual.mod
         password: configService.get<string>('DATABASE_PASSWORD'),
         database: configService.get<string>('DATABASE_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: false, // ⚠️ solo desarrollo
+        synchronize: true,
         logging: false,     // muestra queries SQL en consola
         ssl: {
           rejectUnauthorized: false  // ← necesario para Supabase
