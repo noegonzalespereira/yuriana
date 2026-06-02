@@ -24,7 +24,7 @@ export const UserCard = () => {
             {user?.nombre || "Cargando..."}
           </span>
           <span className="text-white/70 text-[10px] font-bold uppercase tracking-tighter mt-0.5">
-            {typeof user?.rol === 'object' ? user.rol.nombre : (user?.rol || "Usuario")}
+            {user?.rol || "Usuario"}
           </span>
         </div>
         
