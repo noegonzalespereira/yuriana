@@ -5,6 +5,7 @@ import {
   Res, Logger, HttpStatus
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import type { Response } from 'express';
 import { DocumentoService } from './documento.service';
 import { CreateDocumentoDto } from './dto/create-documento.dto';
@@ -27,7 +28,7 @@ export class DocumentoController {
 
   @Post()
   @Roles('ADMIN')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
   create(
     @Body() createDocumentoDto: CreateDocumentoDto,
     @UploadedFile() file: Express.Multer.File,
@@ -94,7 +95,7 @@ export class DocumentoController {
 
   @Patch(':id')
   @Roles('ADMIN')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file',{ storage: memoryStorage() }))
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDocumentoDto: UpdateDocumentoDto,

@@ -7,7 +7,7 @@ import { RolesGuard } from '../../common/guards/role.guard';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles} from '../../common/decorators/roles.decorator';
 import { FilterConductorDto } from './dto/filter-conductor.dto';
-
+import { memoryStorage } from 'multer';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('conductor')
 export class ConductorController {
@@ -15,7 +15,7 @@ export class ConductorController {
 
   @Post('registrar')
   @Roles('ADMIN')
-  @UseInterceptors(AnyFilesInterceptor())
+  @UseInterceptors(AnyFilesInterceptor({ storage: memoryStorage() }))
   async registrar(
     @Body() body: any,
     @UploadedFiles() files: Express.Multer.File[],

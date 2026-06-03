@@ -8,7 +8,7 @@ import { RolesGuard } from '../../common/guards/role.guard';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles} from '../../common/decorators/roles.decorator';
 import { FilterUnidadDto } from './dto/filter-unidad.dto';
-
+import { memoryStorage } from 'multer';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('unidad')
 export class UnidadController {
@@ -16,7 +16,7 @@ export class UnidadController {
 
   @Post('registrar')
   @Roles('ADMIN')
-  @UseInterceptors(AnyFilesInterceptor())
+  @UseInterceptors(AnyFilesInterceptor({ storage: memoryStorage() }))
   async registrar(
     @Body() createUnidadDto: CreateUnidadDto,
     @UploadedFiles() files: Express.Multer.File[],
@@ -40,7 +40,7 @@ export class UnidadController {
 
   @Post()
   @Roles('ADMIN')
-  @UseInterceptors(FilesInterceptor('fotos', 10))
+  @UseInterceptors(FilesInterceptor('fotos', 10, { storage: memoryStorage() }))
   create(@Body() createUnidadDto: CreateUnidadDto, @UploadedFiles() files: Express.Multer.File[],@Request() req){
     return this.unidadService.create(createUnidadDto,files,req.user.id);
   }
@@ -57,7 +57,7 @@ export class UnidadController {
 
   @Patch(':placa')
   @Roles('ADMIN')
-  @UseInterceptors(FilesInterceptor('fotos', 10))
+  @UseInterceptors(FilesInterceptor('fotos', 10, { storage: memoryStorage() }))
   update(@Param('placa') placa: string, @Body() updateUnidadDto: UpdateUnidadDto,  @UploadedFiles() files: Express.Multer.File[], @Request() req){
     console.log('Body RAW recibido en controller:', updateUnidadDto);
     console.log('Files recibidos:', files?.length || 0);
