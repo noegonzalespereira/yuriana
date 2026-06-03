@@ -66,18 +66,30 @@ export class UnidadController {
 
   @Patch(':placa')
   @Roles('ADMIN')
-  @UseInterceptors(FilesInterceptor('fotos', 10, { storage: memoryStorage() }))
-  update(@Param('placa') placa: string, @Body() updateUnidadDto: UpdateUnidadDto,  @UploadedFiles() files: Express.Multer.File[], @Request() req){
-    console.log('Body RAW recibido en controller:', updateUnidadDto);
-    console.log('Files recibidos:', files?.length || 0);
-    const fotosEliminarRaw = updateUnidadDto.fotos_eliminar;
-    const fotosEliminarIds: number[] = fotosEliminarRaw
-      ? fotosEliminarRaw.split(',').map((id) => parseInt(id.trim())).filter(Boolean)
-    : [];
+  @UseInterceptors(AnyFilesInterceptor({ storage: memoryStorage() }))
+  update(
+    @Param('placa') placa: string,
+    @Body() body: any,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Request() req: any,
+  ) {
+    const fotosFiles = (files || []).filter(f => f.fieldname === 'fotos');
 
-    console.log('Fotos a eliminar:', fotosEliminarIds);
-      
-    return this.unidadService.update(placa, updateUnidadDto,files || [], req.user.id, fotosEliminarIds);
+    const fotosEliminarIds: number[] = body.fotos_eliminar
+      ? body.fotos_eliminar.split(',').map((id: string) => parseInt(id.trim())).filter(Boolean)
+      : [];
+
+    const updateUnidadDto: UpdateUnidadDto = {
+      ...(body.num_chasis !== undefined && { num_chasis: body.num_chasis }),
+      ...(body.marca !== undefined && { marca: body.marca }),
+      ...(body.color !== undefined && { color: body.color }),
+      ...(body.anio !== undefined && { anio: parseInt(body.anio) }),
+      ...(body.modelo !== undefined && { modelo: body.modelo }),
+      ...(body.estado_unidad !== undefined && { estado_unidad: body.estado_unidad }),
+      ...(body.id_categoria !== undefined && { id_categoria: parseInt(body.id_categoria) }),
+    };
+
+    return this.unidadService.update(placa, updateUnidadDto, fotosFiles, req.user.id, fotosEliminarIds);
   }
 
   @Delete(':placa')
