@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Request, UseGuards, Param, Delete, Query, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Request, UseGuards, Param, Delete, Query, UseInterceptors, UploadedFiles, ValidationPipe } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express/multer/interceptors/files.interceptor';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { UnidadService } from './unidad.service';
@@ -18,7 +18,7 @@ export class UnidadController {
   @Roles('ADMIN')
   @UseInterceptors(AnyFilesInterceptor({ storage: memoryStorage() }))
   async registrar(
-    @Body() createUnidadDto: CreateUnidadDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true })) createUnidadDto: CreateUnidadDto,
     @UploadedFiles() files: Express.Multer.File[],
     @Request() req,
   ) {

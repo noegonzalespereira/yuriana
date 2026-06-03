@@ -10,7 +10,6 @@ import { CreateDocumentoDto } from './dto/create-documento.dto';
 import { UpdateDocumentoDto } from './dto/update-documento.dto';
 import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 import { RequisitoDocumentoService } from '../requisito-documento/requisito-documento.service';
-import { Multer } from 'multer';
 @Injectable()
 export class DocumentoService {
   constructor(

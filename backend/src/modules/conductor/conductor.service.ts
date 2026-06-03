@@ -34,7 +34,6 @@ export class ConductorService {
   ): Promise<Conductor> {
     const categoriaEntidad = await this.categoriaEntidadService.findOneByNombre(TipoCategoria.CONDUCTOR);
 
-    // 🔥 MEJORA DE RENDIMIENTO: Subida simultánea en paralelo para evitar Timeouts en Render
     const promesasSubida = archivos.map(async (file) => {
       const idRequisito = parseInt(file.fieldname.replace('archivo_', ''), 10);
       const { url } = await this.cloudinaryService.subirArchivo(file, 'yuriana/documentos/conductor');
