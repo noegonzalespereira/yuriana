@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Request, UseGuards, Param, Delete, Query, UseInterceptors, UploadedFiles, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Request, UseGuards, Param, Delete, Query, UseInterceptors, UploadedFiles } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express/multer/interceptors/files.interceptor';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { UnidadService } from './unidad.service';
@@ -18,7 +18,7 @@ export class UnidadController {
   @Roles('ADMIN')
   @UseInterceptors(AnyFilesInterceptor({ storage: memoryStorage() }))
   async registrar(
-    @Body(new ValidationPipe({ whitelist: true, transform: true })) createUnidadDto: CreateUnidadDto,
+    @Body() body: any,
     @UploadedFiles() files: Express.Multer.File[],
     @Request() req,
   ) {
@@ -27,13 +27,22 @@ export class UnidadController {
     const docFiles = allFiles.filter(f => f.fieldname.startsWith('archivo_'));
 
     const fechas: Record<number, string> = {};
-    // body keys con formato fecha_{id} vienen como campos de texto en el DTO generico
-    // Los leemos del body crudo accesible via req.body
-    Object.keys(req.body).forEach((key: string) => {
+    Object.keys(body).forEach((key: string) => {
       if (key.startsWith('fecha_')) {
-        fechas[parseInt(key.replace('fecha_', ''))] = req.body[key];
+        fechas[parseInt(key.replace('fecha_', ''))] = body[key];
       }
     });
+
+    const createUnidadDto: CreateUnidadDto = {
+      placa: body.placa,
+      id_categoria: parseInt(body.id_categoria),
+      num_chasis: body.num_chasis,
+      marca: body.marca,
+      color: body.color,
+      anio: parseInt(body.anio),
+      modelo: body.modelo,
+      estado_unidad: body.estado_unidad,
+    };
 
     return this.unidadService.registrarConDocumentos(createUnidadDto, fotosFiles, docFiles, fechas, req.user.id);
   }
