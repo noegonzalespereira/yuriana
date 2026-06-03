@@ -6,11 +6,12 @@ import { PersonaModule } from '../persona/persona.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Conductor } from './entities/conductor.entity';
 import { DocumentoModule } from '../documento/documento.module';
+import { CloudinaryModule } from '../../cloudinary/cloudinary.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Conductor]),
-    PersonaModule, CategoriaEntidadModule,DocumentoModule
+    PersonaModule, CategoriaEntidadModule, DocumentoModule, CloudinaryModule,
   ],
   controllers: [ConductorController],
   providers: [ConductorService],

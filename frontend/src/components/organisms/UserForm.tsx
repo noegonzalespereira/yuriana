@@ -30,8 +30,15 @@ export const UserForm = ({ onSubmit, onCancel, roles, initialData, isReadOnly = 
     }
   }, [initialData, reset, roles]);
 
+  const handleLocalSubmit = (data: any) => {
+    onSubmit({
+      ...data,
+      nombre: data.nombre?.trim().toUpperCase(),
+    });
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 animate-in fade-in duration-500">
+    <form onSubmit={handleSubmit(handleLocalSubmit)} className="space-y-6 animate-in fade-in duration-500">
       
       {/* SECCIÓN 1: DATOS DE CREDENCIALES Y ROL */}
       <div className="bg-[var(--yuriana-base-white)] p-8 rounded-[2.5rem] border border-[var(--yuriana-card-border)] shadow-sm space-y-6">

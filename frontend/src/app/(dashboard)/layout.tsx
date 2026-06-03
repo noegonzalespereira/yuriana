@@ -12,7 +12,7 @@ export default function DashboardLayout({
 
       {/* Contenedor de Contenido Variable */}
       <div className="flex-1 flex flex-col">
-        <main className="p-6 overflow-y-auto">
+        <main className="p-4 overflow-y-auto uppercase">
           {children}
         </main>
       </div>

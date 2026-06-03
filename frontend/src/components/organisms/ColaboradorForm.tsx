@@ -36,14 +36,17 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
   const handleLocalSubmit = (data: any) => {
     const payload = {
       ...data,
+      nombre: data.nombre?.trim().toUpperCase(),
+      correo: data.correo,
+      agencia: data.agencia?.trim().toUpperCase() || "",
+      ciudad: data.ciudad?.trim().toUpperCase() || "",
+      notas: data.notas?.trim().toUpperCase() || "",
       ci: data.ci ? parseInt(data.ci) : 0,
       monto: data.monto ? parseFloat(data.monto) : 0,
       telefono: data.telefono ? parseInt(data.telefono) : 0,
       telefono2: data.telefono2 ? parseInt(data.telefono2) : undefined,
-      tipo_colaborador: tipo, 
+      tipo_colaborador: tipo,
     };
-
-    console.log("Enviando a la API (Colaboradores):", payload);
     onSubmit(payload);
   };
 

@@ -1,34 +1,64 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { GastoService } from './gasto.service';
-import { CreateGastoDto } from './dto/create-gasto.dto';
-import { UpdateGastoDto } from './dto/update-gasto.dto';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { GastosService } from './gasto.service';
+import { CreateGastoBulkDto, TipoPestaña } from './dto/create-gasto-bulk.dto';
+import { FilterGastoDto } from './dto/filter-gasto.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/role.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
-@Controller('gasto')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Controller('gastos')
 export class GastoController {
-  constructor(private readonly gastoService: GastoService) {}
+  constructor(private readonly gastosService: GastosService) {}
 
-  @Post()
-  create(@Body() createGastoDto: CreateGastoDto) {
-    return this.gastoService.create(createGastoDto);
+  @Post('guardar-pantalla')
+  @Roles('ADMIN')
+  async guardarPantallaCompleta(
+    @Body() dto: CreateGastoBulkDto,
+    @Request() req
+  ) {
+    return this.gastosService.procesarGastoPantalla(dto, req.user.id);
   }
 
-  @Get()
-  findAll() {
-    return this.gastoService.findAll();
+  @Get('totales-paneles')
+  async obtenerTotalesPaneles() {
+    return this.gastosService.obtenerTotalesInformativos();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.gastoService.findOne(+id);
+  @Get('listado/:pestana')
+  async obtenerListadoPestaña(
+    @Param('pestana') pestana: TipoPestaña,
+    @Query() filters: FilterGastoDto
+  ) {
+    return this.gastosService.obtenerRegistros(pestana, filters);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateGastoDto: UpdateGastoDto) {
-    return this.gastoService.update(+id, updateGastoDto);
+  @Get('detalle/:pestana/:id')
+  async obtenerDetalleUnico(
+    @Param('pestana') pestana: TipoPestaña,
+    @Param('id') id: string
+  ) {
+    return this.gastosService.findOne(pestana, +id);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.gastoService.remove(+id);
+  @Patch('editar/:pestana/:id')
+  @Roles('ADMIN')
+  async editarRegistroGasto(
+    @Param('pestana') pestana: TipoPestaña,
+    @Param('id') id: string,
+    @Body() datosModificados: any,
+    @Request() req
+  ) {
+    return this.gastosService.update(pestana, +id, datosModificados, req.user.id);
+  }
+
+  @Delete('eliminar/:pestana/:id')
+  @Roles('ADMIN')
+  async eliminarRegistroGasto(
+    @Param('pestana') pestana: TipoPestaña,
+    @Param('id') id: string,
+    @Request() req
+  ) {
+    return this.gastosService.remove(pestana, +id, req.user.id);
   }
 }

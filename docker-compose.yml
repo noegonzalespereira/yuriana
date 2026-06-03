@@ -1,75 +1,51 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: yuriana_db
+    container_name: yuriana_db_prod
     restart: always
     env_file:
       - .env
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "${DATABASE_PORT}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data_prod:/var/lib/postgresql/data  # Volumen persistente puro
     networks:
-      - red_yuriana
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - red_yuriana_prod
+
   backend:
-    container_name: yuriana_backend
+    container_name: yuriana_backend_prod
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile  # Tu Dockerfile aquí adentro debe hacer el 'npm run build' e iniciar con 'npm run start:prod'
     restart: always
     env_file:
       - .env
-    environment:
-      DATABASE_HOST: postgres
-      DATABASE_PORT: ${POSTGRES_PORT}
-      DATABASE_USER: ${POSTGRES_USER}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
-      DATABASE_NAME: ${POSTGRES_DB}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
-      PORT: ${BACKEND_PORT}
-      
-
-    ports:
-      - "${BACKEND_PORT}:4000"
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     networks:
-      - red_yuriana
+      - red_yuriana_prod
+
   frontend:
-    container_name: yuriana_frontend
+    container_name: yuriana_frontend_prod
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile  # Tu Dockerfile aquí adentro debe hacer el 'next build' e iniciar con 'next start'
     restart: always
     env_file:
       - .env
-    environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     ports:
-    - "${FRONTEND_PORT}:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - "${FRONTEND_PORT}:3000"
     depends_on:
       - backend
     networks:
-      - red_yuriana
+      - red_yuriana_prod
+
 volumes:
-  postgres_data:
+  postgres_data_prod:
+
 networks:
-  red_yuriana:
+  red_yuriana_prod:

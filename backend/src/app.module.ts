@@ -16,11 +16,6 @@ import { EmpresaModule } from './modules/empresa/empresa.module';
 import { AsignacionModule } from './modules/asignacion/asignacion.module';
 import { ServicioModule } from './modules/servicio/servicio.module';
 import { GastoModule } from './modules/gasto/gasto.module';
-import { GastoOperativoModule } from './modules/gasto-operativo/gasto-operativo.module';
-import { GastoAdministrativoModule } from './modules/gasto-administrativo/gasto-administrativo.module';
-import { GastoGeneralModule } from './modules/gasto-general/gasto-general.module';
-import { GastoServicioModule } from './modules/gasto-servicio/gasto-servicio.module';
-import { DetalleGastoServicioModule } from './modules/detalle-gasto-servicio/detalle-gasto-servicio.module';
 import { FacturacionModule } from './modules/facturacion/facturacion.module';
 import { IngresoExtraModule } from './modules/ingreso-extra/ingreso-extra.module';
 import { DocumentoModule } from './modules/documento/documento.module';
@@ -37,29 +32,32 @@ import { CierreMensualModule } from './modules/cierre-mensual/cierre-mensual.mod
 
      TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('DATABASE_HOST'),      
-        port: configService.get<number>('DATABASE_PORT'),
-        username: configService.get<string>('DATABASE_USER'),
-        password: configService.get<string>('DATABASE_PASSWORD'),
-        database: configService.get<string>('DATABASE_NAME'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true,
-        logging: false,     // muestra queries SQL en consola
-        ssl: {
-          rejectUnauthorized: false  // ← necesario para Supabase
-        }
-      }),
+      useFactory: (configService: ConfigService) => {
+        const host = configService.get<string>('DATABASE_HOST');
+        // Si el host es 'postgres' (el contenedor de Docker) o 'localhost', no usa SSL.
+        const esLocal = host === 'postgres' || host === 'localhost' || host === '127.0.0.1';
+
+        return {
+          type: 'postgres',
+          host: host,      
+          port: configService.get<number>('DATABASE_PORT'),
+          username: configService.get<string>('DATABASE_USER'),
+          password: configService.get<string>('DATABASE_PASSWORD'),
+          database: configService.get<string>('DATABASE_NAME'),
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          synchronize: true,
+          logging: false,
+          // --- CONFIGURACIÓN DINÁMICA DE SSL ---
+          ssl: esLocal ? false : { rejectUnauthorized: false }
+        };
+      },
       inject: [ConfigService],
     }),
     CloudinaryModule,
     AuthModule, UsuarioModule, RolModule, PersonaModule, 
     ConductorModule, ClienteModule, ColaboradorModule, 
     UnidadModule, EmpresaModule, AsignacionModule, 
-    ServicioModule, GastoModule, GastoOperativoModule, 
-    GastoAdministrativoModule, GastoGeneralModule, 
-    GastoServicioModule, DetalleGastoServicioModule, 
+    ServicioModule, GastoModule,  
     FacturacionModule, IngresoExtraModule, DocumentoModule, 
     CategoriaEntidadModule, RequisitoDocumentoModule, 
     CierreMensualModule],

@@ -17,7 +17,7 @@ export const SidebarLink = ({ icon, label, href }: SidebarLinkProps) => {
     <Link 
       href={href} 
       className={`
-        group flex items-center gap-4 px-4 py-3 rounded-l-full transition-all duration-300
+        group flex items-center gap-3 px-3 py-2 rounded-l-full transition-all duration-300
         ${active 
           ? 'bg-white/10 border-r-4 border-[var(--yuriana-base-yellow)] text-white shadow-md' 
           : 'text-white/70 hover:bg-white/5 hover:text-white'

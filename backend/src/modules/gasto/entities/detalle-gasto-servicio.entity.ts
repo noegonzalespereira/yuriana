@@ -1,7 +1,13 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { GastosServicio } from "../../gasto-servicio/entities/gasto-servicio.entity";
+import { GastosServicio } from "../entities/gasto-servicio.entity";
 import { Gasto } from "../../gasto/entities/gasto.entity";
-
+export enum TipoGastoServicio {
+  VIATICOS = 'viaticos',
+  PEAJES = 'peajes',
+  ATA_ORIGEN = 'ata origen',
+  ATA_FRONTERA = 'ata frontera',
+  OTROS = 'otros',
+}
 @Entity('detalle_gasto_servicio')
 export class DetalleGastoServicio {
   @PrimaryGeneratedColumn()
@@ -21,8 +27,8 @@ export class DetalleGastoServicio {
   @Column()
   id_gasto!: number;
 
-  @Column() // Ejemplo: 'Combustible', 'Peaje', 'Alimentación'
-  tipo_gasto!: string;
+  @Column({ type: 'enum', enum: TipoGastoServicio })
+  tipo_gasto!: TipoGastoServicio;
 
   @Column({ type: 'decimal', precision: 12, scale: 2 })
   monto_bs!: number;

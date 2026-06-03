@@ -23,10 +23,21 @@ export const ModuleField = ({
   error,
   unit,
 }: ModuleFieldProps) => {
+  const isRequired = !!(rules as any)?.required;
+  const cleanLabel = label.replace(/\s*\*$/, "");
+  const showRequired = isRequired && !disabled;
+  const showOptional = !isRequired && !disabled;
+
   return (
     <div className="flex flex-col gap-1 w-full text-left">
-      <label className="text-[10px] font-black text-[var(--yuriana-input-label)] uppercase tracking-widest ml-1">
-        {label}
+      <label className="text-[10px] font-black text-[var(--yuriana-input-label)] uppercase tracking-widest ml-1 flex items-center gap-1">
+        <span>{cleanLabel}</span>
+        {showRequired && <span className="text-red-500 font-black">*</span>}
+        {showOptional && (
+          <span className="text-[var(--yuriana-input-placeholder)] font-medium text-[9px]">
+            (opcional)
+          </span>
+        )}
       </label>
       <div className="relative">
         <input
@@ -35,8 +46,10 @@ export const ModuleField = ({
           disabled={disabled}
           placeholder={placeholder}
           className={`w-full bg-[var(--yuriana-input-bg)] border ${
-            error ? "border-[var(--yuriana-input-error)] focus:border-[var(--yuriana-input-error)]" : "border-[var(--yuriana-input-border)] focus:border-[var(--yuriana-input-border-focus)]"
-          } rounded-xl py-3 px-4 text-sm font-medium text-[var(--yuriana-input-text)] placeholder:text-[var(--yuriana-input-placeholder)] outline-none transition-all disabled:bg-slate-50 disabled:text-slate-500`}
+            error
+              ? "border-[var(--yuriana-input-error)] focus:border-[var(--yuriana-input-error)]"
+              : "border-[var(--yuriana-input-border)] focus:border-[var(--yuriana-input-border-focus)]"
+          } rounded-xl py-2 px-3 text-xs font-medium text-[var(--yuriana-input-text)] placeholder:text-[var(--yuriana-input-placeholder)] outline-none transition-all disabled:bg-slate-50 disabled:text-slate-500`}
         />
         {unit && (
           <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--yuriana-input-placeholder)] font-bold text-xs uppercase">

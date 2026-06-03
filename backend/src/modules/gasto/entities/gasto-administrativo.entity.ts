@@ -1,18 +1,16 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { Unidad } from "../../unidad/entities/unidad.entity";
-import { Gasto } from "../../gasto/entities/gasto.entity";
-
-@Entity('gasto_operativo')
-export class GastoOperativo {
+import { Gasto } from "../entities/gasto.entity";
+export enum TipoGastoAdministrativo {
+  CONTADOR = 'contador',
+  IMPUESTO = 'impuesto',
+  GPS = 'gps',
+  SUELDO_CONDUCTORES = 'sueldo_conductores',
+  OTROS = 'otros',
+}
+@Entity('gasto_administrativo')
+export class GastoAdministrativo {
   @PrimaryGeneratedColumn()
-  id_gasto_operativo!: number;
-
-  @ManyToOne(() => Unidad, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'id_unidad' })
-  unidad!: Unidad;
-
-  @Column()
-  id_unidad!: number;
+  id_gasto_admin!: number;
 
   @ManyToOne(() => Gasto, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'id_gasto' })
@@ -21,8 +19,11 @@ export class GastoOperativo {
   @Column()
   id_gasto!: number;
 
-  @Column() 
-  tipo_gasto!: string;
+  @Column({ type: 'enum', enum: TipoGastoAdministrativo })
+  tipo_gasto!: TipoGastoAdministrativo;
+
+  @Column({ default: 1 }) 
+  id_empresa!: number;
 
   @CreateDateColumn()
   createdAt!: Date;

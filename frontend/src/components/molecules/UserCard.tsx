@@ -20,7 +20,7 @@ export const UserCard = () => {
       {/* Contenedor de Información del Usuario */}
       <div className="bg-black/20 p-4 rounded-2xl flex items-center justify-between shadow-inner border border-white/5">
         <div className="flex flex-col max-w-[120px]">
-          <span className="text-white font-bold text-sm truncate leading-tight">
+          <span className="text-white font-bold text-sm truncate leading-tight uppercase">
             {user?.nombre || "Cargando..."}
           </span>
           <span className="text-white/70 text-[10px] font-bold uppercase tracking-tighter mt-0.5">

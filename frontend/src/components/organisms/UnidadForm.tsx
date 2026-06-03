@@ -213,10 +213,10 @@ export const UnidadForm = ({ initialData, categoriasValidadas, onSubmit, onCance
       placa: data.placa.toUpperCase().trim(),
       id_categoria: parseInt(data.id_categoria),
       num_chasis: data.num_chasis.toUpperCase().trim(),
-      marca: data.marca.trim(),
-      color: data.color.trim(),
+      marca: data.marca.trim().toUpperCase(),
+      color: data.color.trim().toUpperCase(),
       anio: parseInt(data.anio),
-      modelo: data.modelo.trim(),
+      modelo: data.modelo.trim().toUpperCase(),
       estado_unidad: data.estado_unidad,
     };
 

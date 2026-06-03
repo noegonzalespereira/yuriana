@@ -13,7 +13,7 @@ export const SearchInput = ({ placeholder = "Buscar...", onChange }: SearchInput
       </div>
       <input
         type="text"
-        className="block w-full pl-10 pr-3 py-2 bg-[var(--yuriana-input-bg)] border border-[var(--yuriana-input-border)] rounded-xl text-sm placeholder-[var(--yuriana-input-placeholder)] focus:outline-none focus:ring-2 focus:ring-[var(--yuriana-input-border-focus)] shadow-sm text-[var(--yuriana-input-text)] font-medium"
+        className="block w-full pl-9 pr-3 py-1.5 bg-[var(--yuriana-input-bg)] border border-[var(--yuriana-input-border)] rounded-xl text-xs placeholder-[var(--yuriana-input-placeholder)] focus:outline-none focus:ring-2 focus:ring-[var(--yuriana-input-border-focus)] shadow-sm text-[var(--yuriana-input-text)] font-medium uppercase placeholder:uppercase"
         placeholder={placeholder}
         onChange={(e) => onChange?.(e.target.value)}
       />

@@ -1,14 +1,19 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateConductorDto } from './dto/create-conductor.dto';
 import { UpdateConductorDto } from './dto/update-conductor.dto';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Conductor, EstadoLaboral } from './entities/conductor.entity';
+import { Conductor, EstadoLaboral, EstadoOperativo } from './entities/conductor.entity';
+import { Persona } from '../persona/entities/persona.entity';
+import { Documento } from '../documento/entities/documento.entity';
+import { RequisitoDocumento } from '../requisito-documento/entities/requisito-documento.entity';
 import { PersonaService } from '../persona/persona.service';
 import { CategoriaEntidadService } from '../categoria-entidad/categoria-entidad.service';
 import { FilterConductorDto } from './dto/filter-conductor.dto';
 import { TipoCategoria } from '../categoria-entidad/entities/categoria-entidad.entity';
 import { DocumentoService } from '../documento/documento.service';
+import { CloudinaryService } from '../../cloudinary/cloudinary.service';
+
 @Injectable()
 export class ConductorService {
   constructor(
@@ -16,7 +21,84 @@ export class ConductorService {
     private personaService: PersonaService,
     private categoriaEntidadService: CategoriaEntidadService,
     private documentoService: DocumentoService,
+    private cloudinaryService: CloudinaryService,
+    private dataSource: DataSource,
   ) {}
+
+  async registrarConDocumentos(
+    datosConductor: CreateConductorDto,
+    archivos: Express.Multer.File[],
+    fechas: Record<number, string>,
+    userId: number,
+  ): Promise<Conductor> {
+    const categoriaEntidad = await this.categoriaEntidadService.findOneByNombre(TipoCategoria.CONDUCTOR);
+
+    const archivosSubidos: { idRequisito: number; url: string; mimetype: string }[] = [];
+    for (const file of archivos) {
+      const idRequisito = parseInt(file.fieldname.replace('archivo_', ''));
+      const { url } = await this.cloudinaryService.subirArchivo(file, 'yuriana/documentos/conductor');
+      archivosSubidos.push({ idRequisito, url, mimetype: file.mimetype });
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const persona = queryRunner.manager.create(Persona, {
+        ci: datosConductor.ci,
+        nombre: datosConductor.nombre,
+        correo: datosConductor.correo,
+        telefono: datosConductor.telefono,
+        telefono2: datosConductor.telefono2,
+        ciudad: datosConductor.ciudad,
+        CreatedId: userId,
+      });
+      const personaGuardada = await queryRunner.manager.save(Persona, persona);
+
+      const conductor = queryRunner.manager.create(Conductor, {
+        persona: personaGuardada,
+        categoria: categoriaEntidad,
+        sueldo: datosConductor.sueldo,
+        estado_operativo: datosConductor.estado_operativo,
+        estado_laboral: datosConductor.estado_laboral,
+        CreatedId: userId,
+      });
+      const conductorGuardado = await queryRunner.manager.save(Conductor, conductor);
+
+      for (const archivoInfo of archivosSubidos) {
+        const requisito = await queryRunner.manager.findOne(RequisitoDocumento, {
+          where: { id_requisito_documento: archivoInfo.idRequisito },
+        });
+        const fechaStr = fechas[archivoInfo.idRequisito];
+        const fecha_vencimiento = requisito?.requiere_vencimiento && fechaStr
+          ? new Date(fechaStr)
+          : undefined;
+
+        const documento = queryRunner.manager.create(Documento, {
+          id_requisito: archivoInfo.idRequisito,
+          url_documento: archivoInfo.url,
+          tipo_documento: archivoInfo.mimetype,
+          id_conductor: conductorGuardado.id_conductor,
+          fecha_vencimiento,
+          CreatedId: userId,
+        });
+        await queryRunner.manager.save(Documento, documento);
+      }
+
+      await queryRunner.commitTransaction();
+      return conductorGuardado;
+
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      await Promise.allSettled(
+        archivosSubidos.map(a => this.cloudinaryService.eliminarArchivo(a.url))
+      );
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
 
   async create(createConductorDto: CreateConductorDto, userId: number): Promise<Conductor> {
     const { 
@@ -118,6 +200,9 @@ export class ConductorService {
 
   async remove(ci: number, userId: number): Promise<Conductor> {
     const conductor = await this.findOne(ci);
+    if(conductor.estado_operativo === EstadoOperativo.ASIGNADO || conductor.estado_operativo === EstadoOperativo.VIAJE){
+      throw new NotFoundException('No se puede eliminar un conductor que está asignado o en viaje');
+    }
     conductor.status = false;
     conductor.UpdatedId = userId;
     return this.conductorRepository.save(conductor);

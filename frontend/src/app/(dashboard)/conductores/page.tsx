@@ -6,14 +6,14 @@ import { FilterSelect } from "@/components/atoms/FilterSelect";
 import { ConductorTable } from "@/components/organisms/ConductorTable";
 import { ConductorForm } from "@/components/organisms/ConductorForm";
 import { ModuleAlertsPanel } from "@/components/organisms/ModuleAlertsPanel";
-import { 
-  getConductores, 
-  getConductorContador, 
-  deleteConductor, 
-  createConductor, 
-  updateConductor
+import {
+  getConductores,
+  getConductorContador,
+  deleteConductor,
+  updateConductor,
+  registrarConductor,
+  uploadDocumentoConductor,
 } from "@/lib/api/conductor.api";
-import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 import { Conductor, EstadoLaboral } from "@/types/conductor.types";
 import { Users, CheckCircle, XCircle } from "lucide-react";
@@ -85,64 +85,58 @@ export default function ConductoresPage() {
     loadPageData();
   }, [loadPageData]);
 
-  const handleFormSubmitUnificado = async (payloadConductor: any, archivos: Record<number, File>, fechas: Record<number, string>) => {
-    let conductorCreadoId: number | null = null;
-    let conductorCreadoCi: number | null = null;
-
+  const handleFormSubmitUnificado = async (
+    payloadConductor: any,
+    archivos: Record<number, File>,
+    fechas: Record<number, string>,
+  ) => {
     try {
-      let conductorPersistido: Conductor;
-      
       if (selectedConductor) {
-        conductorPersistido = await updateConductor(selectedConductor.persona.ci, payloadConductor);
-        console.log("Información general del conductor actualizada.");
+        // ACTUALIZAR: conductor ya existe, no hay riesgo de huérfanos
+        await updateConductor(selectedConductor.persona.ci, payloadConductor);
+
+        const todosLosIds = Array.from(new Set([
+          ...Object.keys(archivos).map(Number),
+          ...Object.keys(fechas).map(Number),
+        ]));
+        for (const idReq of todosLosIds) {
+          const fileObj = archivos[idReq];
+          const fechaVenc = fechas[idReq];
+          if (!fileObj && !fechaVenc) continue;
+          const form = new FormData();
+          form.append("id_requisito", idReq.toString());
+          form.append("id_conductor", selectedConductor.id_conductor.toString());
+          if (fileObj) form.append("file", fileObj);
+          if (fechaVenc) form.append("fecha_vencimiento", new Date(fechaVenc).toISOString());
+          await uploadDocumentoConductor(form);
+        }
       } else {
-        conductorPersistido = await createConductor(payloadConductor);
-        conductorCreadoId = conductorPersistido.id_conductor;
-        conductorCreadoCi = conductorPersistido.persona?.ci || payloadConductor.ci;
-        console.log("Conductor registered provisionalmente con ID:", conductorCreadoId);
-      }
-
-      const idConductorAsignado = selectedConductor ? selectedConductor.id_conductor : conductorCreadoId;
-      
-      const todosLosIdsRequisitos = Array.from(new Set([
-        ...Object.keys(archivos).map(Number),
-        ...Object.keys(fechas).map(Number)
-      ]));
-      
-      for (const idReqNum of todosLosIdsRequisitos) {
-        const fileObj = archivos[idReqNum];
-        const fechaVenc = fechas[idReqNum];
-
-        if (!fileObj && !fechaVenc) continue;
-
-        const formMultipart = new FormData();
-        formMultipart.append("id_requisito", idReqNum.toString());
-        formMultipart.append("id_conductor", idConductorAsignado!.toString());
-        if (fileObj) formMultipart.append("file", fileObj);
-        if (fechaVenc) formMultipart.append("fecha_vencimiento", new Date(fechaVenc).toISOString());
-
-        await apiFetch("/documento", {
-          method: "POST",
-          body: formMultipart
+        // CREAR: un solo endpoint con transacción real en el backend
+        const formData = new FormData();
+        Object.entries(payloadConductor).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) formData.append(key, String(value));
         });
+        Object.entries(archivos).forEach(([idRequisito, file]) => {
+          formData.append(`archivo_${idRequisito}`, file);
+        });
+        Object.entries(fechas).forEach(([idRequisito, fecha]) => {
+          formData.append(`fecha_${idRequisito}`, fecha);
+        });
+        await registrarConductor(formData);
       }
 
       toast.success("Operación Exitosa", {
-        description: selectedConductor ? "Los datos del conductor se actualizaron correctamente." : "Conductor y expediente digital registrados con éxito."
+        description: selectedConductor
+          ? "Los datos del conductor se actualizaron correctamente."
+          : "Conductor y expediente digital registrados con éxito.",
       });
       setView('list');
       loadPageData();
 
     } catch (error: any) {
-      console.error("ERROR CRÍTICO EN EL PROCESO DE REGISTRO:", error);
       toast.error("Error de Sincronización", {
-        description: error.message || "Verifique los datos e intente de nuevo."
+        description: error.message || "Verifique los datos e intente de nuevo.",
       });
-
-      if (!selectedConductor && conductorCreadoCi) {
-        try { await deleteConductor(conductorCreadoCi); }
-        catch (rollbackError) { console.error("Error crítico en Rollback:", rollbackError); }
-      }
     }
   };
 
@@ -246,7 +240,7 @@ export default function ConductoresPage() {
                 onClick={handleConfirmDeleteEjecucion} 
                 className="w-full py-3.5 bg-rose-500 text-white hover:bg-rose-600 rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-rose-500/10 active:scale-98"
               >
-                Confirmar Baja
+                Eliminar
               </button>
             </div>
           </div>

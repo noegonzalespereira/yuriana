@@ -25,6 +25,14 @@ export const getCategoriasEntidad = async (): Promise<any[]> => {
   return apiFetch("/categoria_entidad");
 };
 
+export const registrarUnidad = async (formData: FormData): Promise<Unidad> => {
+  return apiFetch("/unidad/registrar", { method: "POST", body: formData });
+};
+
+export const uploadDocumentoUnidad = async (formData: FormData): Promise<any> => {
+  return apiFetch("/documento", { method: "POST", body: formData });
+};
+
 export const createUnidad = async (formData: FormData): Promise<Unidad> => {
   return apiFetch("/unidad", {
     method: "POST",

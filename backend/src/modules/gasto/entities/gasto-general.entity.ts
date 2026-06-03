@@ -1,6 +1,10 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { Gasto } from "../../gasto/entities/gasto.entity";
-
+import { Gasto } from "../entities/gasto.entity";
+export enum TipoGastoGeneral {
+  TALLER = 'taller',
+  LLANTAS = 'llantas',
+  OTROS = 'otros',
+}
 @Entity('gasto_general')
 export class GastoGeneral {
   @PrimaryGeneratedColumn()
@@ -13,8 +17,8 @@ export class GastoGeneral {
   @Column()
   id_gasto!: number;
 
-  @Column() // Ejemplo: 'Impuestos anuales', 'Otros'
-  tipo_gasto!: string;
+  @Column({ type: 'enum', enum: TipoGastoGeneral })
+  tipo_gasto!: TipoGastoGeneral;
 
   @Column({ default: 1 })
   id_empresa!: number;

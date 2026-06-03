@@ -6,14 +6,14 @@ import { FilterSelect } from "@/components/atoms/FilterSelect";
 import { UnidadTable } from "@/components/organisms/UnidadTable";
 import { UnidadForm } from "@/components/organisms/UnidadForm";
 import { ModuleAlertsPanel } from "@/components/organisms/ModuleAlertsPanel";
-import { 
-  getUnidades, 
-  createUnidad, 
-  updateUnidad, 
+import {
+  getUnidades,
+  updateUnidad,
   deleteUnidad,
-  getCategoriasEntidad
+  getCategoriasEntidad,
+  registrarUnidad,
+  uploadDocumentoUnidad,
 } from "@/lib/api/unidad.api";
-import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
 import { Truck, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
 import { Unidad, EstadoUnidad } from "@/types/unidad.types";
@@ -92,86 +92,62 @@ const handleFormSubmitUnificado = async (
   fotosFlota: File[],
   fotosEliminar: number[] = []
 ) => {
-  let unidadProvisionalPlaca: string | null = null;
-
   try {
-    let unidadPersistida: Unidad;
-
     if (selectedUnidad) {
-      // ─── MODO EDICIÓN ─────────────────────────────────────────────
+      // ACTUALIZAR: unidad ya existe, transacción manejada en el backend
       const { placa: _omitir, ...datosParaActualizar } = payloadUnidad;
-
-      // SIEMPRE FormData — FilesInterceptor/Multer no puede parsear JSON
-      // @Transform en el DTO convierte los strings a numbers automáticamente
       const formData = new FormData();
       Object.keys(datosParaActualizar).forEach(key => {
         const valor = datosParaActualizar[key];
-        if (valor !== undefined && valor !== null) {
-          formData.append(key, valor.toString());
-        }
+        if (valor !== undefined && valor !== null) formData.append(key, valor.toString());
       });
       fotosFlota.forEach(file => formData.append("fotos", file));
+      if (fotosEliminar.length > 0) formData.append("fotos_eliminar", fotosEliminar.join(','));
+      await updateUnidad(selectedUnidad.placa, formData);
 
-      if (fotosEliminar.length > 0) {
-        formData.append("fotos_eliminar", fotosEliminar.join(','));
+      const todosIdsRequisitos = Array.from(new Set([
+        ...Object.keys(archivos).map(Number),
+        ...Object.keys(fechas).map(Number),
+      ]));
+      for (const idReq of todosIdsRequisitos) {
+        const fileObj = archivos[idReq];
+        const fechaVenc = fechas[idReq];
+        if (!fileObj && !fechaVenc) continue;
+        const form = new FormData();
+        form.append("id_requisito", idReq.toString());
+        form.append("id_unidad", selectedUnidad.id_unidad.toString());
+        if (fileObj) form.append("file", fileObj);
+        if (fechaVenc) form.append("fecha_vencimiento", new Date(fechaVenc).toISOString());
+        await uploadDocumentoUnidad(form);
       }
 
-      unidadPersistida = await updateUnidad(selectedUnidad.placa, formData);
-      console.log("Unidad actualizada.");
-
     } else {
-      // ─── MODO CREACIÓN ────────────────────────────────────────────
+      // CREAR: un solo endpoint con transacción real en el backend
       const formData = new FormData();
       Object.keys(payloadUnidad).forEach(key => {
         const valor = payloadUnidad[key];
-        if (valor !== undefined && valor !== null) {
-          formData.append(key, valor.toString());
-        }
+        if (valor !== undefined && valor !== null) formData.append(key, valor.toString());
       });
       fotosFlota.forEach(file => formData.append("fotos", file));
-
-      unidadPersistida = await createUnidad(formData);
-      unidadProvisionalPlaca = unidadPersistida.placa;
-      console.log("Unidad creada con placa:", unidadProvisionalPlaca);
-    }
-
-    // ─── DOCUMENTOS ───────────────────────────────────────────────
-    const idUnidadAsignado = unidadPersistida.id_unidad;
-    const todosIdsRequisitos = Array.from(new Set([
-      ...Object.keys(archivos).map(Number),
-      ...Object.keys(fechas).map(Number)
-    ]));
-
-    for (const idReqNum of todosIdsRequisitos) {
-      const fileObj = archivos[idReqNum];
-      const fechaVenc = fechas[idReqNum];
-      if (!fileObj && !fechaVenc) continue;
-
-      const formDocumento = new FormData();
-      formDocumento.append("id_requisito", idReqNum.toString());
-      formDocumento.append("id_unidad", idUnidadAsignado.toString());
-      if (fileObj) formDocumento.append("file", fileObj);
-      if (fechaVenc) formDocumento.append("fecha_vencimiento", new Date(fechaVenc).toISOString());
-
-      await apiFetch("/documento", { method: "POST", body: formDocumento });
+      Object.entries(archivos).forEach(([idRequisito, file]) => {
+        formData.append(`archivo_${idRequisito}`, file);
+      });
+      Object.entries(fechas).forEach(([idRequisito, fecha]) => {
+        formData.append(`fecha_${idRequisito}`, fecha);
+      });
+      await registrarUnidad(formData);
     }
 
     toast.success("Operación Exitosa", {
       description: selectedUnidad
         ? "Los datos de la unidad se actualizaron correctamente."
-        : "Unidad registrada con éxito."
+        : "Unidad registrada con éxito.",
     });
     setView('list');
     syncPageData();
 
   } catch (error: any) {
-    console.error(error);
     toast.error("Fallo de Persistencia", { description: error.message });
-
-    if (!selectedUnidad && unidadProvisionalPlaca) {
-      try { await deleteUnidad(unidadProvisionalPlaca); }
-      catch (e) { console.error("Rollback fallido:", e); }
-    }
   }
 };
 

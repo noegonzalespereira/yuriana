@@ -97,6 +97,14 @@
 /* ==========================================================================
    3. ESTILOS BASE DE LA APLICACIÓN
    ========================================================================== */
+
+/* Escala global: a 100% de zoom se ve como ~80-85%, que es la escala
+   que el usuario confirmó como cómoda. Todas las clases rem de Tailwind
+   se reducen proporcionalmente sin tocar los componentes. */
+html {
+  font-size: 13.5px;
+}
+
 body {
   background-color: var(--yuriana-layout-bg);
   color: var(--yuriana-base-gray-dark);

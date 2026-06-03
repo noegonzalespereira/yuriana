@@ -1,4 +1,5 @@
-import { Controller, Get, UseGuards,Query, Request,Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, UseGuards, Query, Request, Post, Body, Patch, Param, Delete, ParseIntPipe, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { ConductorService } from './conductor.service';
 import { CreateConductorDto } from './dto/create-conductor.dto';
 import { UpdateConductorDto } from './dto/update-conductor.dto';
@@ -11,6 +12,36 @@ import { FilterConductorDto } from './dto/filter-conductor.dto';
 @Controller('conductor')
 export class ConductorController {
   constructor(private readonly conductorService: ConductorService) {}
+
+  @Post('registrar')
+  @Roles('ADMIN')
+  @UseInterceptors(AnyFilesInterceptor())
+  async registrar(
+    @Body() body: any,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Request() req,
+  ) {
+    const datosConductor: CreateConductorDto = {
+      ci: parseInt(body.ci),
+      nombre: body.nombre,
+      correo: body.correo,
+      ciudad: body.ciudad,
+      telefono: parseInt(body.telefono),
+      telefono2: body.telefono2 ? parseInt(body.telefono2) : undefined,
+      sueldo: body.sueldo ? parseFloat(body.sueldo) : undefined,
+      estado_operativo: body.estado_operativo,
+      estado_laboral: body.estado_laboral,
+    };
+
+    const fechas: Record<number, string> = {};
+    Object.keys(body).forEach(key => {
+      if (key.startsWith('fecha_')) {
+        fechas[parseInt(key.replace('fecha_', ''))] = body[key];
+      }
+    });
+
+    return this.conductorService.registrarConDocumentos(datosConductor, files || [], fechas, req.user.id);
+  }
 
   @Post()
   @Roles('ADMIN')

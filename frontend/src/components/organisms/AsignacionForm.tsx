@@ -71,8 +71,8 @@ export const AsignacionForm = ({ initialData, isReadOnly = false, onSubmit, onCa
     }
     onSubmit({
       ci_conductor: Number(ci),
-      placa_tracto: selectedTracto.placa,
-      placa_remolque: selectedRemolque.placa
+      placa_tracto: selectedTracto.placa?.toUpperCase(),
+      placa_remolque: selectedRemolque.placa?.toUpperCase()
     });
   };
 

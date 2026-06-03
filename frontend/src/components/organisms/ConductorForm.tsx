@@ -162,9 +162,9 @@ export const ConductorForm = ({ initialData, onSubmit, onCancel, isReadOnly }: P
 
     // 3. Empaquetar DTO limpio libre de propiedades fantasmas
     const payloadConductor = {
-      nombre: data.nombre,
+      nombre: data.nombre?.trim().toUpperCase(),
       correo: data.correo,
-      ciudad: data.ciudad,
+      ciudad: data.ciudad?.trim().toUpperCase() || undefined,
       telefono: data.telefono ? parseInt(data.telefono) : 0,
       telefono2: data.telefono2 ? parseInt(data.telefono2) : undefined,
       sueldo: data.sueldo ? parseFloat(data.sueldo) : undefined,
@@ -193,7 +193,7 @@ export const ConductorForm = ({ initialData, onSubmit, onCancel, isReadOnly }: P
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6">
-          <ModuleField label="CI" name="ci" type="number" register={register} disabled={isReadOnly || !!initialData} error={errors.ci} rules={{ required: "El CI es obligatorio" }} />
+          <ModuleField label="CI *" name="ci" type="number" register={register} disabled={isReadOnly || !!initialData} error={errors.ci} rules={{ required: "El CI es obligatorio" }} />
           <ModuleField label="Nombre" name="nombre" register={register} disabled={isReadOnly} error={errors.nombre} rules={{ required: "El nombre es obligatorio" }} />
           <ModuleField label="Correo" name="correo" type="email" register={register} disabled={isReadOnly} />
           <ModuleField label="Ciudad" name="ciudad" register={register} disabled={isReadOnly} />

@@ -12,7 +12,7 @@ interface Props {
 export const AsignacionTable = ({ data, onDelete, onEdit, onView }: Props) => {
   if (data.length === 0) {
     return (
-      <div className="py-20 text-center text-[var(--yuriana-base-gray-light)] italic text-sm border border-dashed border-border rounded-3xl bg-[var(--yuriana-base-white)]">
+      <div className="py-20 text-center text-[var(--yuriana-base-gray-light)] italic text-xs border border-dashed border-border rounded-3xl bg-[var(--yuriana-base-white)]">
         No se registran enganches operacionales activos en este momento.
       </div>
     );
@@ -23,11 +23,11 @@ export const AsignacionTable = ({ data, onDelete, onEdit, onView }: Props) => {
       <table className="w-full text-left border-collapse">
         <thead className="bg-[var(--yuriana-base-orange)] text-white uppercase text-[10px] font-black tracking-widest">
           <tr>
-            <th className="px-6 py-4">Conductor</th>
-            <th className="px-6 py-4">Tracto</th>
-            <th className="px-6 py-4">Remolque / Semiremolque</th>
-            <th className="px-6 py-4 text-center">Estado</th>
-            <th className="px-6 py-4 text-center">Acciones</th>
+            <th className="px-4 py-2.5">Conductor</th>
+            <th className="px-4 py-2.5">Tracto</th>
+            <th className="px-4 py-2.5">Remolque / Semiremolque</th>
+            <th className="px-4 py-2.5 text-center">Estado</th>
+            <th className="px-4 py-2.5 text-center">Acciones</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border bg-[var(--yuriana-base-white)] font-medium text-gray-700">
@@ -35,9 +35,9 @@ export const AsignacionTable = ({ data, onDelete, onEdit, onView }: Props) => {
             <tr key={item.id_asignacion} className="hover:bg-slate-50/80 transition-colors">
               
               {/* CONDUCTOR */}
-              <td className="px-6 py-4">
+              <td className="px-4 py-2.5">
                 <div className="flex flex-col text-left">
-                  <span className="font-bold text-[var(--yuriana-base-black)] text-sm uppercase tracking-tight">
+                  <span className="font-bold text-[var(--yuriana-base-black)] text-xs uppercase tracking-tight">
                     {item.conductor?.persona?.nombre || "Sin Identificar"}
                   </span>
                   <span className="text-[10px] text-[var(--yuriana-base-gray-light)] font-black uppercase mt-0.5 font-mono">
@@ -47,9 +47,9 @@ export const AsignacionTable = ({ data, onDelete, onEdit, onView }: Props) => {
               </td>
 
               {/* TRACTO */}
-              <td className="px-6 py-4">
+              <td className="px-4 py-2.5">
                 <div className="flex flex-col text-left">
-                  <span className="font-mono font-bold text-[var(--yuriana-base-gray-dark)] text-sm">
+                  <span className="font-mono font-bold text-[var(--yuriana-base-gray-dark)] text-xs">
                     {item.tracto?.placa || "S/P"}
                   </span>
                   <span className="text-[10px] text-[var(--yuriana-base-gray-light)] font-black uppercase mt-0.5">
@@ -59,9 +59,9 @@ export const AsignacionTable = ({ data, onDelete, onEdit, onView }: Props) => {
               </td>
 
               {/* REMOLQUE / SEMIREMOLQUE */}
-              <td className="px-6 py-4">
+              <td className="px-4 py-2.5">
                 <div className="flex flex-col text-left">
-                  <span className="font-mono font-bold text-[var(--yuriana-base-gray-dark)] text-sm">
+                  <span className="font-mono font-bold text-[var(--yuriana-base-gray-dark)] text-xs">
                     {item.remolque?.placa || "S/P"}
                   </span>
                   <span className="text-[10px] text-[var(--yuriana-base-gray-light)] font-black uppercase mt-0.5">
@@ -71,7 +71,7 @@ export const AsignacionTable = ({ data, onDelete, onEdit, onView }: Props) => {
               </td>
 
               {/* ESTADO */}
-              <td className="px-6 py-4 text-center">
+              <td className="px-4 py-2.5 text-center">
                 <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                   item.estado_asignacion === EstadoAsignacion.ACTIVA
                     ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
@@ -82,7 +82,7 @@ export const AsignacionTable = ({ data, onDelete, onEdit, onView }: Props) => {
               </td>
 
               {/* ACCIONES COMPLETO */}
-              <td className="px-6 py-4">
+              <td className="px-4 py-2.5">
                 <div className="flex justify-center gap-4">
                   <button type="button" onClick={() => onView(item)} className="text-[var(--yuriana-base-orange)] hover:scale-110 transition-transform">
                     <Eye size={18} />

@@ -8,6 +8,8 @@ import { DocumentoService } from '../documento/documento.service';
 import { FilterUnidadDto } from './dto/filter-unidad.dto';
 import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 import { FotoUnidad } from '../foto_unidad/entities/foto-unidad.entity';
+import { Documento } from '../documento/entities/documento.entity';
+import { RequisitoDocumento } from '../requisito-documento/entities/requisito-documento.entity';
 import { CreateUnidadDto } from './dto/create-unidad.dto';
 import { UpdateUnidadDto } from './dto/update-unidad.dto';
 
@@ -21,6 +23,96 @@ export class UnidadService {
     private cloudinaryService: CloudinaryService,
     private dataSource: DataSource,
   ) {}
+
+  async registrarConDocumentos(
+    createUnidadDto: CreateUnidadDto,
+    fotosFiles: Express.Multer.File[],
+    docArchivos: Express.Multer.File[],
+    fechas: Record<number, string>,
+    userId: number,
+  ): Promise<Unidad> {
+    const placaNormalizada = createUnidadDto.placa.toUpperCase();
+    const numChasisNormalizado = createUnidadDto.num_chasis.toUpperCase();
+
+    const existe_placa = await this.unidadRepository.findOneBy({ placa: placaNormalizada, status: true });
+    if (existe_placa) throw new ConflictException('Placa ya registrada');
+
+    const existe_chasis = await this.unidadRepository.findOneBy({ num_chasis: numChasisNormalizado, status: true });
+    if (existe_chasis) throw new ConflictException('Número de chasis ya registrado');
+
+    const categoria = await this.categoriaEntidadService.findOne(createUnidadDto.id_categoria);
+    const categoriasValidas = [TipoCategoria.TRACTO, TipoCategoria.SEMIREMOLQUE, TipoCategoria.REMOLQUE];
+    if (!categoriasValidas.includes(categoria.tipo_categoria)) {
+      throw new BadRequestException('La categoría debe ser Tracto, Semiremolque o Remolque');
+    }
+
+    // Subir todos los archivos a Cloudinary antes de abrir la transacción de BD
+    const fotosSubidas: string[] = [];
+    for (const file of fotosFiles) {
+      const { url } = await this.cloudinaryService.subirArchivo(file, 'yuriana/unidades/fotos');
+      fotosSubidas.push(url);
+    }
+
+    const docSubidos: { idRequisito: number; url: string; mimetype: string }[] = [];
+    for (const file of docArchivos) {
+      const idRequisito = parseInt(file.fieldname.replace('archivo_', ''));
+      const { url } = await this.cloudinaryService.subirArchivo(file, 'yuriana/documentos/unidad');
+      docSubidos.push({ idRequisito, url, mimetype: file.mimetype });
+    }
+
+    // Transacción: unidad → fotos → documentos
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const nuevaUnidad = queryRunner.manager.create(Unidad, {
+        ...createUnidadDto,
+        placa: placaNormalizada,
+        num_chasis: numChasisNormalizado,
+        categoria,
+        CreatedId: userId,
+      });
+      const unidadGuardada = await queryRunner.manager.save(Unidad, nuevaUnidad);
+
+      const fotoRepo = queryRunner.manager.getRepository(FotoUnidad);
+      for (const url of fotosSubidas) {
+        const foto = fotoRepo.create({ id_unidad: unidadGuardada.id_unidad, url_foto: url, CreatedId: userId });
+        await fotoRepo.save(foto);
+      }
+
+      for (const docInfo of docSubidos) {
+        const requisito = await queryRunner.manager.findOne(RequisitoDocumento, {
+          where: { id_requisito_documento: docInfo.idRequisito },
+        });
+        const fechaStr = fechas[docInfo.idRequisito];
+        const fecha_vencimiento = requisito?.requiere_vencimiento && fechaStr
+          ? new Date(fechaStr)
+          : undefined;
+
+        const documento = queryRunner.manager.create(Documento, {
+          id_requisito: docInfo.idRequisito,
+          url_documento: docInfo.url,
+          tipo_documento: docInfo.mimetype,
+          id_unidad: unidadGuardada.id_unidad,
+          fecha_vencimiento,
+          CreatedId: userId,
+        });
+        await queryRunner.manager.save(Documento, documento);
+      }
+
+      await queryRunner.commitTransaction();
+      return await this.findOne(placaNormalizada);
+
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      const todasLasUrls = [...fotosSubidas, ...docSubidos.map(d => d.url)];
+      await Promise.allSettled(todasLasUrls.map(url => this.cloudinaryService.eliminarArchivo(url)));
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
 
   async create(createUnidadDto: CreateUnidadDto, files: Express.Multer.File[], userId: number): Promise<Unidad> {
   const placaNormalizada = createUnidadDto.placa.toUpperCase();
@@ -182,11 +274,9 @@ async update(placa: string, updateUnidadDto: UpdateUnidadDto, files: Express.Mul
 
     
     const datosActualizados: Partial<Unidad> = { ...updateUnidadDto };
-    // 2. Eliminamos manualmente todas las propiedades que NO pertenecen a la tabla Unidad
     delete (datosActualizados as any).placa;
     delete (datosActualizados as any).fotos_eliminar;
 
-    // 3. Mantenemos tus lógicas de chasis y auditoría intactas
     datosActualizados.num_chasis = num_chasis ? num_chasis.toUpperCase().trim() : unidadOriginal.num_chasis;
     datosActualizados.UpdatedId = userId;
 
@@ -214,6 +304,9 @@ async update(placa: string, updateUnidadDto: UpdateUnidadDto, files: Express.Mul
 
   async remove(placa: string, userId: number): Promise<Unidad> {
     const unidad = await this.findOne(placa);
+    if( unidad.estado_unidad === EstadoUnidad.ASIGNADO || unidad.estado_unidad === EstadoUnidad.EN_VIAJE){
+      throw new NotFoundException('No se puede eliminar una unidad que está asignada o en viaje');
+    }
     unidad.status = false;
     unidad.UpdatedId = userId;
     return this.unidadRepository.save(unidad);

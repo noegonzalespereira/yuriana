@@ -31,12 +31,17 @@ export const ClienteForm = ({ initialData, onSubmit, onCancel, isReadOnly }: Pro
     const { codigo_cliente, ...rest } = data;
     const payload = {
       ...rest,
+      razon_social: data.razon_social?.trim().toUpperCase(),
+      nombre: data.nombre?.trim().toUpperCase(),
+      ciudad: data.ciudad?.trim().toUpperCase(),
+      direccion: data.direccion?.trim().toUpperCase() || "",
+      notas: data.notas?.trim().toUpperCase() || "",
+      correo: data.correo,
       nit: data.nit ? parseInt(data.nit) : 0,
       ci: data.ci ? parseInt(data.ci) : 0,
       telefono: data.telefono ? parseInt(data.telefono) : 0,
       telefono2: data.telefono2 ? parseInt(data.telefono2) : 0,
     };
-    console.log("Payload limpio enviado:", payload);
     onSubmit(payload);
   };
 

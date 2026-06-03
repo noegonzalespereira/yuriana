@@ -48,6 +48,10 @@ export const getDocumentosDeEntidad = async (idConductor: number): Promise<any[]
   return apiFetch(`/documento?id_conductor=${idConductor}`);
 };
 
+export const registrarConductor = async (formData: FormData): Promise<any> => {
+  return apiFetch("/conductor/registrar", { method: "POST", body: formData });
+};
+
 export const createConductor = async (data: any) => {
   return apiFetch("/conductor", { method: "POST", body: JSON.stringify(data) });
 };
