@@ -1,6 +1,7 @@
 "use client";
 import { Eye, Pencil, Trash2, ShieldAlert } from "lucide-react";
 import { Unidad, EstadoUnidad } from "@/types/unidad.types";
+import { toast } from "sonner";
 
 interface Props {
   data: Unidad[];
@@ -57,7 +58,7 @@ export const UnidadTable = ({ data, onDelete, onEdit, onView }: Props) => {
           {data.length === 0 ? (
             <tr>
               <td colSpan={6} className="text-center py-12 text-[var(--yuriana-input-placeholder)] italic text-xs">
-                No se localizaron unidades de transporte activos en el inventario logístico.
+                No hay registros de unidades para mostrar.
               </td>
             </tr>
           ) : (
@@ -113,7 +114,19 @@ export const UnidadTable = ({ data, onDelete, onEdit, onView }: Props) => {
                     <button type="button" onClick={() => onEdit(item)} className="text-[var(--yuriana-input-placeholder)] hover:text-slate-600 hover:scale-110 transition-transform">
                       <Pencil size={18} />
                     </button>
-                    <button type="button" onClick={() => onDelete(item.placa)} className="text-[var(--yuriana-input-error)] hover:scale-110 transition-transform">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (item.estado_unidad === EstadoUnidad.ASIGNADO || item.estado_unidad === EstadoUnidad.EN_VIAJE) {
+                          toast.error("No se puede eliminar", {
+                            description: `La unidad "${item.placa}" está en estado ${item.estado_unidad === EstadoUnidad.ASIGNADO ? "Asignado" : "En Viaje"} y no puede eliminarse.`,
+                          });
+                          return;
+                        }
+                        onDelete(item.placa);
+                      }}
+                      className="text-[var(--yuriana-input-error)] hover:scale-110 transition-transform"
+                    >
                       <Trash2 size={18} />
                     </button>
                   </div>

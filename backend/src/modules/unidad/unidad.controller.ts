@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Request, UseGuards, Param, Delete, Query, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Request, UseGuards, Param, Delete, Query, UseInterceptors, UploadedFiles, BadRequestException } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express/multer/interceptors/files.interceptor';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { UnidadService } from './unidad.service';
@@ -33,13 +33,19 @@ export class UnidadController {
       }
     });
 
+    const anioRegistrar = parseInt(body.anio);
+    const currentYearRegistrar = new Date().getFullYear();
+    if (isNaN(anioRegistrar) || anioRegistrar < 1990 || anioRegistrar > currentYearRegistrar) {
+      throw new BadRequestException(`El año debe estar entre 1990 y ${currentYearRegistrar}`);
+    }
+
     const createUnidadDto: CreateUnidadDto = {
       placa: body.placa,
       id_categoria: parseInt(body.id_categoria),
       num_chasis: body.num_chasis,
       marca: body.marca,
       color: body.color,
-      anio: parseInt(body.anio),
+      anio: anioRegistrar,
       modelo: body.modelo,
       estado_unidad: body.estado_unidad,
     };
@@ -78,6 +84,14 @@ export class UnidadController {
     const fotosEliminarIds: number[] = body.fotos_eliminar
       ? body.fotos_eliminar.split(',').map((id: string) => parseInt(id.trim())).filter(Boolean)
       : [];
+
+    if (body.anio !== undefined) {
+      const anioUpdate = parseInt(body.anio);
+      const currentYearUpdate = new Date().getFullYear();
+      if (isNaN(anioUpdate) || anioUpdate < 1990 || anioUpdate > currentYearUpdate) {
+        throw new BadRequestException(`El año debe estar entre 1990 y ${currentYearUpdate}`);
+      }
+    }
 
     const updateUnidadDto: UpdateUnidadDto = {
       ...(body.num_chasis !== undefined && { num_chasis: body.num_chasis }),

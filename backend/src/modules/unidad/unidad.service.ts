@@ -1,6 +1,6 @@
 // backend/src/modules/unidad/unidad.service.ts
 
-import { ConflictException, BadRequestException, NotFoundException, Injectable } from '@nestjs/common';
+import { ConflictException, BadRequestException, NotFoundException, ForbiddenException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Unidad, EstadoUnidad } from './entities/unidad.entity';
@@ -249,8 +249,8 @@ async registrarConDocumentos(
 
   async remove(placa: string, userId: number): Promise<Unidad> {
     const unidad = await this.findOne(placa);
-    if(unidad.estado_unidad === EstadoUnidad.ASIGNADO || unidad.estado_unidad === EstadoUnidad.EN_VIAJE) {
-      throw new NotFoundException('No se puede eliminar una unidad asignada');
+    if (unidad.estado_unidad === EstadoUnidad.ASIGNADO || unidad.estado_unidad === EstadoUnidad.EN_VIAJE) {
+      throw new ForbiddenException(`No se puede eliminar la unidad "${unidad.placa}" porque está en estado ${unidad.estado_unidad}`);
     }
     unidad.status = false;
     unidad.UpdatedId = userId;

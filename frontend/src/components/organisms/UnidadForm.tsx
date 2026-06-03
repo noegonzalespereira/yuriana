@@ -172,6 +172,15 @@ export const UnidadForm = ({ initialData, categoriasValidadas, onSubmit, onCance
   };
 
   const handleValidationAndSubmit = async (data: any) => {
+    const anioVal = parseInt(data.anio);
+    const currentYear = new Date().getFullYear();
+    if (isNaN(anioVal) || anioVal < 1990 || anioVal > currentYear) {
+      toast.error("Año inválido", {
+        description: `El año debe estar entre 1990 y ${currentYear}.`,
+      });
+      return;
+    }
+
     for (const req of requisitos) {
       const archivoLocal = archivosSeleccionados[req.id_requisito_documento];
       const docGuardado = documentosGuardados.find(d => d.id_requisito === req.id_requisito_documento);
@@ -285,16 +294,21 @@ export const UnidadForm = ({ initialData, categoriasValidadas, onSubmit, onCance
           <ModuleField label="Marca" name="marca" register={register} disabled={isReadOnly} error={errors.marca} rules={{ required: "La marca es obligatoria" }} />
           <ModuleField label="Modelo" name="modelo" register={register} disabled={isReadOnly} error={errors.modelo} rules={{ required: "El modelo es obligatorio" }} />
           <ModuleField label="Color" name="color" register={register} disabled={isReadOnly} error={errors.color} rules={{ required: "El color es obligatorio" }} />
-          <ModuleField label="Año" name="anio" type="number" register={register} disabled={isReadOnly} error={errors.anio} rules={{ required: "El año es obligatorio" }} />
+          <ModuleField label="Año" name="anio" type="number" register={register} disabled={isReadOnly} error={errors.anio} rules={{ required: "El año es obligatorio", min: { value: 1990, message: "El año mínimo es 1990" }, max: { value: new Date().getFullYear(), message: `El año no puede ser mayor a ${new Date().getFullYear()}` }, validate: (v: any) => parseInt(v) >= 1990 || "El año mínimo es 1990" }} />
           
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-black text-[var(--yuriana-input-label)] uppercase tracking-widest ml-1">Estado Inicial</label>
-            <select {...register("estado_unidad")} disabled={isReadOnly} className="w-full bg-[var(--yuriana-input-bg)] border border-[var(--yuriana-input-border)] rounded-xl py-3 px-4 text-sm font-medium outline-none">
-              <option value={EstadoUnidad.DISPONIBLE}>Disponible</option>
-              <option value={EstadoUnidad.ASIGNADO}>Asignado</option>
-              <option value={EstadoUnidad.EN_VIAJE}>En Viaje</option>
-              <option value={EstadoUnidad.MANTENIMIENTO}>En Mantenimiento</option>
-            </select>
+            <label className="text-[10px] font-black text-[var(--yuriana-input-label)] uppercase tracking-widest ml-1">Estado</label>
+            {initialData && (initialData.estado_unidad === EstadoUnidad.ASIGNADO || initialData.estado_unidad === EstadoUnidad.EN_VIAJE) ? (
+              <div className="w-full bg-slate-50 border border-[var(--yuriana-input-border)] rounded-xl py-3 px-4 text-sm font-medium text-slate-500">
+                {initialData.estado_unidad === EstadoUnidad.ASIGNADO ? "Asignado" : "En Viaje"}
+                <span className="ml-2 text-[10px] text-slate-400 font-bold">(automático)</span>
+              </div>
+            ) : (
+              <select {...register("estado_unidad")} disabled={isReadOnly} className="w-full bg-[var(--yuriana-input-bg)] border border-[var(--yuriana-input-border)] rounded-xl py-3 px-4 text-sm font-medium outline-none">
+                <option value={EstadoUnidad.DISPONIBLE}>Disponible</option>
+                <option value={EstadoUnidad.MANTENIMIENTO}>En Mantenimiento</option>
+              </select>
+            )}
           </div>
         </div>
       </div>
