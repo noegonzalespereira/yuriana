@@ -1,7 +1,7 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { Empresa } from "../../empresa/entities/empresa.entity";
 
-@Entity('gasto')
+@Entity('ingreso_extra')
 export class IngresoExtra {
     @PrimaryGeneratedColumn()
     id_ingreso_extra!: number;

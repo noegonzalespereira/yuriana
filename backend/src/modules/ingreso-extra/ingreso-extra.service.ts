@@ -1,26 +1,93 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateIngresoExtraDto } from './dto/create-ingreso-extra.dto';
 import { UpdateIngresoExtraDto } from './dto/update-ingreso-extra.dto';
+import { DataSource, Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { IngresoExtra } from './entities/ingreso-extra.entity';
 
 @Injectable()
 export class IngresoExtraService {
-  create(createIngresoExtraDto: CreateIngresoExtraDto) {
-    return 'This action adds a new ingresoExtra';
+  constructor(
+      @InjectRepository(IngresoExtra)
+      private readonly ingresoExtraRepository: Repository<IngresoExtra>,
+      private readonly dataSource: DataSource,
+    ) {}
+
+
+  async create(createIngresoExtraDto: CreateIngresoExtraDto, userId: number): Promise<IngresoExtra> {
+    const fecha = new Date(createIngresoExtraDto.fecha);
+    const nuevoIngresoExtra = this.ingresoExtraRepository.create({
+      ...createIngresoExtraDto,
+      id_empresa: 1,
+      mes: (fecha.getMonth() + 1).toString().padStart(2, '0'),
+      anio: fecha.getFullYear(),
+      CreatedId: userId,
+    });
+    return this.ingresoExtraRepository.save(nuevoIngresoExtra);
   }
 
-  findAll() {
-    return `This action returns all ingresoExtra`;
+  async findAll(filters?: { fecha_inicio?: string; fecha_fin?: string }) {
+    const query = this.ingresoExtraRepository.createQueryBuilder('ie')
+      .where('ie.status = :status', { status: true });
+
+    if (filters?.fecha_inicio && filters?.fecha_fin) {
+      query.andWhere('ie.fecha BETWEEN :f1 AND :f2', {
+        f1: filters.fecha_inicio,
+        f2: filters.fecha_fin,
+      });
+    }
+
+    return query.orderBy('ie.fecha', 'DESC').getMany();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} ingresoExtra`;
+  async getTotales() {
+    const totalExtras = await this.ingresoExtraRepository
+      .createQueryBuilder('ie')
+      .select('SUM(ie.monto)', 'total')
+      .where('ie.status = true')
+      .getRawOne();
+
+    const totalFletes = await this.dataSource
+      .createQueryBuilder()
+      .select('SUM(s.total_flete)', 'total')
+      .from('servicio', 's')
+      .where('s.status = true')
+      .getRawOne();
+
+    return {
+      totalIngresoExtras: Number(totalExtras?.total || 0),
+      totalFletes: Number(totalFletes?.total || 0),
+    };
   }
 
-  update(id: number, updateIngresoExtraDto: UpdateIngresoExtraDto) {
-    return `This action updates a #${id} ingresoExtra`;
+  async findOne(id: number) {
+    const ingresoExtra = await this.ingresoExtraRepository.findOne({
+      where: { id_ingreso_extra: id, status: true },
+    });
+    if (!ingresoExtra) {
+      throw new BadRequestException('Ingreso extra no encontrado');
+    }
+    return ingresoExtra;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} ingresoExtra`;
+  async update(id: number, updateIngresoExtraDto: UpdateIngresoExtraDto, userId: number) {
+    const ingresoExtra = await this.findOne(id);
+
+    const extra: any = { ...updateIngresoExtraDto, UpdatedId: userId };
+    if (updateIngresoExtraDto.fecha) {
+      const fecha = new Date(updateIngresoExtraDto.fecha);
+      extra.mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
+      extra.anio = fecha.getFullYear();
+    }
+
+    Object.assign(ingresoExtra, extra);
+    return this.ingresoExtraRepository.save(ingresoExtra);
+  }
+
+  async remove(id: number, userId: number) {
+    const ingresoExtra = await this.findOne(id);
+
+    Object.assign(ingresoExtra, { status: false, UpdatedId: userId });
+    return this.ingresoExtraRepository.save(ingresoExtra);
   }
 }

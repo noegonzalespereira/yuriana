@@ -1,7 +1,5 @@
-import { IsNotEmpty } from "class-validator/types/decorator/common/IsNotEmpty";
-import { Min } from "class-validator/types/decorator/number/Min";
-import { IsNumber } from "class-validator/types/decorator/typechecker/IsNumber";
-import { IsString } from "class-validator/types/decorator/typechecker/IsString";
+import { IsNotEmpty,Min,IsNumber,IsString } from "class-validator";
+
 
 export class CreateIngresoExtraDto {
 
