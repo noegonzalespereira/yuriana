@@ -1,6 +1,7 @@
 "use client";
 import { Eye, Pencil, Trash2 } from "lucide-react";
 import { Conductor, EstadoLaboral, EstadoOperativo } from "@/types/conductor.types";
+import { toast } from "sonner";
 
 interface Props {
   data: Conductor[];
@@ -90,7 +91,21 @@ export const ConductorTable = ({ data, onDelete, onEdit, onView }: Props) => {
                   <div className="flex items-center justify-center gap-4">
                     <button type="button" onClick={() => onView(item)} className="text-[var(--yuriana-base-orange)] hover:scale-110 transition-transform"><Eye size={18} /></button>
                     <button type="button" onClick={() => onEdit(item)} className="text-[var(--yuriana-input-placeholder)] hover:text-slate-600 hover:scale-110 transition-transform"><Pencil size={18} /></button>
-                    <button type="button" onClick={() => onDelete(item.persona.ci)} className="text-[var(--yuriana-input-error)] hover:scale-110 transition-transform"><Trash2 size={18} /></button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (item.estado_operativo === EstadoOperativo.VIAJE || item.estado_operativo === EstadoOperativo.ASIGNADO) {
+                          toast.error("No se puede eliminar", {
+                            description: `El conductor "${item.persona.nombre}" está en estado ${item.estado_operativo === EstadoOperativo.VIAJE ? "En Viaje" : "Asignado"} y no puede eliminarse.`,
+                          });
+                          return;
+                        }
+                        onDelete(item.persona.ci);
+                      }}
+                      className="text-[var(--yuriana-input-error)] hover:scale-110 transition-transform"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
                 </td>
               </tr>

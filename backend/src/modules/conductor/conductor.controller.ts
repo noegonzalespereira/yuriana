@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Query, Request, Post, Body, Patch, Param, Delete, ParseIntPipe, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import { Controller, Get, UseGuards, Query, Request, Post, Body, Patch, Param, Delete, ParseIntPipe, UseInterceptors, UploadedFiles, BadRequestException } from '@nestjs/common';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { ConductorService } from './conductor.service';
 import { CreateConductorDto } from './dto/create-conductor.dto';
@@ -21,6 +21,11 @@ export class ConductorController {
     @UploadedFiles() files: Express.Multer.File[],
     @Request() req,
   ) {
+    const sueldo = body.sueldo ? parseFloat(body.sueldo) : undefined;
+    if (sueldo !== undefined && sueldo < 0) {
+      throw new BadRequestException('El sueldo no puede ser negativo');
+    }
+
     const datosConductor: CreateConductorDto = {
       ci: parseInt(body.ci),
       nombre: body.nombre,
@@ -28,7 +33,7 @@ export class ConductorController {
       ciudad: body.ciudad,
       telefono: parseInt(body.telefono),
       telefono2: body.telefono2 ? parseInt(body.telefono2) : undefined,
-      sueldo: body.sueldo ? parseFloat(body.sueldo) : undefined,
+      sueldo,
       estado_operativo: body.estado_operativo,
       estado_laboral: body.estado_laboral,
     };

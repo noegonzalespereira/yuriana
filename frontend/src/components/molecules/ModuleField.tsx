@@ -25,7 +25,7 @@ export const ModuleField = ({
 }: ModuleFieldProps) => {
   const isRequired = !!(rules as any)?.required;
   const cleanLabel = label.replace(/\s*\*$/, "");
-  const showRequired = isRequired && !disabled;
+  const showRequired = isRequired;
   const showOptional = !isRequired && !disabled;
 
   return (

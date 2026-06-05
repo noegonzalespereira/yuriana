@@ -1,5 +1,5 @@
 
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { CreateConductorDto } from './dto/create-conductor.dto';
 import { UpdateConductorDto } from './dto/update-conductor.dto';
 import { DataSource, Repository } from 'typeorm';
@@ -163,7 +163,7 @@ export class ConductorService {
   async remove(ci: number, userId: number): Promise<Conductor> {
     const conductor = await this.findOne(ci);
     if (conductor.estado_operativo === EstadoOperativo.ASIGNADO || conductor.estado_operativo === EstadoOperativo.VIAJE) {
-      throw new NotFoundException('No se puede eliminar un conductor que está asignado o en viaje');
+      throw new ForbiddenException(`No se puede eliminar al conductor "${conductor.persona?.nombre}" porque está en estado ${conductor.estado_operativo}`);
     }
     conductor.status = false;
     conductor.UpdatedId = userId;

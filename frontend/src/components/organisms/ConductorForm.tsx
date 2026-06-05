@@ -126,6 +126,17 @@ export const ConductorForm = ({ initialData, onSubmit, onCancel, isReadOnly }: P
 };
 
   const handleValidationAndSubmit = async (data: any) => {
+    // Validación cruzada: conductor inactivo no puede estar en viaje ni asignado
+    if (
+      data.estado_laboral === EstadoLaboral.INACTIVO &&
+      (initialData?.estado_operativo === EstadoOperativo.VIAJE || initialData?.estado_operativo === EstadoOperativo.ASIGNADO)
+    ) {
+      toast.error("Estado inconsistente", {
+        description: "No se puede marcar como inactivo a un conductor que está en viaje o asignado.",
+      });
+      return;
+    }
+
     // 1. VALIDACIÓN DINÁMICA DE EXPEDIENTES (ALTA Y EDICIÓN)
     for (const req of requisitos) {
       const archivoLocal = archivosSeleccionados[req.id_requisito_documento];
@@ -198,19 +209,28 @@ export const ConductorForm = ({ initialData, onSubmit, onCancel, isReadOnly }: P
           <ModuleField label="Correo" name="correo" type="email" register={register} disabled={isReadOnly} />
           <ModuleField label="Ciudad" name="ciudad" register={register} disabled={isReadOnly} />
           <ModuleField label="Teléfono" name="telefono" type="number" register={register} disabled={isReadOnly} />
-          <ModuleField label="Sueldo (Bs)" name="sueldo" type="number" register={register} disabled={isReadOnly} />
-          
+          <ModuleField label="Sueldo (Bs)" name="sueldo" type="number" register={register} disabled={isReadOnly} error={errors.sueldo} rules={{ min: { value: 0, message: "El sueldo no puede ser negativo" } }} />
+
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-black text-[var(--yuriana-input-label)] uppercase tracking-widest ml-1">Estado Operativo</label>
-            <select {...register("estado_operativo")} disabled={isReadOnly} className="w-full bg-[var(--yuriana-input-bg)] border border-[var(--yuriana-input-border)] rounded-xl py-3 px-4 text-sm font-medium outline-none">
-              <option value={EstadoOperativo.DISPONIBLE}>Disponible</option>
-              <option value={EstadoOperativo.VIAJE}>En Viaje</option>
-              <option value={EstadoOperativo.ASIGNADO}>Asignado</option>
-            </select>
+            <label className="text-[10px] font-black text-[var(--yuriana-input-label)] uppercase tracking-widest ml-1 flex items-center gap-1">
+              Estado Operativo <span className="text-red-500">*</span>
+            </label>
+            {initialData && (initialData.estado_operativo === EstadoOperativo.VIAJE || initialData.estado_operativo === EstadoOperativo.ASIGNADO) ? (
+              <div className="w-full bg-slate-50 border border-[var(--yuriana-input-border)] rounded-xl py-3 px-4 text-sm font-medium text-slate-500">
+                {initialData.estado_operativo === EstadoOperativo.VIAJE ? "En Viaje" : "Asignado"}
+                <span className="ml-2 text-[10px] text-slate-400 font-bold">(automático)</span>
+              </div>
+            ) : (
+              <select {...register("estado_operativo")} disabled={isReadOnly} className="w-full bg-[var(--yuriana-input-bg)] border border-[var(--yuriana-input-border)] rounded-xl py-3 px-4 text-sm font-medium outline-none">
+                <option value={EstadoOperativo.DISPONIBLE}>Disponible</option>
+              </select>
+            )}
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-black text-[var(--yuriana-input-label)] uppercase tracking-widest ml-1">Estado Laboral</label>
+            <label className="text-[10px] font-black text-[var(--yuriana-input-label)] uppercase tracking-widest ml-1 flex items-center gap-1">
+              Estado Laboral <span className="text-red-500">*</span>
+            </label>
             <select {...register("estado_laboral")} disabled={isReadOnly} className="w-full bg-[var(--yuriana-input-bg)] border border-[var(--yuriana-input-border)] rounded-xl py-3 px-4 text-sm font-medium outline-none">
               <option value={EstadoLaboral.ACTIVO}>Activo</option>
               <option value={EstadoLaboral.INACTIVO}>Inactivo</option>
