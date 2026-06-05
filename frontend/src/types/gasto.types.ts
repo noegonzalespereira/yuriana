@@ -100,6 +100,23 @@ export interface ItemGastoForm {
   monto: number;
 }
 
+export interface GastoAdministrativo {
+  id_gasto_admin: number;
+  id_gasto: number;
+  gasto: {
+    id_gasto: number;
+    fecha: string;
+    mes: string;
+    anio: number;
+    descripcion: string;
+    monto: number;
+    status: boolean;
+  };
+  tipo_gasto: TipoGastoAdministrativo;
+  id_empresa: number;
+  status: boolean;
+}
+
 export interface GastoOperativo {
   id_gasto_operativo: number;
   id_unidad: number;

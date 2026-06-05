@@ -1,5 +1,5 @@
 import { apiFetch } from "../api";
-import { GastosServicio, TotalesPaneles, TipoPestana } from "@/types/gasto.types";
+import { type GastoOperativo, type GastoAdministrativo, GastosServicio, TotalesPaneles, TipoPestana } from "@/types/gasto.types";
 
 export interface GastoFilters {
   fecha_inicio?: string;
@@ -48,4 +48,79 @@ export const editarGastoServicio = async (id: number, data: any): Promise<any> =
     method: "PATCH",
     body: JSON.stringify(data),
   });
+};
+
+// ── Gastos Operativos ──────────────────────────────────────────────────────
+
+export const getGastosOperativos = async (filters: GastoFilters = {}): Promise<GastoOperativo[]> => {
+  const params = new URLSearchParams();
+  if (filters.fecha_inicio) params.append("fecha_inicio", filters.fecha_inicio);
+  if (filters.fecha_fin) params.append("fecha_fin", filters.fecha_fin);
+  if (filters.buscar?.trim()) params.append("buscar", filters.buscar.trim());
+  if (filters.tipo_gasto?.trim()) params.append("tipo_gasto", filters.tipo_gasto.trim());
+  const q = params.toString();
+  return apiFetch(`/gastos/listado/operativo${q ? `?${q}` : ""}`);
+};
+
+export const getDetalleGastoOperativo = async (id: number): Promise<GastoOperativo> => {
+  return apiFetch(`/gastos/detalle/operativo/${id}`);
+};
+
+export const guardarGastoOperativo = async (data: {
+  tipo_pestaña: string;
+  placa: string;
+  items: { fecha: string; tipo_gasto: string; descripcion: string; monto: number }[];
+}): Promise<any> => {
+  return apiFetch("/gastos/guardar-pantalla", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+};
+
+export const editarGastoOperativo = async (id: number, data: any): Promise<any> => {
+  return apiFetch(`/gastos/editar/${TipoPestana.OPERATIVO}/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+};
+
+export const eliminarGastoOperativo = async (id: number): Promise<any> => {
+  return apiFetch(`/gastos/eliminar/${TipoPestana.OPERATIVO}/${id}`, { method: "DELETE" });
+};
+
+// ── Gastos Administrativos ─────────────────────────────────────────────────
+
+export const getGastosAdministrativos = async (filters: GastoFilters = {}): Promise<GastoAdministrativo[]> => {
+  const params = new URLSearchParams();
+  if (filters.fecha_inicio) params.append("fecha_inicio", filters.fecha_inicio);
+  if (filters.fecha_fin) params.append("fecha_fin", filters.fecha_fin);
+  if (filters.buscar?.trim()) params.append("buscar", filters.buscar.trim());
+  if (filters.tipo_gasto?.trim()) params.append("tipo_gasto", filters.tipo_gasto.trim());
+  const q = params.toString();
+  return apiFetch(`/gastos/listado/administrativo${q ? `?${q}` : ""}`);
+};
+
+export const getDetalleGastoAdministrativo = async (id: number): Promise<GastoAdministrativo> => {
+  return apiFetch(`/gastos/detalle/administrativo/${id}`);
+};
+
+export const guardarGastoAdministrativo = async (data: {
+  tipo_pestaña: string;
+  items: { fecha: string; tipo_gasto: string; descripcion: string; monto: number }[];
+}): Promise<any> => {
+  return apiFetch("/gastos/guardar-pantalla", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+};
+
+export const editarGastoAdministrativo = async (id: number, data: any): Promise<any> => {
+  return apiFetch(`/gastos/editar/${TipoPestana.ADMINISTRATIVO}/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+};
+
+export const eliminarGastoAdministrativo = async (id: number): Promise<any> => {
+  return apiFetch(`/gastos/eliminar/${TipoPestana.ADMINISTRATIVO}/${id}`, { method: "DELETE" });
 };

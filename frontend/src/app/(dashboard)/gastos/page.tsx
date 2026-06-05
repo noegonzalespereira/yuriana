@@ -6,32 +6,82 @@ import { ModuleHeader } from "@/components/organisms/ModuleHeader";
 import { StatCard } from "@/components/atoms/StatCard";
 import { GastoServicioTable } from "@/components/organisms/GastoServicioTable";
 import { GastoServicioForm } from "@/components/organisms/GastoServicioForm";
+import { GastoOperativoTable } from "@/components/organisms/GastoOperativoTable";
+import { GastoOperativoForm } from "@/components/organisms/GastoOperativoForm";
+import { GastoAdministrativoTable } from "@/components/organisms/GastoAdministrativoTable";
+import { GastoAdministrativoForm } from "@/components/organisms/GastoAdministrativoForm";
 import {
   getTotalesPaneles,
   getGastosServicio,
   getDetalleGastoServicio,
   eliminarGastoServicio,
+  getGastosOperativos,
+  getDetalleGastoOperativo,
+  eliminarGastoOperativo,
+  getGastosAdministrativos,
+  getDetalleGastoAdministrativo,
+  eliminarGastoAdministrativo,
   type GastoFilters,
 } from "@/lib/api/gasto.api";
-import { GastosServicio, TotalesPaneles, TipoPestana } from "@/types/gasto.types";
+import { GastosServicio, GastoOperativo, GastoAdministrativo, TotalesPaneles, TipoPestana } from "@/types/gasto.types";
 
 type Vista = "list" | "form";
 type TabActiva = TipoPestana;
 
 const TABS: { key: TabActiva; label: string }[] = [
-  { key: TipoPestana.SERVICIO, label: "Costos del Servicio" },
-  { key: TipoPestana.OPERATIVO, label: "Gastos Operativos" },
+  { key: TipoPestana.SERVICIO,       label: "Costos del Servicio" },
+  { key: TipoPestana.OPERATIVO,      label: "Gastos Operativos" },
   { key: TipoPestana.ADMINISTRATIVO, label: "Gastos Administrativos" },
-  { key: TipoPestana.GENERAL, label: "Gastos Generales" },
+  { key: TipoPestana.GENERAL,        label: "Gastos Generales" },
 ];
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("es-BO", { maximumFractionDigits: 2 }).format(n);
 
+// ── Modal de confirmación de eliminación ──────────────────────────────────
+const DeleteModal = ({
+  onConfirm,
+  onCancel,
+}: {
+  onConfirm: () => void;
+  onCancel: () => void;
+}) => (
+  <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center z-50 animate-in fade-in duration-300">
+    <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-2xl max-w-md w-full text-center space-y-6 animate-in zoom-in-95 duration-300 mx-4">
+      <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center mx-auto border border-rose-100/60 shadow-inner">
+        <XCircle size={32} className="animate-pulse" />
+      </div>
+      <div className="space-y-2">
+        <h3 className="font-black text-slate-800 uppercase tracking-tight text-lg">¿Eliminar este registro?</h3>
+        <p className="text-xs text-slate-500 leading-relaxed max-w-[320px] mx-auto">
+          Este gasto será desactivado del sistema. Esta acción no puede deshacerse.
+        </p>
+      </div>
+      <div className="flex flex-col sm:flex-row gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="w-full py-3.5 bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="w-full py-3.5 bg-rose-500 text-white hover:bg-rose-600 rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md"
+        >
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 export default function GastosPage() {
   const [vista, setVista] = useState<Vista>("list");
   const [tabActiva, setTabActiva] = useState<TabActiva>(TipoPestana.SERVICIO);
   const [loading, setLoading] = useState(true);
+  const [isReadOnly, setIsReadOnly] = useState(false);
 
   const [totales, setTotales] = useState<TotalesPaneles>({
     totalGastosViaje: 0,
@@ -40,142 +90,242 @@ export default function GastosPage() {
     totalGastosGenerales: 0,
   });
 
+  // ── Servicio ──
   const [gastosServicio, setGastosServicio] = useState<GastosServicio[]>([]);
-  const [selectedGasto, setSelectedGasto] = useState<GastosServicio | null>(null);
-  const [isReadOnly, setIsReadOnly] = useState(false);
+  const [selectedServicio, setSelectedServicio] = useState<GastosServicio | null>(null);
+  const [filtersServicio, setFiltersServicio] = useState<GastoFilters>({ buscar: "", fecha_inicio: "", fecha_fin: "" });
+  const [deleteServicioId, setDeleteServicioId] = useState<number | null>(null);
 
-  const [filters, setFilters] = useState<GastoFilters>({ buscar: "", fecha_inicio: "", fecha_fin: "" });
+  // ── Operativo ──
+  const [gastosOperativos, setGastosOperativos] = useState<GastoOperativo[]>([]);
+  const [selectedOperativo, setSelectedOperativo] = useState<GastoOperativo | null>(null);
+  const [filtersOperativo, setFiltersOperativo] = useState<GastoFilters>({ buscar: "", fecha_inicio: "", fecha_fin: "" });
+  const [deleteOperativoId, setDeleteOperativoId] = useState<number | null>(null);
 
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [idParaEliminar, setIdParaEliminar] = useState<number | null>(null);
+  // ── Administrativo ──
+  const [gastosAdmin, setGastosAdmin] = useState<GastoAdministrativo[]>([]);
+  const [selectedAdmin, setSelectedAdmin] = useState<GastoAdministrativo | null>(null);
+  const [filtersAdmin, setFiltersAdmin] = useState<GastoFilters>({ buscar: "", fecha_inicio: "", fecha_fin: "" });
+  const [deleteAdminId, setDeleteAdminId] = useState<number | null>(null);
 
+  // ── Cargar totales siempre ──
+  const loadTotales = useCallback(async () => {
+    try {
+      const tots = await getTotalesPaneles();
+      setTotales(tots);
+    } catch { /* silencioso */ }
+  }, []);
+
+  // ── Cargar listado según pestaña activa ──
   const loadServicioData = useCallback(async () => {
     try {
       setLoading(true);
-      const [tots, list] = await Promise.all([
-        getTotalesPaneles(),
-        getGastosServicio(filters),
-      ]);
+      const [tots, list] = await Promise.all([getTotalesPaneles(), getGastosServicio(filtersServicio)]);
       setTotales(tots);
       setGastosServicio(list);
-    } catch (err) {
-      console.error(err);
-      toast.error("Error al cargar los gastos");
+    } catch {
+      toast.error("Error al cargar los gastos del servicio");
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filtersServicio]);
+
+  const loadOperativoData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [tots, list] = await Promise.all([getTotalesPaneles(), getGastosOperativos(filtersOperativo)]);
+      setTotales(tots);
+      setGastosOperativos(list);
+    } catch {
+      toast.error("Error al cargar los gastos operativos");
+    } finally {
+      setLoading(false);
+    }
+  }, [filtersOperativo]);
+
+  const loadAdminData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [tots, list] = await Promise.all([getTotalesPaneles(), getGastosAdministrativos(filtersAdmin)]);
+      setTotales(tots);
+      setGastosAdmin(list);
+    } catch {
+      toast.error("Error al cargar los gastos administrativos");
+    } finally {
+      setLoading(false);
+    }
+  }, [filtersAdmin]);
 
   useEffect(() => {
     if (tabActiva === TipoPestana.SERVICIO) loadServicioData();
-  }, [tabActiva, loadServicioData]);
+    if (tabActiva === TipoPestana.OPERATIVO) loadOperativoData();
+    if (tabActiva === TipoPestana.ADMINISTRATIVO) loadAdminData();
+    if (tabActiva === TipoPestana.GENERAL) { setLoading(false); loadTotales(); }
+  }, [tabActiva, loadServicioData, loadOperativoData, loadAdminData, loadTotales]);
 
+  // ── Handlers genéricos ──
   const handleNuevoGasto = () => {
-    setSelectedGasto(null);
+    setSelectedServicio(null);
+    setSelectedOperativo(null);
+    setSelectedAdmin(null);
     setIsReadOnly(false);
     setVista("form");
   };
 
-  const handleVerDetalle = async (item: GastosServicio) => {
-    try {
-      const detalle = await getDetalleGastoServicio(item.id_gasto_servicio);
-      setSelectedGasto(detalle);
-      setIsReadOnly(true);
-      setVista("form");
-    } catch {
-      toast.error("No se pudo cargar el detalle");
-    }
-  };
-
-  const handleEditar = async (item: GastosServicio) => {
-    try {
-      const detalle = await getDetalleGastoServicio(item.id_gasto_servicio);
-      setSelectedGasto(detalle);
-      setIsReadOnly(false);
-      setVista("form");
-    } catch {
-      toast.error("No se pudo cargar el detalle para edición");
-    }
-  };
-
-  const handleOpenDelete = (id: number) => {
-    setIdParaEliminar(id);
-    setShowDeleteModal(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!idParaEliminar) return;
-    try {
-      await eliminarGastoServicio(idParaEliminar);
-      toast.success("Registro eliminado correctamente");
-      loadServicioData();
-    } catch {
-      toast.error("No se pudo eliminar el registro");
-    } finally {
-      setShowDeleteModal(false);
-      setIdParaEliminar(null);
-    }
-  };
-
   const handleFormSuccess = () => {
     setVista("list");
-    loadServicioData();
+    if (tabActiva === TipoPestana.SERVICIO) loadServicioData();
+    if (tabActiva === TipoPestana.OPERATIVO) loadOperativoData();
+    if (tabActiva === TipoPestana.ADMINISTRATIVO) loadAdminData();
+  };
+
+  // ── Handlers Servicio ──
+  const handleVerServicio = async (item: GastosServicio) => {
+    try {
+      const d = await getDetalleGastoServicio(item.id_gasto_servicio);
+      setSelectedServicio(d);
+      setIsReadOnly(true);
+      setVista("form");
+    } catch { toast.error("No se pudo cargar el detalle"); }
+  };
+
+  const handleEditarServicio = async (item: GastosServicio) => {
+    try {
+      const d = await getDetalleGastoServicio(item.id_gasto_servicio);
+      setSelectedServicio(d);
+      setIsReadOnly(false);
+      setVista("form");
+    } catch { toast.error("No se pudo cargar el detalle"); }
+  };
+
+  const handleConfirmDeleteServicio = async () => {
+    if (!deleteServicioId) return;
+    try {
+      await eliminarGastoServicio(deleteServicioId);
+      toast.success("Registro eliminado correctamente");
+      loadServicioData();
+    } catch { toast.error("No se pudo eliminar el registro"); }
+    finally { setDeleteServicioId(null); }
+  };
+
+  // ── Handlers Operativo ──
+  const handleVerOperativo = async (item: GastoOperativo) => {
+    try {
+      const d = await getDetalleGastoOperativo(item.id_gasto_operativo);
+      setSelectedOperativo(d);
+      setIsReadOnly(true);
+      setVista("form");
+    } catch { toast.error("No se pudo cargar el detalle"); }
+  };
+
+  const handleEditarOperativo = async (item: GastoOperativo) => {
+    try {
+      const d = await getDetalleGastoOperativo(item.id_gasto_operativo);
+      setSelectedOperativo(d);
+      setIsReadOnly(false);
+      setVista("form");
+    } catch { toast.error("No se pudo cargar el detalle"); }
+  };
+
+  const handleConfirmDeleteOperativo = async () => {
+    if (!deleteOperativoId) return;
+    try {
+      await eliminarGastoOperativo(deleteOperativoId);
+      toast.success("Gasto operativo eliminado correctamente");
+      loadOperativoData();
+    } catch { toast.error("No se pudo eliminar el registro"); }
+    finally { setDeleteOperativoId(null); }
+  };
+
+  // ── Handlers Administrativo ──
+  const handleVerAdmin = async (item: GastoAdministrativo) => {
+    try {
+      const d = await getDetalleGastoAdministrativo(item.id_gasto_admin);
+      setSelectedAdmin(d);
+      setIsReadOnly(true);
+      setVista("form");
+    } catch { toast.error("No se pudo cargar el detalle"); }
+  };
+
+  const handleEditarAdmin = async (item: GastoAdministrativo) => {
+    try {
+      const d = await getDetalleGastoAdministrativo(item.id_gasto_admin);
+      setSelectedAdmin(d);
+      setIsReadOnly(false);
+      setVista("form");
+    } catch { toast.error("No se pudo cargar el detalle"); }
+  };
+
+  const handleConfirmDeleteAdmin = async () => {
+    if (!deleteAdminId) return;
+    try {
+      await eliminarGastoAdministrativo(deleteAdminId);
+      toast.success("Gasto administrativo eliminado correctamente");
+      loadAdminData();
+    } catch { toast.error("No se pudo eliminar el registro"); }
+    finally { setDeleteAdminId(null); }
+  };
+
+  // ── Título del header según contexto ──
+  const headerTitle = () => {
+    if (vista === "list") return "Gestión de Gastos";
+    if (isReadOnly) return "Detalle del Gasto";
+    if (tabActiva === TipoPestana.SERVICIO) return selectedServicio ? "Editar Gasto del Viaje" : "Registrar Gastos del Viaje";
+    if (tabActiva === TipoPestana.OPERATIVO) return selectedOperativo ? "Editar Gasto Operativo" : "Registrar Gastos Operativos";
+    if (tabActiva === TipoPestana.ADMINISTRATIVO) return selectedAdmin ? "Editar Gasto Administrativo" : "Registrar Gastos Administrativos";
+    return "Registrar Gasto";
   };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <ModuleHeader
-        title={vista === "list" ? "Gestión de Gastos" : isReadOnly ? "Detalle del Gasto" : selectedGasto ? "Editar Gasto" : "Registrar los gastos del viaje"}
-        subtitle={vista === "form" ? "Complete el formulario para registrar los costos del servicio" : "Control y seguimiento de todos los egresos operacionales"}
-        searchPlaceholder="Buscar por código de viaje..."
-        onSearch={vista === "list" ? (val) => setFilters((f) => ({ ...f, buscar: val })) : undefined}
-        buttonLabel={vista === "list" && tabActiva === TipoPestana.SERVICIO ? "Nueva Gasto" : undefined}
+        title={headerTitle()}
+        subtitle={vista === "form" ? "Complete el formulario para registrar el gasto" : "Control y seguimiento de todos los egresos operacionales"}
+        searchPlaceholder="Buscar..."
+        onSearch={vista === "list" && tabActiva === TipoPestana.SERVICIO
+          ? (val) => setFiltersServicio((f) => ({ ...f, buscar: val }))
+          : vista === "list" && tabActiva === TipoPestana.OPERATIVO
+          ? (val) => setFiltersOperativo((f) => ({ ...f, buscar: val }))
+          : vista === "list" && tabActiva === TipoPestana.ADMINISTRATIVO
+          ? (val) => setFiltersAdmin((f) => ({ ...f, buscar: val }))
+          : undefined}
+        buttonLabel={vista === "list" ? "Nuevo Gasto" : undefined}
         onButtonClick={handleNuevoGasto}
       />
 
+      {/* ── Vista FORM ── */}
       {vista === "form" ? (
-        <GastoServicioForm
-          initialData={selectedGasto}
-          isReadOnly={isReadOnly}
-          onCancel={() => setVista("list")}
-          onSuccess={handleFormSuccess}
-        />
+        tabActiva === TipoPestana.SERVICIO ? (
+          <GastoServicioForm
+            initialData={selectedServicio}
+            isReadOnly={isReadOnly}
+            onCancel={() => setVista("list")}
+            onSuccess={handleFormSuccess}
+          />
+        ) : tabActiva === TipoPestana.OPERATIVO ? (
+          <GastoOperativoForm
+            initialData={selectedOperativo}
+            isReadOnly={isReadOnly}
+            onCancel={() => setVista("list")}
+            onSuccess={handleFormSuccess}
+          />
+        ) : tabActiva === TipoPestana.ADMINISTRATIVO ? (
+          <GastoAdministrativoForm
+            initialData={selectedAdmin}
+            isReadOnly={isReadOnly}
+            onCancel={() => setVista("list")}
+            onSuccess={handleFormSuccess}
+          />
+        ) : null
       ) : (
+        /* ── Vista LIST ── */
         <div className="space-y-6">
           {/* Stat cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard
-              label="Total Gastos de Viaje"
-              value={`${fmt(totales.totalGastosViaje)} Bs`}
-              icon={<TrendingDown size={22} />}
-              borderColor="border-[var(--yuriana-card-border)]"
-              iconBg="bg-orange-50"
-              iconColor="text-[var(--yuriana-base-orange)]"
-            />
-            <StatCard
-              label="Total Gastos Operativos"
-              value={`${fmt(totales.totalGastosOperativos)} Bs`}
-              icon={<Wrench size={22} />}
-              borderColor="border-blue-200"
-              iconBg="bg-blue-50"
-              iconColor="text-blue-500"
-            />
-            <StatCard
-              label="Total Gastos Administrativos"
-              value={`${fmt(totales.totalGastosAdministrativos)} Bs`}
-              icon={<Building2 size={22} />}
-              borderColor="border-purple-200"
-              iconBg="bg-purple-50"
-              iconColor="text-purple-500"
-            />
-            <StatCard
-              label="Total Gastos Generales"
-              value={`${fmt(totales.totalGastosGenerales)} Bs`}
-              icon={<Layers size={22} />}
-              borderColor="border-amber-200"
-              iconBg="bg-amber-50"
-              iconColor="text-[var(--yuriana-base-yellow)]"
-            />
+            <StatCard label="Total Gastos de Viaje"         value={`${fmt(totales.totalGastosViaje)} Bs`}           icon={<TrendingDown size={22} />} borderColor="border-[var(--yuriana-card-border)]" iconBg="bg-orange-50"  iconColor="text-[var(--yuriana-base-orange)]" />
+            <StatCard label="Total Gastos Operativos"       value={`${fmt(totales.totalGastosOperativos)} Bs`}       icon={<Wrench size={22} />}      borderColor="border-blue-200"   iconBg="bg-blue-50"   iconColor="text-blue-500" />
+            <StatCard label="Total Gastos Administrativos"  value={`${fmt(totales.totalGastosAdministrativos)} Bs`}  icon={<Building2 size={22} />}   borderColor="border-purple-200" iconBg="bg-purple-50" iconColor="text-purple-500" />
+            <StatCard label="Total Gastos Generales"        value={`${fmt(totales.totalGastosGenerales)} Bs`}        icon={<Layers size={22} />}      borderColor="border-amber-200"  iconBg="bg-amber-50"  iconColor="text-[var(--yuriana-base-yellow)]" />
           </div>
 
           {/* Tab panel */}
@@ -199,49 +349,26 @@ export default function GastosPage() {
             </div>
 
             <div className="p-6">
-              {/* Costos del Servicio */}
+              {/* ── Costos del Servicio ── */}
               {tabActiva === TipoPestana.SERVICIO && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-4 flex-wrap">
                     <div className="flex items-center gap-2 border border-[var(--yuriana-input-border)] rounded-xl px-4 py-2 bg-[var(--yuriana-input-bg)]">
-                      <input
-                        type="date"
-                        value={filters.fecha_inicio ?? ""}
-                        onChange={(e) => setFilters((f) => ({ ...f, fecha_inicio: e.target.value }))}
-                        className="text-sm outline-none bg-transparent text-[var(--yuriana-input-text)]"
-                      />
+                      <input type="date" value={filtersServicio.fecha_inicio ?? ""} onChange={(e) => setFiltersServicio((f) => ({ ...f, fecha_inicio: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
                       <span className="text-[var(--yuriana-input-placeholder)] text-xs">-</span>
-                      <input
-                        type="date"
-                        value={filters.fecha_fin ?? ""}
-                        onChange={(e) => setFilters((f) => ({ ...f, fecha_fin: e.target.value }))}
-                        className="text-sm outline-none bg-transparent text-[var(--yuriana-input-text)]"
-                      />
+                      <input type="date" value={filtersServicio.fecha_fin ?? ""} onChange={(e) => setFiltersServicio((f) => ({ ...f, fecha_fin: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
                     </div>
-                    
                     <div className="ml-auto">
-                      <button
-                        type="button"
-                        onClick={handleNuevoGasto}
-                        className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black py-2 px-5 rounded-xl shadow text-sm transition-all active:scale-95"
-                      >
-                        + Nueva Gasto
+                      <button type="button" onClick={handleNuevoGasto} className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black py-2 px-5 rounded-xl shadow text-xs transition-all active:scale-95">
+                        + Nuevo Gasto
                       </button>
                     </div>
                   </div>
-
                   {loading ? (
-                    <div className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic text-sm font-medium">
-                      Cargando registros...
-                    </div>
+                    <div className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">Cargando registros...</div>
                   ) : (
                     <>
-                      <GastoServicioTable
-                        data={gastosServicio}
-                        onView={handleVerDetalle}
-                        onEdit={handleEditar}
-                        onDelete={handleOpenDelete}
-                      />
+                      <GastoServicioTable data={gastosServicio} onView={handleVerServicio} onEdit={handleEditarServicio} onDelete={(id) => setDeleteServicioId(id)} />
                       <p className="text-xs text-[var(--yuriana-input-placeholder)] font-medium">
                         Mostrando {gastosServicio.length} registro{gastosServicio.length !== 1 ? "s" : ""}
                       </p>
@@ -250,15 +377,67 @@ export default function GastosPage() {
                 </div>
               )}
 
-              {/* Tabs pendientes */}
-              {tabActiva !== TipoPestana.SERVICIO && (
+              {/* ── Gastos Operativos ── */}
+              {tabActiva === TipoPestana.OPERATIVO && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <div className="flex items-center gap-2 border border-[var(--yuriana-input-border)] rounded-xl px-4 py-2 bg-[var(--yuriana-input-bg)]">
+                      <input type="date" value={filtersOperativo.fecha_inicio ?? ""} onChange={(e) => setFiltersOperativo((f) => ({ ...f, fecha_inicio: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
+                      <span className="text-[var(--yuriana-input-placeholder)] text-xs">-</span>
+                      <input type="date" value={filtersOperativo.fecha_fin ?? ""} onChange={(e) => setFiltersOperativo((f) => ({ ...f, fecha_fin: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
+                    </div>
+                    <div className="ml-auto">
+                      <button type="button" onClick={handleNuevoGasto} className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black py-2 px-5 rounded-xl shadow text-xs transition-all active:scale-95">
+                        + Nuevo Gasto
+                      </button>
+                    </div>
+                  </div>
+                  {loading ? (
+                    <div className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">Cargando registros...</div>
+                  ) : (
+                    <>
+                      <GastoOperativoTable data={gastosOperativos} onView={handleVerOperativo} onEdit={handleEditarOperativo} onDelete={(id) => setDeleteOperativoId(id)} />
+                      <p className="text-xs text-[var(--yuriana-input-placeholder)] font-medium">
+                        Mostrando {gastosOperativos.length} registro{gastosOperativos.length !== 1 ? "s" : ""}
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* ── Gastos Administrativos ── */}
+              {tabActiva === TipoPestana.ADMINISTRATIVO && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <div className="flex items-center gap-2 border border-[var(--yuriana-input-border)] rounded-xl px-4 py-2 bg-[var(--yuriana-input-bg)]">
+                      <input type="date" value={filtersAdmin.fecha_inicio ?? ""} onChange={(e) => setFiltersAdmin((f) => ({ ...f, fecha_inicio: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
+                      <span className="text-[var(--yuriana-input-placeholder)] text-xs">-</span>
+                      <input type="date" value={filtersAdmin.fecha_fin ?? ""} onChange={(e) => setFiltersAdmin((f) => ({ ...f, fecha_fin: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
+                    </div>
+                    <div className="ml-auto">
+                      <button type="button" onClick={handleNuevoGasto} className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black py-2 px-5 rounded-xl shadow text-xs transition-all active:scale-95">
+                        + Nuevo Gasto
+                      </button>
+                    </div>
+                  </div>
+                  {loading ? (
+                    <div className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">Cargando registros...</div>
+                  ) : (
+                    <>
+                      <GastoAdministrativoTable data={gastosAdmin} onView={handleVerAdmin} onEdit={handleEditarAdmin} onDelete={(id) => setDeleteAdminId(id)} />
+                      <p className="text-xs text-[var(--yuriana-input-placeholder)] font-medium">
+                        Mostrando {gastosAdmin.length} registro{gastosAdmin.length !== 1 ? "s" : ""}
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* ── Tab General pendiente ── */}
+              {tabActiva === TipoPestana.GENERAL && (
                 <div className="py-20 text-center space-y-2">
-                  <p className="text-[var(--yuriana-input-placeholder)] italic text-sm font-medium">
-                    Módulo en construcción
-                  </p>
-                  <p className="text-[10px] text-[var(--yuriana-input-placeholder)]">
-                    {TABS.find((t) => t.key === tabActiva)?.label} estará disponible próximamente.
-                  </p>
+                  <p className="text-[var(--yuriana-input-placeholder)] italic text-sm font-medium">Módulo en construcción</p>
+                  <p className="text-[10px] text-[var(--yuriana-input-placeholder)]">Gastos Generales estará disponible próximamente.</p>
                 </div>
               )}
             </div>
@@ -266,39 +445,28 @@ export default function GastosPage() {
         </div>
       )}
 
-      {/* Modal confirmación de eliminación */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center z-50 animate-in fade-in duration-300">
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-2xl max-w-md w-full text-center space-y-6 animate-in zoom-in-95 duration-300 mx-4">
-            <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center mx-auto border border-rose-100/60 shadow-inner">
-              <XCircle size={32} className="animate-pulse" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-black text-slate-800 uppercase tracking-tight text-lg">
-                ¿Eliminar este registro?
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed max-w-[320px] mx-auto">
-                Este gasto de servicio será desactivado del sistema. Esta acción no puede deshacerse.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => { setShowDeleteModal(false); setIdParaEliminar(null); }}
-                className="w-full py-3.5 bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60 rounded-xl font-bold text-xs uppercase tracking-wider transition-all active:scale-98"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                className="w-full py-3.5 bg-rose-500 text-white hover:bg-rose-600 rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-rose-500/10 active:scale-98"
-              >
-                Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Modal eliminación — Servicio */}
+      {deleteServicioId !== null && (
+        <DeleteModal
+          onConfirm={handleConfirmDeleteServicio}
+          onCancel={() => setDeleteServicioId(null)}
+        />
+      )}
+
+      {/* Modal eliminación — Operativo */}
+      {deleteOperativoId !== null && (
+        <DeleteModal
+          onConfirm={handleConfirmDeleteOperativo}
+          onCancel={() => setDeleteOperativoId(null)}
+        />
+      )}
+
+      {/* Modal eliminación — Administrativo */}
+      {deleteAdminId !== null && (
+        <DeleteModal
+          onConfirm={handleConfirmDeleteAdmin}
+          onCancel={() => setDeleteAdminId(null)}
+        />
       )}
     </div>
   );

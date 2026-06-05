@@ -165,7 +165,7 @@ export class DocumentoService {
       relations: ['requisito_documento', 'requisito_documento.categoria'],
     });
     if (!documento) {
-      throw new NotFoundException('Documento no encontrado');
+      throw new BadRequestException('Documento no encontrado');
     }
     return {
       ...documento,
