@@ -92,7 +92,7 @@ export const GastoAdministrativoForm = ({ initialData, isReadOnly = false, onCan
       if (isEdit && initialData) {
         const item = items[0];
         await editarGastoAdministrativo(initialData.id_gasto_admin, {
-          tipo_gasto: item.tipo_gasto.toUpperCase(),
+          tipo_gasto: item.tipo_gasto,
           fecha: item.fecha,
           descripcion: item.descripcion.trim().toUpperCase(),
           monto: item.monto,
@@ -103,7 +103,7 @@ export const GastoAdministrativoForm = ({ initialData, isReadOnly = false, onCan
           tipo_pestaña: "administrativo",
           items: items.map(({ fecha, tipo_gasto, descripcion, monto }) => ({
             fecha,
-            tipo_gasto: tipo_gasto.toUpperCase(),
+            tipo_gasto,
             descripcion: descripcion.trim().toUpperCase(),
             monto,
           })),

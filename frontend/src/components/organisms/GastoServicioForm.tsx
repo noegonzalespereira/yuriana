@@ -147,7 +147,7 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
         viatico_entregado: viatico,
         items: items.map(({ fecha, tipo_gasto, descripcion, monto }) => ({
           fecha,
-          tipo_gasto: tipo_gasto.toUpperCase(),
+          tipo_gasto,
           descripcion: descripcion.trim().toUpperCase(),
           monto,
         })),
