@@ -22,6 +22,12 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
 
   // 3. Control de errores del servidor
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== 'undefined') {
+      const hasToken = localStorage.getItem('yuriana_token');
+      if (hasToken) {
+        window.dispatchEvent(new CustomEvent('yuriana:session-expired'));
+      }
+    }
     const error = await response.json().catch(() => ({ message: 'Error en el formato o respuesta del servidor' }));
     throw new Error(error.message || 'Error en la petición');
   }

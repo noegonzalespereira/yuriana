@@ -1,12 +1,12 @@
 import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 export enum TipoCategoria{
-  CONDUCTOR = 'Conductor',
-  TRACTO = 'Tracto',
-  SEMIREMOLQUE = 'Semiremolque',
-  REMOLQUE = 'Remolque',
-  VIAJE_INTERNACIONAL = 'Viaje_internacional',
-  VIAJE_NACIONAL = 'Viaje_nacional',
+  CONDUCTOR = 'CONDUCTOR',
+  TRACTO = 'TRACTO',
+  SEMIREMOLQUE = 'SEMIREMOLQUE',
+  REMOLQUE = 'REMOLQUE',
+  VIAJE_INTERNACIONAL = 'VIAJE_INTERNACIONAL',
+  VIAJE_NACIONAL = 'VIAJE_NACIONAL',
 }
 @Entity('categoria_entidad')
 export class CategoriaEntidad {

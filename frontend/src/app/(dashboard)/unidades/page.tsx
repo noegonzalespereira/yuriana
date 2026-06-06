@@ -70,8 +70,8 @@ export default function UnidadesPage() {
     getCategoriasEntidad()
       .then(data => {
         if (Array.isArray(data)) {
-          const filtradas = data.filter((c: any) => 
-            ['tracto', 'semiremolque', 'remolque'].includes(c.tipo_categoria.toUpperCase())
+          const filtradas = data.filter((c: any) =>
+            ['TRACTO', 'SEMIREMOLQUE', 'REMOLQUE'].includes(c.tipo_categoria)
           );
           setCategorias(filtradas);
         } else {
