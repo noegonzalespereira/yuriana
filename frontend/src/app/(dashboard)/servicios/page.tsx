@@ -100,7 +100,7 @@ export default function ServiciosPage() {
 
   useEffect(() => {
     getCategorias().then((cats) => {
-      setCategoriasViaje(cats.filter(c => c.tipo_categoria.toUpperCase().includes("viaje")));
+      setCategoriasViaje(cats.filter(c => ['VIAJE_INTERNACIONAL', 'VIAJE_NACIONAL'].includes(c.tipo_categoria)));
     }).catch(() => {});
   }, []);
 
@@ -210,7 +210,7 @@ export default function ServiciosPage() {
                   <option value="">Tipo de Viaje</option>
                   {categoriasViaje.map(c => (
                     <option key={c.id_categoria} value={c.id_categoria}>
-                      {c.tipo_categoria.toUpperCase().includes("internacional") ? "Internacional" : "Nacional"}
+                      {c.tipo_categoria.includes("INTERNACIONAL") ? "Internacional" : "Nacional"}
                     </option>
                   ))}
                 </select>
