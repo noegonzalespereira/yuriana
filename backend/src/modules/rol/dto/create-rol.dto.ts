@@ -3,6 +3,6 @@ import { Transform } from 'class-transformer';
 export class CreateRolDto {
     @IsString()
     @IsNotEmpty({ message: 'El nombre es obligatorio'})
-    @Transform(({ value }) => value.toLowerCase().trim())
+    @Transform(({ value }) => value.toUpperCase().trim())
     nombre!: string;
 }

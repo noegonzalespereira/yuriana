@@ -1,4 +1,5 @@
 import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
+import { Transform } from "class-transformer";
 
 export class CreatePersonaDto {
     @IsNotEmpty({ message: 'La cédula es obligatoria' })
@@ -7,6 +8,7 @@ export class CreatePersonaDto {
 
     @IsNotEmpty({ message: 'El nombre es obligario'})
     @IsString()
+    @Transform(({ value }) => typeof value === 'string' ? value.toUpperCase().trim() : value)
     nombre!: string;
 
     @IsNotEmpty({ message: 'El correo es obligatorio' })
@@ -16,13 +18,14 @@ export class CreatePersonaDto {
     @IsNotEmpty({ message: 'El teléfono es obligatorio' })
     @IsNumber({}, { message: 'El telefono debe ser un número' })
     telefono!: number;
-    
+
     @IsOptional()
     @IsNumber({}, { message: 'El telefono debe ser un número' })
     telefono2?: number;
 
     @IsOptional()
     @IsString()
+    @Transform(({ value }) => typeof value === 'string' ? value.toUpperCase().trim() : value)
     ciudad?: string;
 
 

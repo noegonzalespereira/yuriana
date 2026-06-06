@@ -90,9 +90,9 @@ export default function IngresosPage() {
 
   const ingresosFiltrados = filters.buscar?.trim()
     ? ingresos.filter((i) =>
-        i.descripcion.toLowerCase().includes(filters.buscar!.toLowerCase()) ||
-        i.mes.toLowerCase().includes(filters.buscar!.toLowerCase()) ||
-        String(i.anio).includes(filters.buscar!)
+        i.descripcion.toUpperCase().includes(filters.buscar!.toUpperCase()) ||
+        i.mes.toUpperCase().includes(filters.buscar!.toUpperCase()) ||
+        String(i.anio).includes(filters.buscar!.toUpperCase())
       )
     : ingresos;
 

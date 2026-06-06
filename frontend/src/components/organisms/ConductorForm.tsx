@@ -85,7 +85,7 @@ export const ConductorForm = ({ initialData, onSubmit, onCancel, isReadOnly }: P
   const handleAbrirDocumento = async (idDocumento: number, url: string) => {
   if (!url) return;
 
-  const esPDF = url.toLowerCase().includes('.pdf');
+  const esPDF = url.toUpperCase().includes('.pdf');
   if (!esPDF) {
     window.open(url, "_blank", "noopener,noreferrer");
     return;

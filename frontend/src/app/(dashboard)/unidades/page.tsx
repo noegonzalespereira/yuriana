@@ -71,7 +71,7 @@ export default function UnidadesPage() {
       .then(data => {
         if (Array.isArray(data)) {
           const filtradas = data.filter((c: any) => 
-            ['tracto', 'semiremolque', 'remolque'].includes(c.tipo_categoria.toLowerCase())
+            ['tracto', 'semiremolque', 'remolque'].includes(c.tipo_categoria.toUpperCase())
           );
           setCategorias(filtradas);
         } else {

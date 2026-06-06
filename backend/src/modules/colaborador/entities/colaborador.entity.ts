@@ -11,8 +11,8 @@ import {
 import { Persona } from '../../persona/entities/persona.entity'
 
 export enum TipoColaborador {
-        ATA = 'ata',
-        DESPACHANTE = 'despachante',
+        ATA = 'ATA',
+        DESPACHANTE = 'DESPACHANTE',
     }
 
 @Entity('colaborador')

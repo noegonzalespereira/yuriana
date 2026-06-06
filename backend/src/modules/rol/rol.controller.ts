@@ -12,7 +12,7 @@ export class RolController {
   constructor(private readonly rolService: RolService) {}
 
   @Post()
-  @Roles('ADMIN')
+  
   create(@Body() createRolDto: CreateRolDto, @Request() req) {
     return this.rolService.create(createRolDto, req.user.id);
   }

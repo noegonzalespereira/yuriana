@@ -56,10 +56,10 @@ export const AsignacionForm = ({ initialData, isReadOnly = false, onSubmit, onCa
   }, [step, initialData]);
 
   const itemsFiltrados = () => {
-    const txt = filtroTexto.toLowerCase().trim();
-    if (step === 1) return conductores.filter(c => c.persona.nombre.toLowerCase().includes(txt) || c.persona.ci.toString().includes(txt));
-    if (step === 2) return unidades.filter(u => u.placa.toLowerCase().includes(txt));
-    if (step === 3) return unidades.filter(u => u.placa.toLowerCase().includes(txt) && u.categoria?.tipo_categoria?.toLowerCase() === subTipoRemolque.toLowerCase());
+    const txt = filtroTexto.toUpperCase().trim();
+    if (step === 1) return conductores.filter(c => c.persona.nombre.toUpperCase().includes(txt) || c.persona.ci.toString().includes(txt));
+    if (step === 2) return unidades.filter(u => u.placa.toUpperCase().includes(txt));
+    if (step === 3) return unidades.filter(u => u.placa.toUpperCase().includes(txt) && u.categoria?.tipo_categoria?.toUpperCase() === subTipoRemolque.toUpperCase());
     return [];
   };
 

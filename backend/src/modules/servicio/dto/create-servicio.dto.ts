@@ -2,6 +2,9 @@ import { IsEnum,IsNotEmpty, IsNumber, IsOptional, IsString, IsDateString, Min } 
 import { Moneda, Operador } from '../entities/servicio.entity';
 import { Transform } from 'class-transformer';
 
+const toUpperTrim = ({ value }: { value: any }) =>
+    typeof value === 'string' ? value.toUpperCase().trim() : value;
+
 export class CreateServicioDto {
 
   @IsNotEmpty({ message: 'El operador es obligatorio'})
@@ -15,19 +18,23 @@ export class CreateServicioDto {
   
 
   @IsString()
+  @Transform(toUpperTrim)
   origen!: string;
 
   @IsString()
+  @Transform(toUpperTrim)
   destino!: string;
 
   @IsOptional()
   @IsString()
+  @Transform(toUpperTrim)
   crt?: string;
 
   @IsString() 
   es_facturado!: 'si' | 'no';
   @IsOptional()
   @IsString()
+  @Transform(toUpperTrim)
   factura_transporte?: string;
 
   @IsOptional()

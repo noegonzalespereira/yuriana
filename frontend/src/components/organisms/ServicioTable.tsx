@@ -33,7 +33,7 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete }: Props) => {
   }
 
   const esInternacional = (item: ServicioItem) =>
-    item.categoria?.tipo_categoria?.toLowerCase().includes("internacional");
+    item.categoria?.tipo_categoria?.toUpperCase().includes("internacional");
 
   return (
     <div className="rounded-2xl overflow-hidden border border-[var(--yuriana-input-border)] overflow-x-auto">

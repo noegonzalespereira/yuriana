@@ -130,7 +130,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
   const [categorias, setCategorias] = useState<{ id_categoria: number; tipo_categoria: string }[]>([]);
   const [idCategoriaSeleccionada, setIdCategoriaSeleccionada] = useState<number | null>(null);
   const esInternacional = categorias.find(c => c.id_categoria === idCategoriaSeleccionada)
-    ?.tipo_categoria?.toLowerCase().includes("internacional") ?? false;
+    ?.tipo_categoria?.toUpperCase().includes("internacional") ?? false;
 
   // ── Campos del viaje ────────────────────────────────────────────────────
   const [operador, setOperador] = useState<Operador>(Operador.YURIANA);
@@ -193,7 +193,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
   useEffect(() => {
     getCategorias().then((cats) => {
       const viajeCats = cats.filter((c) =>
-        c.tipo_categoria.toLowerCase().includes("viaje")
+        c.tipo_categoria.toUpperCase().includes("viaje")
       );
       setCategorias(viajeCats);
     }).catch(() => {});
@@ -428,7 +428,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
           <Field label="Tipo de Viaje" required>
             <div className="flex gap-2">
               {categorias.map((cat) => {
-                const esInt = cat.tipo_categoria.toLowerCase().includes("internacional");
+                const esInt = cat.tipo_categoria.toUpperCase().includes("internacional");
                 const label = esInt ? "Internacional" : "Nacional";
                 const seleccionado = idCategoriaSeleccionada === cat.id_categoria;
                 return (

@@ -60,7 +60,7 @@ export class ServicioService {
 
       // 1b. VALIDACIONES CONTEXTUALES
       const categoria = await queryRunner.manager.findOne(CategoriaEntidad, { where: { id_categoria: dto.id_categoria } });
-      const esInternacional = categoria?.tipo_categoria?.toLowerCase().includes('internacional') ?? false;
+      const esInternacional = categoria?.tipo_categoria?.toUpperCase().includes('internacional') ?? false;
 
       if (esInternacional && !dto.crt?.trim()) {
         throw new BadRequestException('El CRT es obligatorio para viajes internacionales');

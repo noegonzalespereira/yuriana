@@ -2,10 +2,10 @@ import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, OneToMa
 import { CategoriaEntidad } from "../../categoria-entidad/entities/categoria-entidad.entity";
 import { FotoUnidad } from "../../foto_unidad/entities/foto-unidad.entity";
 export enum EstadoUnidad {
-    DISPONIBLE = 'disponible',
-    ASIGNADO = 'asignado',
-    EN_VIAJE = 'en viaje',
-    MANTENIMIENTO = 'mantenimiento',
+    DISPONIBLE = 'DISPONIBLE',
+    ASIGNADO = 'ASIGNADO',
+    EN_VIAJE = 'EN VIAJE',
+    MANTENIMIENTO = 'MANTENIMIENTO',
 }
 @Entity('unidad')
 @Index(['placa'], {unique: true, where: '"status" = true'})

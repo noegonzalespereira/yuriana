@@ -153,7 +153,7 @@ export const UnidadForm = ({ initialData, categoriasValidadas, onSubmit, onCance
 
   const handleAbrirDocumento = async (idDocumento: number, url: string) => {
     if (!url) return;
-    const esPDF = url.toLowerCase().includes('.pdf');
+    const esPDF = url.toUpperCase().includes('.pdf');
 
     if (!esPDF) {
       window.open(url, "_blank", "noopener,noreferrer");

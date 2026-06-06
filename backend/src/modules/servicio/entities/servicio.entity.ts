@@ -17,13 +17,13 @@ export enum EstadoServicio{
 
 }
 export enum Operador{
-    YURIANA =  'yuriana',
-    OTROS = 'otros',
+    YURIANA =  'YURIANA',
+    OTROS = 'OTROS',
 }
 
 export enum Moneda{
-    DOLAR = 'dolar',
-    BOLIVIANOS = 'bolivianos',
+    DOLAR = 'DOLAR',
+    BOLIVIANOS = 'BOLIVIANOS',
 }
 @Entity('servicio')
 @Index(['codigo_servicio'], {unique: true , where: '"status" = true'})

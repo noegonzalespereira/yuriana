@@ -3,9 +3,9 @@ import { CategoriaEntidad } from "../../categoria-entidad/entities/categoria-ent
 import { Persona } from "../../persona/entities/persona.entity";
 
 export enum EstadoOperativo {
-        DISPONIBLE = 'disponible',
-        ASIGNADO = 'asignado',
-        VIAJE = 'en viaje',
+        DISPONIBLE = 'DISPONIBLE',
+        ASIGNADO = 'ASIGNADO',
+        VIAJE = 'EN VIAJE',
     }
 
 export enum EstadoLaboral {
