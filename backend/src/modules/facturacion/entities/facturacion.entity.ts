@@ -1,5 +1,6 @@
-import { Column, OneToOne, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, JoinColumn, Entity} from "typeorm";
-import { Servicio } from "../../servicio/entities/servicio.entity"
+import { Column, OneToOne, OneToMany, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, JoinColumn, Entity} from "typeorm";
+import { Servicio } from "../../servicio/entities/servicio.entity";
+import { FotoFactura } from "./foto-factura.entity";
 
 @Entity('factura')
 export class Factura {
@@ -13,14 +14,17 @@ export class Factura {
     @Column()
     id_servicio!: number;
 
-    @Column()
-    factura_transporte!: number;
+    @Column({ type: 'varchar' ,nullable: true})
+    factura_transporte!: string;
 
     @Column({ type: 'decimal', precision: 12, scale: 2 })
     monto_factura!: number;
 
-    @Column()
-    foto_factura!: string;
+    @Column({ nullable: true })
+    foto_factura?: string;
+
+    @OneToMany(() => FotoFactura, (f) => f.factura, { cascade: true, eager: false })
+    fotos!: FotoFactura[];
 
     @Column({ type: 'date' })
     fecha_emision!: Date;

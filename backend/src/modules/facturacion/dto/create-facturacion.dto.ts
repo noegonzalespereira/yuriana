@@ -8,9 +8,8 @@ export class CreateFacturacionDto {
     id_servicio!: number;
 
     @IsNotEmpty({ message: "El número de factura es obligatorio" })
-    @IsNumber()
-    @Transform(({ value }) => parseInt(value))
-    factura_transporte!: number;
+    @IsString()
+    factura_transporte!: string;
 
     @IsNotEmpty({ message: "El monto de la factura es obligatorio" })
     @IsNumber()

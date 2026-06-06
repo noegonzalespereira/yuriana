@@ -3,6 +3,7 @@ import { ServicioService } from './servicio.service';
 import { ServicioController } from './servicio.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Servicio } from './entities/servicio.entity';
+import { FotoFactura } from '../facturacion/entities/foto-factura.entity';
 import { CloudinaryModule } from '../../cloudinary/cloudinary.module';
 import { AsignacionModule } from '../asignacion/asignacion.module';
 import { ClienteModule } from '../cliente/cliente.module';
@@ -11,7 +12,7 @@ import { FacturacionModule } from '../facturacion/facturacion.module';
 import { DocumentoModule } from '../documento/documento.module';
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Servicio]),
+    TypeOrmModule.forFeature([Servicio, FotoFactura]),
     CloudinaryModule,AsignacionModule, ClienteModule, ColaboradorModule, FacturacionModule, DocumentoModule
   ],
   controllers: [ServicioController],

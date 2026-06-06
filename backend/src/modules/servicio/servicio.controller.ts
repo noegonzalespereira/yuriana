@@ -17,12 +17,13 @@ export class ServicioController {
   @Post()
   @Roles('ADMIN')
   @UseInterceptors(FileFieldsInterceptor([
-    { name: 'foto_factura', maxCount: 1 },
+    { name: 'foto_factura', maxCount: 10 },
     { name: 'documentacion_aduanera', maxCount: 10 },
-  ]))
+    { name: 'vaucher', maxCount: 1 },
+  ], { limits: { fileSize: 10 * 1024 * 1024 } }))
   create(
     @Body() dto: CreateServicioDto,
-    @UploadedFiles() files: { foto_factura?: Express.Multer.File[], documentacion_aduanera?: Express.Multer.File[] },
+    @UploadedFiles() files: { foto_factura?: Express.Multer.File[], documentacion_aduanera?: Express.Multer.File[], vaucher?: Express.Multer.File[] },
     @Request() req
   ) {
     return this.servicioService.create(dto, files, req.user.id);
@@ -45,7 +46,7 @@ export class ServicioController {
 
   @Patch(':id')
   @Roles('ADMIN')
-  @UseInterceptors(FileInterceptor('vaucher')) // Para subir el comprobante de pago
+  @UseInterceptors(FileInterceptor('vaucher', { limits: { fileSize: 10 * 1024 * 1024 } }))
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateServicioDto,

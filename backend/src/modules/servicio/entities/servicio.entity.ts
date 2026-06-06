@@ -1,9 +1,10 @@
-import { Column,Index, Entity, ManyToOne, PrimaryGeneratedColumn, JoinColumn, CreateDateColumn, UpdateDateColumn, OneToMany} from "typeorm";
+import { Column,Index, Entity, ManyToOne, PrimaryGeneratedColumn, JoinColumn, CreateDateColumn, UpdateDateColumn, OneToMany, OneToOne} from "typeorm";
 import { Asignacion } from "../../asignacion/entities/asignacion.entity";
 import { Colaborador } from "../../colaborador/entities/colaborador.entity";
 import { CategoriaEntidad } from "../../categoria-entidad/entities/categoria-entidad.entity";
 import { Cliente } from "../../cliente/entities/cliente.entity";
 import { Documento } from "../../documento/entities/documento.entity";
+import { Factura } from "../../facturacion/entities/facturacion.entity";
 
 export enum EstadoPago {
     PAGADO = 'pagado',
@@ -125,6 +126,9 @@ export class Servicio {
 
     @OneToMany(() => Documento, (documento) => documento.servicio)
     documentos!: Documento[];
+
+    @OneToOne(() => Factura, (factura) => factura.servicio)
+    factura?: Factura;
 
     @CreateDateColumn()
     createdAt!: Date;

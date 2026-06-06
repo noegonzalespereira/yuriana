@@ -2,17 +2,17 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, Brackets } from 'typeorm';
 import { Servicio, EstadoPago, EstadoServicio, Moneda } from './entities/servicio.entity';
+import { CategoriaEntidad } from '../categoria-entidad/entities/categoria-entidad.entity';
 import { CreateServicioDto } from './dto/create-servicio.dto';
 import { UpdateServicioDto } from './dto/update-servicio.dto';
 import { Factura } from '../facturacion/entities/facturacion.entity';
+import { FotoFactura } from '../facturacion/entities/foto-factura.entity';
+import { Documento } from '../documento/entities/documento.entity';
 import { Conductor, EstadoOperativo } from '../conductor/entities/conductor.entity';
 import { Unidad, EstadoUnidad } from '../unidad/entities/unidad.entity';
 import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 import { FilterServicioDto } from './dto/filter-servicio.dto';
-import { ClienteService } from '../cliente/cliente.service';
-import { ColaboradorService } from '../colaborador/colaborador.service';
 import { AsignacionService } from '../asignacion/asignacion.service';
-import { DocumentoService } from '../documento/documento.service';
 
 @Injectable()
 export class ServicioService {
@@ -21,9 +21,6 @@ export class ServicioService {
     private readonly asignacionService: AsignacionService,
     private readonly dataSource: DataSource,
     private readonly cloudinaryService: CloudinaryService,
-    private readonly clienteService: ClienteService,
-    private readonly colaboradorService: ColaboradorService,
-    private readonly documentoService: DocumentoService, // Inyectamos tu servicio de documentos
   ) {}
 
   private async liberarEquipo(id_asignacion: number, userId: number) {
@@ -61,6 +58,26 @@ export class ServicioService {
       const asig = await this.asignacionService.findOne(dto.id_asignacion);
       if (!asig) throw new NotFoundException('La asignación solicitada no existe');
 
+      // 1b. VALIDACIONES CONTEXTUALES
+      const categoria = await queryRunner.manager.findOne(CategoriaEntidad, { where: { id_categoria: dto.id_categoria } });
+      const esInternacional = categoria?.tipo_categoria?.toLowerCase().includes('internacional') ?? false;
+
+      if (esInternacional && !dto.crt?.trim()) {
+        throw new BadRequestException('El CRT es obligatorio para viajes internacionales');
+      }
+
+      if (dto.fecha_fin) {
+        if (!dto.periodo_liquidacion || Number(dto.periodo_liquidacion) <= 0) {
+          throw new BadRequestException('El período de liquidación es obligatorio cuando el viaje tiene fecha de finalización');
+        }
+        if (!files?.vaucher?.[0]) {
+          throw new BadRequestException('El comprobante de pago es obligatorio cuando el viaje tiene fecha de finalización');
+        }
+        if (dto.es_facturado !== 'si' || !files?.foto_factura?.length) {
+          throw new BadRequestException('La factura es obligatoria cuando el viaje tiene fecha de finalización');
+        }
+      }
+
       // 2. CÁLCULO DE FECHAS Y ESTADOS
       const fInicio = new Date(dto.fecha_inicio!);
       const mesNombre = (fInicio.getMonth() + 1).toString().padStart(2, '0');
@@ -83,14 +100,22 @@ export class ServicioService {
       const fleteTotalBs = (montoBase + montoExtra) * tCambio;
 
       // 4. CREAR EL SERVICIO
+      let urlVoucher: string | undefined = undefined;
+      if (files?.vaucher?.[0]) {
+        const { url } = await this.cloudinaryService.subirArchivo(files.vaucher[0], 'yuriana/vouchers');
+        urlVoucher = url;
+      }
+
       const servicio = queryRunner.manager.create(Servicio, {
         ...dto,
-        
+
         periodo_liquidacion: dto.periodo_liquidacion || 0,
         tipo_cambio: dto.moneda === Moneda.DOLAR ? Number(dto.tipo_cambio) : 1,
         total_flete: fleteTotalBs,
         fecha_limite_pago: fLimitePago,
         estado_servicio: estadoServicio,
+        estado_pago: urlVoucher ? EstadoPago.PAGADO : EstadoPago.PENDIENTE,
+        comprobante_pago: urlVoucher,
         mes: mesNombre,
         anio: anioVal,
         fecha_registro: new Date(),
@@ -103,24 +128,32 @@ export class ServicioService {
       await queryRunner.manager.save(guardado);
 
       // 5. FACTURACIÓN
-      if (dto.es_facturado === 'si' && files?.foto_factura) {
-        const { url } = await this.cloudinaryService.subirArchivo(files.foto_factura[0], 'yuriana/facturas');
+      if (dto.es_facturado === 'si') {
         const factura = queryRunner.manager.create(Factura, {
           id_servicio: guardado.id_servicio,
-          factura_transporte: parseInt(dto.factura_transporte!),
+          factura_transporte: String(dto.factura_transporte ?? ''),
           monto_factura: dto.monto_factura || fleteTotalBs,
-          foto_factura: url,
           fecha_emision: fInicio,
           mes: mesNombre,
           anio: anioVal,
           CreatedId: userId,
         });
-        await queryRunner.manager.save(factura);
+        const facturaGuardada = await queryRunner.manager.save(factura);
+
+        if (files?.foto_factura?.length) {
+          for (const file of files.foto_factura) {
+            const { url } = await this.cloudinaryService.subirArchivo(file, 'yuriana/facturas');
+            await queryRunner.manager.save(FotoFactura, {
+              id_factura: facturaGuardada.id_factura,
+              url_foto: url,
+              CreatedId: userId,
+            });
+          }
+        }
       }
 
-      // 6. GESTIÓN DE DOCUMENTOS (Aquí llamamos a tu DocumentoService)
+      // 6. GESTIÓN DE DOCUMENTOS dentro de la misma transacción
       if (files?.documentacion_aduanera && dto.ids_requisitos_aduaneros) {
-        // Normalizamos los IDs de requisitos (Postman los manda como string o array)
         const idsRequisitos = dto.ids_requisitos_aduaneros ?? [];
 
         for (let i = 0; i < files.documentacion_aduanera.length; i++) {
@@ -129,16 +162,14 @@ export class ServicioService {
 
           if (isNaN(idReq)) continue;
 
-          // Llamamos a tu servicio para que haga el insert con id_requisito obligatorio
-          await this.documentoService.create(
-            {
-              id_requisito: idReq,
-              id_servicio: guardado.id_servicio,
-              // fecha_vencimiento: opcional desde el dto si lo añades
-            },
-            file,
-            userId
-          );
+          const { url } = await this.cloudinaryService.subirArchivo(file, 'yuriana/documentos/servicio');
+          await queryRunner.manager.save(Documento, {
+            id_requisito: idReq,
+            id_servicio: guardado.id_servicio,
+            url_documento: url,
+            tipo_documento: file.mimetype,
+            CreatedId: userId,
+          });
         }
       }
 
@@ -162,9 +193,20 @@ export class ServicioService {
     }
   }
 
-  // ... (findAll, findOne, update, remove, contador se mantienen iguales)
-  
+  private async marcarRetrasados() {
+    await this.servicioRepo
+      .createQueryBuilder()
+      .update(Servicio)
+      .set({ estado_pago: EstadoPago.RETRASADO })
+      .where('fecha_limite_pago < :now', { now: new Date() })
+      .andWhere('estado_pago = :pendiente', { pendiente: EstadoPago.PENDIENTE })
+      .andWhere('status = :status', { status: true })
+      .andWhere('fecha_limite_pago IS NOT NULL')
+      .execute();
+  }
+
   async findAll(filters: FilterServicioDto): Promise<Servicio[]> {
+    await this.marcarRetrasados();
     const query = this.servicioRepo
       .createQueryBuilder('servicio')
       .leftJoinAndSelect('servicio.categoria', 'categoriaServicio')
@@ -213,7 +255,7 @@ export class ServicioService {
   async findOne(id: number): Promise<Servicio> {
     const servicio = await this.servicioRepo.findOne({
       where: { id_servicio: id, status: true },
-      relations: ['categoria', 'cliente', 'cliente.persona', 'asignacion', 'asignacion.conductor.persona', 'asignacion.tracto', 'asignacion.remolque', 'colaborador.persona','documentos','documentos.requisito_documento','documentos.requisito_documento.categoria']
+      relations: ['categoria', 'cliente', 'cliente.persona', 'asignacion', 'asignacion.conductor.persona', 'asignacion.tracto', 'asignacion.tracto.categoria', 'asignacion.remolque', 'colaborador', 'colaborador.persona', 'factura', 'factura.fotos', 'documentos','documentos.requisito_documento','documentos.requisito_documento.categoria']
     });
     if (!servicio) throw new NotFoundException('Servicio no encontrado');
     return servicio;
@@ -222,19 +264,33 @@ export class ServicioService {
   async update(id: number, dto: UpdateServicioDto, fileVoucher: Express.Multer.File, userId: number) {
     const servicio = await this.findOne(id);
 
+
+    // Validaciones cuando se está finalizando el viaje (se envía fecha_fin por primera vez)
+    if (dto.fecha_fin && !servicio.fecha_fin) {
+      const periodoFinal = dto.periodo_liquidacion ?? servicio.periodo_liquidacion;
+      if (!periodoFinal || Number(periodoFinal) <= 0) {
+        throw new BadRequestException('El período de liquidación es obligatorio al finalizar un viaje');
+      }
+      if (!fileVoucher && !servicio.comprobante_pago) {
+        throw new BadRequestException('El comprobante de pago es obligatorio al finalizar un viaje');
+      }
+    }
+
+    // Subir voucher si viene
     if (fileVoucher) {
       const { url } = await this.cloudinaryService.subirArchivo(fileVoucher, 'yuriana/vouchers');
       servicio.comprobante_pago = url;
       servicio.estado_pago = EstadoPago.PAGADO;
     }
 
+    // Si se provee fecha_fin (o ya la tenía), finalizar el viaje
     if (dto.fecha_fin) {
       servicio.fecha_fin = new Date(dto.fecha_fin);
       servicio.estado_servicio = EstadoServicio.FINALIZADO;
       const fLimite = new Date(servicio.fecha_fin);
       fLimite.setDate(fLimite.getDate() + (dto.periodo_liquidacion ?? servicio.periodo_liquidacion ?? 0));
       servicio.fecha_limite_pago = fLimite;
-      await this.liberarEquipo(servicio.id_asignacion, userId);
+      if (!servicio.fecha_fin) await this.liberarEquipo(servicio.id_asignacion, userId);
     }
 
     Object.assign(servicio, { ...dto, UpdatedId: userId });
@@ -243,6 +299,9 @@ export class ServicioService {
 
   async remove(id: number, userId: number) {
     const servicio = await this.findOne(id);
+    if (servicio.estado_pago === EstadoPago.PENDIENTE || servicio.estado_pago === EstadoPago.RETRASADO) {
+      throw new BadRequestException('No se puede eliminar un viaje con estado de pago pendiente o retrasado');
+    }
     await this.liberarEquipo(servicio.id_asignacion, userId);
     servicio.status = false;
     servicio.UpdatedId = userId;
@@ -250,6 +309,7 @@ export class ServicioService {
   }
 
   async contador() {
+    await this.marcarRetrasados();
     const en_curso = await this.servicioRepo.count({ where: { status: true, estado_servicio: EstadoServicio.EN_CURSO } });
     const pendientes = await this.servicioRepo.count({ where: { status: true, estado_pago: EstadoPago.PENDIENTE } });
     const retrasados = await this.servicioRepo.count({ where: { status: true, estado_pago: EstadoPago.RETRASADO } });

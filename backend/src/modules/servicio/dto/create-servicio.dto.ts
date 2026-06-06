@@ -32,6 +32,7 @@ export class CreateServicioDto {
 
   @IsOptional()
   @IsNumber()
+  @Min(0, { message: 'El monto de factura no puede ser negativo' })
   @Transform(({ value }) => (value ? parseFloat(value) : undefined))
   monto_factura?: number;
 
@@ -54,18 +55,18 @@ export class CreateServicioDto {
 
   @IsOptional()
   @IsNumber()
-  @Min(0)
+  @Min(0.01, { message: 'El tipo de cambio debe ser mayor a 0' })
   @Transform(({ value }) => (value ? parseFloat(value) : undefined))
   tipo_cambio?: number;
 
   @IsNumber()
-  @Min(0)
+  @Min(0.01, { message: 'El monto del flete debe ser mayor a 0' })
   @Transform(({ value }) => Number(value))
   flete!: number;
 
   @IsOptional()
   @IsNumber()
-  @Min(0)
+  @Min(0, { message: 'El flete adicional no puede ser negativo' })
   @Transform(({ value }) => (value && value !== "" ? Number(value) : 0))
   flete_adicional?: number;
 
@@ -77,9 +78,9 @@ export class CreateServicioDto {
   fecha_fin?: string;
 
 
-  @IsOptional() 
-  @Min(0)
+  @IsOptional()
   @IsNumber()
+  @Min(1, { message: 'El período de liquidación debe ser al menos 1 día' })
   @Transform(({ value }) => (value && value !== "" ? parseInt(value) : null))
   periodo_liquidacion?: number;
 
