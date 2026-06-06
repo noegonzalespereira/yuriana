@@ -264,7 +264,7 @@ export class GastosService {
         (registro as any).detalles = await this.detalleGastoRepo.find({ where: { id_gasto_servicio: id, status: true }, relations: ['gasto'] });
       }
     } else if (pestana === TipoPestaña.OPERATIVO) {
-      registro = await this.gastoOperativoRepo.findOne({ where: { id_gasto_operativo: id, status: true }, relations: ['gasto', 'unidad'] });
+      registro = await this.gastoOperativoRepo.findOne({ where: { id_gasto_operativo: id, status: true }, relations: ['gasto', 'unidad', 'unidad.categoria'] });
     } else if (pestana === TipoPestaña.ADMINISTRATIVO) {
       registro = await this.gastoAdminRepo.findOne({ where: { id_gasto_admin: id, status: true }, relations: ['gasto'] });
     } else {

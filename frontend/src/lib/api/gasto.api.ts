@@ -1,5 +1,5 @@
 import { apiFetch } from "../api";
-import { type GastoOperativo, type GastoAdministrativo, GastosServicio, TotalesPaneles, TipoPestana } from "@/types/gasto.types";
+import { type GastoOperativo, type GastoAdministrativo, type GastoGeneral, GastosServicio, TotalesPaneles, TipoPestana } from "@/types/gasto.types";
 
 export interface GastoFilters {
   fecha_inicio?: string;
@@ -123,4 +123,41 @@ export const editarGastoAdministrativo = async (id: number, data: any): Promise<
 
 export const eliminarGastoAdministrativo = async (id: number): Promise<any> => {
   return apiFetch(`/gastos/eliminar/${TipoPestana.ADMINISTRATIVO}/${id}`, { method: "DELETE" });
+};
+
+// ── Gastos Generales ───────────────────────────────────────────────────────
+
+export const getGastosGenerales = async (filters: GastoFilters = {}): Promise<GastoGeneral[]> => {
+  const params = new URLSearchParams();
+  if (filters.fecha_inicio) params.append("fecha_inicio", filters.fecha_inicio);
+  if (filters.fecha_fin) params.append("fecha_fin", filters.fecha_fin);
+  if (filters.buscar?.trim()) params.append("buscar", filters.buscar.trim());
+  if (filters.tipo_gasto?.trim()) params.append("tipo_gasto", filters.tipo_gasto.trim());
+  const q = params.toString();
+  return apiFetch(`/gastos/listado/general${q ? `?${q}` : ""}`);
+};
+
+export const getDetalleGastoGeneral = async (id: number): Promise<GastoGeneral> => {
+  return apiFetch(`/gastos/detalle/general/${id}`);
+};
+
+export const guardarGastoGeneral = async (data: {
+  tipo_pestaña: string;
+  items: { fecha: string; tipo_gasto: string; descripcion: string; monto: number }[];
+}): Promise<any> => {
+  return apiFetch("/gastos/guardar-pantalla", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+};
+
+export const editarGastoGeneral = async (id: number, data: any): Promise<any> => {
+  return apiFetch(`/gastos/editar/${TipoPestana.GENERAL}/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+};
+
+export const eliminarGastoGeneral = async (id: number): Promise<any> => {
+  return apiFetch(`/gastos/eliminar/${TipoPestana.GENERAL}/${id}`, { method: "DELETE" });
 };

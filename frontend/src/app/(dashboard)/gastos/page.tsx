@@ -10,6 +10,8 @@ import { GastoOperativoTable } from "@/components/organisms/GastoOperativoTable"
 import { GastoOperativoForm } from "@/components/organisms/GastoOperativoForm";
 import { GastoAdministrativoTable } from "@/components/organisms/GastoAdministrativoTable";
 import { GastoAdministrativoForm } from "@/components/organisms/GastoAdministrativoForm";
+import { GastoGeneralTable } from "@/components/organisms/GastoGeneralTable";
+import { GastoGeneralForm } from "@/components/organisms/GastoGeneralForm";
 import {
   getTotalesPaneles,
   getGastosServicio,
@@ -21,9 +23,12 @@ import {
   getGastosAdministrativos,
   getDetalleGastoAdministrativo,
   eliminarGastoAdministrativo,
+  getGastosGenerales,
+  getDetalleGastoGeneral,
+  eliminarGastoGeneral,
   type GastoFilters,
 } from "@/lib/api/gasto.api";
-import { GastosServicio, GastoOperativo, GastoAdministrativo, TotalesPaneles, TipoPestana } from "@/types/gasto.types";
+import { GastosServicio, GastoOperativo, GastoAdministrativo, GastoGeneral, TotalesPaneles, TipoPestana } from "@/types/gasto.types";
 
 type Vista = "list" | "form";
 type TabActiva = TipoPestana;
@@ -108,13 +113,11 @@ export default function GastosPage() {
   const [filtersAdmin, setFiltersAdmin] = useState<GastoFilters>({ buscar: "", fecha_inicio: "", fecha_fin: "" });
   const [deleteAdminId, setDeleteAdminId] = useState<number | null>(null);
 
-  // ── Cargar totales siempre ──
-  const loadTotales = useCallback(async () => {
-    try {
-      const tots = await getTotalesPaneles();
-      setTotales(tots);
-    } catch { /* silencioso */ }
-  }, []);
+  // ── General ──
+  const [gastosGenerales, setGastosGenerales] = useState<GastoGeneral[]>([]);
+  const [selectedGeneral, setSelectedGeneral] = useState<GastoGeneral | null>(null);
+  const [filtersGeneral, setFiltersGeneral] = useState<GastoFilters>({ buscar: "", fecha_inicio: "", fecha_fin: "" });
+  const [deleteGeneralId, setDeleteGeneralId] = useState<number | null>(null);
 
   // ── Cargar listado según pestaña activa ──
   const loadServicioData = useCallback(async () => {
@@ -156,18 +159,32 @@ export default function GastosPage() {
     }
   }, [filtersAdmin]);
 
+  const loadGeneralData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [tots, list] = await Promise.all([getTotalesPaneles(), getGastosGenerales(filtersGeneral)]);
+      setTotales(tots);
+      setGastosGenerales(list);
+    } catch {
+      toast.error("Error al cargar los gastos generales");
+    } finally {
+      setLoading(false);
+    }
+  }, [filtersGeneral]);
+
   useEffect(() => {
     if (tabActiva === TipoPestana.SERVICIO) loadServicioData();
     if (tabActiva === TipoPestana.OPERATIVO) loadOperativoData();
     if (tabActiva === TipoPestana.ADMINISTRATIVO) loadAdminData();
-    if (tabActiva === TipoPestana.GENERAL) { setLoading(false); loadTotales(); }
-  }, [tabActiva, loadServicioData, loadOperativoData, loadAdminData, loadTotales]);
+    if (tabActiva === TipoPestana.GENERAL) loadGeneralData();
+  }, [tabActiva, loadServicioData, loadOperativoData, loadAdminData, loadGeneralData]);
 
   // ── Handlers genéricos ──
   const handleNuevoGasto = () => {
     setSelectedServicio(null);
     setSelectedOperativo(null);
     setSelectedAdmin(null);
+    setSelectedGeneral(null);
     setIsReadOnly(false);
     setVista("form");
   };
@@ -177,6 +194,7 @@ export default function GastosPage() {
     if (tabActiva === TipoPestana.SERVICIO) loadServicioData();
     if (tabActiva === TipoPestana.OPERATIVO) loadOperativoData();
     if (tabActiva === TipoPestana.ADMINISTRATIVO) loadAdminData();
+    if (tabActiva === TipoPestana.GENERAL) loadGeneralData();
   };
 
   // ── Handlers Servicio ──
@@ -266,6 +284,35 @@ export default function GastosPage() {
     finally { setDeleteAdminId(null); }
   };
 
+  // ── Handlers General ──
+  const handleVerGeneral = async (item: GastoGeneral) => {
+    try {
+      const d = await getDetalleGastoGeneral(item.id_gasto_general);
+      setSelectedGeneral(d);
+      setIsReadOnly(true);
+      setVista("form");
+    } catch { toast.error("No se pudo cargar el detalle"); }
+  };
+
+  const handleEditarGeneral = async (item: GastoGeneral) => {
+    try {
+      const d = await getDetalleGastoGeneral(item.id_gasto_general);
+      setSelectedGeneral(d);
+      setIsReadOnly(false);
+      setVista("form");
+    } catch { toast.error("No se pudo cargar el detalle"); }
+  };
+
+  const handleConfirmDeleteGeneral = async () => {
+    if (!deleteGeneralId) return;
+    try {
+      await eliminarGastoGeneral(deleteGeneralId);
+      toast.success("Gasto general eliminado correctamente");
+      loadGeneralData();
+    } catch { toast.error("No se pudo eliminar el registro"); }
+    finally { setDeleteGeneralId(null); }
+  };
+
   // ── Título del header según contexto ──
   const headerTitle = () => {
     if (vista === "list") return "Gestión de Gastos";
@@ -273,6 +320,7 @@ export default function GastosPage() {
     if (tabActiva === TipoPestana.SERVICIO) return selectedServicio ? "Editar Gasto del Viaje" : "Registrar Gastos del Viaje";
     if (tabActiva === TipoPestana.OPERATIVO) return selectedOperativo ? "Editar Gasto Operativo" : "Registrar Gastos Operativos";
     if (tabActiva === TipoPestana.ADMINISTRATIVO) return selectedAdmin ? "Editar Gasto Administrativo" : "Registrar Gastos Administrativos";
+    if (tabActiva === TipoPestana.GENERAL) return selectedGeneral ? "Editar Gasto General" : "Registrar Gastos Generales";
     return "Registrar Gasto";
   };
 
@@ -288,6 +336,8 @@ export default function GastosPage() {
           ? (val) => setFiltersOperativo((f) => ({ ...f, buscar: val }))
           : vista === "list" && tabActiva === TipoPestana.ADMINISTRATIVO
           ? (val) => setFiltersAdmin((f) => ({ ...f, buscar: val }))
+          : vista === "list" && tabActiva === TipoPestana.GENERAL
+          ? (val) => setFiltersGeneral((f) => ({ ...f, buscar: val }))
           : undefined}
         buttonLabel={vista === "list" ? "Nuevo Gasto" : undefined}
         onButtonClick={handleNuevoGasto}
@@ -312,6 +362,13 @@ export default function GastosPage() {
         ) : tabActiva === TipoPestana.ADMINISTRATIVO ? (
           <GastoAdministrativoForm
             initialData={selectedAdmin}
+            isReadOnly={isReadOnly}
+            onCancel={() => setVista("list")}
+            onSuccess={handleFormSuccess}
+          />
+        ) : tabActiva === TipoPestana.GENERAL ? (
+          <GastoGeneralForm
+            initialData={selectedGeneral}
             isReadOnly={isReadOnly}
             onCancel={() => setVista("list")}
             onSuccess={handleFormSuccess}
@@ -433,11 +490,31 @@ export default function GastosPage() {
                 </div>
               )}
 
-              {/* ── Tab General pendiente ── */}
+              {/* ── Gastos Generales ── */}
               {tabActiva === TipoPestana.GENERAL && (
-                <div className="py-20 text-center space-y-2">
-                  <p className="text-[var(--yuriana-input-placeholder)] italic text-sm font-medium">Módulo en construcción</p>
-                  <p className="text-[10px] text-[var(--yuriana-input-placeholder)]">Gastos Generales estará disponible próximamente.</p>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <div className="flex items-center gap-2 border border-[var(--yuriana-input-border)] rounded-xl px-4 py-2 bg-[var(--yuriana-input-bg)]">
+                      <input type="date" value={filtersGeneral.fecha_inicio ?? ""} onChange={(e) => setFiltersGeneral((f) => ({ ...f, fecha_inicio: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
+                      <span className="text-[var(--yuriana-input-placeholder)] text-xs">-</span>
+                      <input type="date" value={filtersGeneral.fecha_fin ?? ""} onChange={(e) => setFiltersGeneral((f) => ({ ...f, fecha_fin: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
+                    </div>
+                    <div className="ml-auto">
+                      <button type="button" onClick={handleNuevoGasto} className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black py-2 px-5 rounded-xl shadow text-xs transition-all active:scale-95">
+                        + Nuevo Gasto
+                      </button>
+                    </div>
+                  </div>
+                  {loading ? (
+                    <div className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">Cargando registros...</div>
+                  ) : (
+                    <>
+                      <GastoGeneralTable data={gastosGenerales} onView={handleVerGeneral} onEdit={handleEditarGeneral} onDelete={(id) => setDeleteGeneralId(id)} />
+                      <p className="text-xs text-[var(--yuriana-input-placeholder)] font-medium">
+                        Mostrando {gastosGenerales.length} registro{gastosGenerales.length !== 1 ? "s" : ""}
+                      </p>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -466,6 +543,14 @@ export default function GastosPage() {
         <DeleteModal
           onConfirm={handleConfirmDeleteAdmin}
           onCancel={() => setDeleteAdminId(null)}
+        />
+      )}
+
+      {/* Modal eliminación — General */}
+      {deleteGeneralId !== null && (
+        <DeleteModal
+          onConfirm={handleConfirmDeleteGeneral}
+          onCancel={() => setDeleteGeneralId(null)}
         />
       )}
     </div>

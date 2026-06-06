@@ -148,7 +148,7 @@ export const GastoOperativoForm = ({ initialData, isReadOnly = false, onCancel, 
         // Edición: actualiza el único registro existente
         const item = items[0];
         await editarGastoOperativo(initialData.id_gasto_operativo, {
-          tipo_gasto: item.tipo_gasto.toUpperCase(),
+          tipo_gasto: item.tipo_gasto,
           fecha: item.fecha,
           descripcion: item.descripcion.trim().toUpperCase(),
           monto: item.monto,
@@ -160,7 +160,7 @@ export const GastoOperativoForm = ({ initialData, isReadOnly = false, onCancel, 
           placa: selectedUnidad.placa.toUpperCase(),
           items: items.map(({ fecha, tipo_gasto, descripcion, monto }) => ({
             fecha,
-            tipo_gasto: tipo_gasto.toUpperCase(),
+            tipo_gasto,
             descripcion: descripcion.trim().toUpperCase(),
             monto,
           })),

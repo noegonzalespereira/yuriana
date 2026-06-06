@@ -56,7 +56,7 @@ export interface ServicioResumen {
   codigo_servicio: string;
   origen: string;
   destino: string;
-  categoria?: { id_categoria: number; nombre: string };
+  categoria?: { id_categoria: number; nombre?: string; tipo_categoria?: string };
   asignacion?: {
     conductor?: {
       persona: {
@@ -138,5 +138,22 @@ export interface GastoOperativo {
     status: boolean;
   };
   tipo_gasto: TipoGastoOperativo;
+  status: boolean;
+}
+
+export interface GastoGeneral {
+  id_gasto_general: number;
+  id_gasto: number;
+  gasto: {
+    id_gasto: number;
+    fecha: string;
+    mes: string;
+    anio: number;
+    descripcion: string;
+    monto: number;
+    status: boolean;
+  };
+  tipo_gasto: TipoGastoGeneral;
+  id_empresa: number;
   status: boolean;
 }
