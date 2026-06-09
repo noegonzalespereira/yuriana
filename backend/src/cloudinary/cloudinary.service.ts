@@ -31,7 +31,24 @@ export class CloudinaryService {
         access_control: [{ access_type: 'anonymous' }],
       };
       const uploadStream = cloudinary.uploader.upload_stream(opciones, (error, result) => {
-        if (error) return reject(error);
+        if (error) {
+          const msg = (error.message || '').toLowerCase();
+          const httpCode = (error as any).http_code;
+          if (
+            httpCode === 413 ||
+            msg.includes('file size') ||
+            msg.includes('too large') ||
+            msg.includes('maximum') ||
+            msg.includes('exceeds')
+          ) {
+            return reject(
+              new BadRequestException(
+                'El archivo es demasiado grande para subir. Reduce el tamaño del documento e inténtalo de nuevo.',
+              ),
+            );
+          }
+          return reject(error);
+        }
         resolve(result!.secure_url);
       });
       streamifier.createReadStream(buffer).pipe(uploadStream);
