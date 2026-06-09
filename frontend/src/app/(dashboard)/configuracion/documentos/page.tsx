@@ -174,7 +174,7 @@ export default function DocumentosPage() {
 
           {tabPrincipal === 'Viaje' && (
             <div className="flex gap-6 border-b border-border pb-2 px-4 text-xs font-black uppercase tracking-wider text-gray-400">
-              {([TipoCategoria.VIAJE_NAClONAL, TipoCategoria.VIAJE_INTERNACIONAL]).map((sub) => (
+              {([TipoCategoria.VIAJE_NACIONAL, TipoCategoria.VIAJE_INTERNACIONAL]).map((sub) => (
                 <button 
                   key={sub} 
                   onClick={() => setSubTab(sub)}
