@@ -6,6 +6,7 @@ interface ModuleHeaderProps {
   subtitle?: string;
   searchPlaceholder?: string;
   onSearch?: (value: string) => void;
+  searchValue?: string;
   buttonLabel?: string;
   onButtonClick?: () => void;
 }
@@ -15,6 +16,7 @@ export const ModuleHeader = ({
   subtitle,
   searchPlaceholder,
   onSearch,
+  searchValue,
   buttonLabel,
   onButtonClick,
 }: ModuleHeaderProps) => {
@@ -29,16 +31,17 @@ export const ModuleHeader = ({
 
       <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
         {onSearch && (
-          <SearchInput 
-            placeholder={searchPlaceholder} 
-            onChange={onSearch} 
+          <SearchInput
+            placeholder={searchPlaceholder}
+            onChange={onSearch}
+            value={searchValue}
           />
         )}
-        
+
         {buttonLabel && (
-          <ActionButton 
-            label={buttonLabel} 
-            onClick={onButtonClick} 
+          <ActionButton
+            label={buttonLabel}
+            onClick={onButtonClick}
           />
         )}
       </div>

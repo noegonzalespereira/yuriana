@@ -43,3 +43,11 @@ export const desengancharUnidad = async (idAsignacion: number): Promise<{ mensaj
     method: "DELETE",
   });
 };
+
+export const updateAsignacion = async (
+  idAsignacion: number,
+  data: { ci_conductor: number; placa_tracto: string; placa_remolque: string }
+): Promise<ResponseAsignacion> => {
+  await desengancharUnidad(idAsignacion);
+  return createAsignacion(data);
+};

@@ -14,13 +14,13 @@ export const SidebarConfigMenu = () => {
   return (
     <div className="relative">
       {isOpen && (
-        <div className="absolute bottom-12 left-0 w-40 bg-slate-100 rounded-xl overflow-hidden shadow-2xl flex flex-col z-[60] border border-slate-200">
+        <div className="absolute bottom-12 left-0 w-44 bg-[var(--yuriana-base-yellow)] rounded-xl overflow-hidden shadow-2xl flex flex-col z-[60]">
           {menuItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               onClick={() => setIsOpen(false)}
-              className="px-4 py-2 text-xs font-bold text-[var(--yuriana-base-gray-dark)] hover:bg-[var(--yuriana-card-border)] hover:text-[var(--yuriana-base-orange)] border-b border-slate-200 last:border-none transition-colors"
+              className="px-4 py-2.5 text-xs font-black text-[var(--yuriana-base-black)] uppercase tracking-wide hover:bg-black/10 border-b border-black/10 last:border-none transition-colors"
             >
               {item.label}
             </Link>

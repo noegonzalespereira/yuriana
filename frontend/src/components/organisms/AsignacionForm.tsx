@@ -30,7 +30,7 @@ export const AsignacionForm = ({ initialData, isReadOnly = false, onSubmit, onCa
   const [selectedRemolque, setSelectedRemolque] = useState<any>(initialData?.remolque || null);
 
   useEffect(() => {
-    if (initialData) return; // No consultar disponibilidad si es inspección
+    if (step === 4) return; // El paso 4 es solo resumen, no carga listas
 
     const cargarDatosFase = async () => {
       try {
@@ -38,13 +38,26 @@ export const AsignacionForm = ({ initialData, isReadOnly = false, onSubmit, onCa
         setFiltroTexto("");
         if (step === 1) {
           const res = await getConductoresDisponibles();
-          setConductores(res);
+          // En edición: incluir el conductor actual aunque no esté disponible
+          if (initialData?.conductor && !res.find(c => c.id_conductor === initialData.conductor.id_conductor)) {
+            setConductores([initialData.conductor, ...res]);
+          } else {
+            setConductores(res);
+          }
         } else if (step === 2) {
-          const res = await getUnidadesDisponibles(2); // Carga Tractos
-          setUnidades(res.filter(u => u.estado_unidad === "DISPONIBLE"));
+          const res = await getUnidadesDisponibles(2);
+          let lista = res.filter(u => u.estado_unidad === "DISPONIBLE");
+          if (initialData?.tracto && !lista.find(u => u.id_unidad === initialData.tracto.id_unidad)) {
+            lista = [initialData.tracto, ...lista];
+          }
+          setUnidades(lista);
         } else if (step === 3) {
-          const res = await getUnidadesDisponibles(); // Carga Acoplados
-          setUnidades(res.filter(u => u.estado_unidad === "DISPONIBLE"));
+          const res = await getUnidadesDisponibles();
+          let lista = res.filter(u => u.estado_unidad === "DISPONIBLE");
+          if (initialData?.remolque && !lista.find(u => u.id_unidad === initialData.remolque.id_unidad)) {
+            lista = [initialData.remolque, ...lista];
+          }
+          setUnidades(lista);
         }
       } catch (err) {
         toast.error("Error sincronizando los catálogos del enganche.");
@@ -325,7 +338,7 @@ export const AsignacionForm = ({ initialData, isReadOnly = false, onSubmit, onCa
           <div className="flex justify-between border-t border-border pt-4 mt-6">
             <button
               type="button"
-              disabled={step === 1 || !!initialData}
+              disabled={step === 1 || (!!initialData && isReadOnly)}
               onClick={() => setStep(prev => prev - 1)}
               className="px-6 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-0 border-var(--yuriana-base-orange) "
             >

@@ -1,9 +1,8 @@
-// src/components/organisms/ColaboradorForm.tsx
 "use client";
 import { useForm } from "react-hook-form";
 import { TipoColaborador, Colaborador } from "@/types/colaborador.types";
 import { TypeSelector } from "../atoms/TypeSelector";
-import { Truck, Info } from "lucide-react";
+import { Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ModuleField } from "../molecules/ModuleField";
 
@@ -25,7 +24,7 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
         ...initialData.persona,
         agencia: initialData.agencia,
         monto: initialData.monto,
-        notas: initialData.notas, // Sincronizado correctamente
+        notas: initialData.notas,
       });
     } else {
       reset({ ci: "", nombre: "", correo: "", telefono: "", telefono2: "", agencia: "", ciudad: "", monto: "", notas: "" });
@@ -51,126 +50,162 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
   };
 
   return (
-    <form onSubmit={handleSubmit(handleLocalSubmit)} className="space-y-8 animate-in fade-in duration-500">
-      
-      {/* SECCIÓN 1: TIPO DE COLABORADOR */}
-      <div className="bg-[var(--yuriana-base-white)] p-8 rounded-[2.5rem] border border-[var(--yuriana-card-border)] shadow-sm">
-        <div className="flex items-center gap-2 mb-6 text-[var(--yuriana-base-orange)]">
-          <Truck size={20} />
-          <h3 className="font-bold uppercase text-sm tracking-tight">Tipo de colaborador</h3>
+    <form onSubmit={handleSubmit(handleLocalSubmit)} className="space-y-6 animate-in fade-in duration-500">
+
+      {/* Tarjeta única con secciones internas */}
+      <div className="bg-[var(--yuriana-base-white)] rounded-[2.5rem] border border-[var(--yuriana-card-border)] shadow-sm overflow-hidden">
+
+        {/* Header de la tarjeta */}
+        <div className="flex items-center gap-3 px-8 py-5 border-b border-[var(--yuriana-card-border)] bg-slate-50/60">
+          <div className="p-2 rounded-xl bg-[var(--yuriana-base-orange)]/10 text-[var(--yuriana-base-orange)]">
+            <Users size={18} />
+          </div>
+          <div>
+            <h3 className="font-black uppercase text-sm tracking-tight text-[var(--yuriana-base-gray-dark)]">
+              {initialData ? "Datos del Colaborador" : "Nuevo Colaborador"}
+            </h3>
+            <p className="text-[10px] text-[var(--yuriana-input-placeholder)] font-medium">
+              Complete todos los campos requeridos
+            </p>
+          </div>
         </div>
-        <TypeSelector selected={tipo} onChange={setTipo} disabled={isReadOnly} />
+
+        <div className="p-8 space-y-8">
+
+          {/* Sección: Tipo */}
+          <div className="space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--yuriana-input-label)]">
+              Tipo de Colaborador <span className="text-red-500">*</span>
+            </p>
+            <TypeSelector selected={tipo} onChange={setTipo} disabled={isReadOnly} />
+          </div>
+
+          <div className="border-t border-dashed border-[var(--yuriana-card-border)]" />
+
+          {/* Sección: Identidad */}
+          <div className="space-y-4">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--yuriana-input-placeholder)]">
+              Identificación
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-5">
+              <ModuleField
+                label="CI / NIT"
+                name="ci"
+                type="number"
+                register={register}
+                disabled={isReadOnly || !!initialData}
+                error={errors.ci}
+                rules={{ required: "El CI / NIT es obligatorio" }}
+              />
+              <ModuleField
+                label="Nombre"
+                name="nombre"
+                register={register}
+                disabled={isReadOnly}
+                error={errors.nombre}
+                rules={{ required: "El nombre es obligatorio" }}
+              />
+              <ModuleField
+                label="Correo"
+                name="correo"
+                type="email"
+                register={register}
+                disabled={isReadOnly}
+                error={errors.correo}
+                rules={{
+                  required: "El correo es obligatorio",
+                  pattern: { value: /^\S+@\S+$/i, message: "Correo inválido" },
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-dashed border-[var(--yuriana-card-border)]" />
+
+          {/* Sección: Contacto */}
+          <div className="space-y-4">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--yuriana-input-placeholder)]">
+              Contacto y Ubicación
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-5">
+              <ModuleField
+                label="Teléfono"
+                name="telefono"
+                type="number"
+                register={register}
+                disabled={isReadOnly}
+                error={errors.telefono}
+                rules={{ required: "El teléfono es obligatorio", minLength: { value: 7, message: "Mínimo 7 dígitos" } }}
+              />
+              <ModuleField
+                label="Teléfono 2"
+                name="telefono2"
+                type="number"
+                register={register}
+                disabled={isReadOnly}
+              />
+              <ModuleField
+                label="Ciudad"
+                name="ciudad"
+                register={register}
+                disabled={isReadOnly}
+                error={errors.ciudad}
+                rules={{ required: "La ciudad es obligatoria" }}
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-dashed border-[var(--yuriana-card-border)]" />
+
+          {/* Sección: Negocio */}
+          <div className="space-y-4">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--yuriana-input-placeholder)]">
+              Datos Comerciales
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-5">
+              <ModuleField
+                label="Agencia"
+                name="agencia"
+                register={register}
+                disabled={isReadOnly}
+                error={errors.agencia}
+                rules={{ required: "La agencia es obligatoria" }}
+              />
+              <ModuleField
+                label="Monto"
+                name="monto"
+                type="number"
+                register={register}
+                disabled={isReadOnly}
+                unit="Bs"
+                error={errors.monto}
+                rules={{ required: "El monto es obligatorio" }}
+              />
+              <ModuleField
+                label="Notas"
+                name="notas"
+                register={register}
+                disabled={isReadOnly}
+              />
+            </div>
+          </div>
+
+        </div>
       </div>
 
-      {/* SECCIÓN 2: INFORMACIÓN GENERAL */}
-      <div className="bg-[var(--yuriana-base-white)] p-8 rounded-[2.5rem] border border-[var(--yuriana-card-border)] shadow-sm space-y-8">
-        <div className="flex items-center gap-2 text-[var(--yuriana-base-orange)] border-b border-[var(--yuriana-card-border)] pb-4">
-          <Info size={20} />
-          <h3 className="font-bold uppercase text-sm tracking-tight">Información General</h3>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6">
-          <ModuleField 
-            label="CI / NIT" 
-            name="ci" 
-            type="number"
-            register={register} 
-            disabled={isReadOnly || !!initialData} 
-            error={errors.ci}
-            rules={{ required: "El CI / NIT es obligatorio" }}
-          />
-          
-          <ModuleField 
-            label="Nombre" 
-            name="nombre" 
-            register={register} 
-            disabled={isReadOnly} 
-            error={errors.nombre}
-            rules={{ required: "El nombre es obligatorio" }}
-          />
-          
-          <ModuleField 
-            label="Correo" 
-            name="correo" 
-            type="email" 
-            register={register} 
-            disabled={isReadOnly} 
-            error={errors.correo}
-            rules={{ 
-              required: "El correo es obligatorio",
-              pattern: { value: /^\S+@\S+$/i, message: "Correo inválido" }
-            }}
-          />
-          
-          <ModuleField 
-            label="Teléfono" 
-            name="telefono" 
-            type="number"
-            register={register} 
-            disabled={isReadOnly} 
-            error={errors.telefono}
-            rules={{ required: "El teléfono es obligatorio", minLength: { value: 7, message: "Mínimo 7 dígitos" } }}
-          />
-          
-          <ModuleField 
-            label="Teléfono 2" 
-            name="telefono2" 
-            type="number"
-            register={register} 
-            disabled={isReadOnly} 
-          />
-          
-          <ModuleField 
-            label="Agencia" 
-            name="agencia" 
-            register={register} 
-            disabled={isReadOnly} 
-            error={errors.agencia}
-            rules={{ required: "La agencia es obligatoria" }}
-          />
-          
-          <ModuleField 
-            label="Ciudad" 
-            name="ciudad" 
-            register={register} 
-            disabled={isReadOnly} 
-            error={errors.ciudad}
-            rules={{ required: "La ciudad es obligatoria" }}
-          />
-          
-          <ModuleField 
-            label="Monto" 
-            name="monto" 
-            type="number" 
-            register={register} 
-            disabled={isReadOnly} 
-            unit="Bs" 
-            error={errors.monto}
-            rules={{ required: "El monto es obligatorio" }}
-          />
-          
-          <ModuleField 
-            label="Notas" 
-            name="notas" 
-            register={register} 
-            disabled={isReadOnly} 
-          />
-        </div>
-      </div>
-
-      {/* BOTONES DE ACCIÓN */}
-      <div className="flex justify-end gap-4 pt-4">
-        <button 
-          type="button" 
-          onClick={onCancel} 
-          className="px-10 py-4 bg-slate-600 text-white rounded-xl font-bold hover:bg-slate-700 transition-all shadow-lg text-sm uppercase tracking-tighter"
+      {/* Botones */}
+      <div className="flex justify-end gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-8 py-3.5 bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
         >
           {isReadOnly ? "Cerrar" : "Cancelar"}
         </button>
         {!isReadOnly && (
-          <button 
-            type="submit" 
-            className="px-10 py-4 bg-[var(--yuriana-base-yellow)] text-[var(--yuriana-base-black)] rounded-xl font-black hover:shadow-xl transition-all shadow-lg text-sm uppercase tracking-tighter"
+          <button
+            type="submit"
+            className="px-10 py-3.5 bg-[var(--yuriana-base-yellow)] text-[var(--yuriana-base-black)] rounded-xl font-black hover:shadow-lg transition-all shadow-md text-xs uppercase tracking-wider"
           >
             {initialData ? "Actualizar Colaborador" : "Guardar Colaborador"}
           </button>

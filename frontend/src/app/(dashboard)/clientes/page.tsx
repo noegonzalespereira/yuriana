@@ -7,11 +7,19 @@ import { getClientes, deleteCliente, createCliente, updateCliente } from "@/lib/
 import { Cliente } from "@/types/cliente.types";
 import { toast } from "sonner";
 import { XCircle } from "lucide-react";
+import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
+import { TablePagination } from "@/components/molecules/TablePagination";
+
+const PAGE_SIZE = 10;
 
 export default function ClientesPage() {
   const [view, setView] = useState<'list' | 'form'>('list');
   const [data, setData] = useState<Cliente[]>([]);
-  const [filters, setFilters] = useState({ nombre: "", codigo_cliente: "" });
+  const INITIAL_FILTERS = { nombre: "", codigo_cliente: "" };
+  const [filters, setFilters] = useState(INITIAL_FILTERS);
+  const handleResetFilters = () => setFilters(INITIAL_FILTERS);
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => { setPagina(1); }, [filters]);
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -84,6 +92,10 @@ export default function ClientesPage() {
     }
   };
 
+  const totalPaginas = Math.max(1, Math.ceil(data.length / PAGE_SIZE));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const registrosPagina = data.slice((paginaActual - 1) * PAGE_SIZE, paginaActual * PAGE_SIZE);
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <ModuleHeader
@@ -91,6 +103,7 @@ export default function ClientesPage() {
         subtitle={view === 'list' ? "Gestione los clientes de la empresa" : undefined}
         searchPlaceholder="Escriba código de cliente"
         onSearch={view === 'list' ? (val) => setFilters({ nombre: val, codigo_cliente: val }) : undefined}
+        searchValue={view === 'list' ? filters.nombre : undefined}
         buttonLabel={view === 'list' ? "Nuevo Cliente" : undefined}
         onButtonClick={() => { setSelectedCliente(null); setIsReadOnly(false); setView('form'); }}
       />
@@ -98,19 +111,22 @@ export default function ClientesPage() {
       {view === 'list' ? (
         <div className="bg-white rounded-3xl shadow-xl p-6 border border-border">
           <div className="flex justify-between items-center mb-6 px-4">
-            <h2 className="font-bold text-gray-700 uppercase tracking-tighter text-sm">Listado de Clientes </h2>
-            <span className="text-xs text-[var(--yuriana-base-gray-light)] font-black uppercase">Mostrando {data.length} registros</span>
+            <h2 className="font-bold text-gray-700 uppercase tracking-tighter text-sm">Listado de Clientes</h2>
+            <div className="flex items-center gap-3">
+              <ResetFiltersButton onClick={handleResetFilters} />
+            </div>
           </div>
           {loading ? (
             <div className="py-20 text-center text-gray-400 italic text-sm font-medium uppercase">Cargando datos...</div>
           ) : (
             <ClienteTable
-              data={data}
+              data={registrosPagina}
               onDelete={handleOpenDeleteConfirmation}
               onEdit={(c) => { setSelectedCliente(c); setIsReadOnly(false); setView('form'); }}
               onView={(c) => { setSelectedCliente(c); setIsReadOnly(true); setView('form'); }}
             />
           )}
+          <TablePagination pagina={paginaActual} totalPaginas={totalPaginas} totalRegistros={data.length} registrosMostrados={registrosPagina.length} onPageChange={setPagina} />
         </div>
       ) : (
         <ClienteForm

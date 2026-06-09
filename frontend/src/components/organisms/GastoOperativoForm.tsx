@@ -156,7 +156,7 @@ export const GastoOperativoForm = ({ initialData, isReadOnly = false, onCancel, 
         toast.success("Gasto operativo actualizado correctamente.");
       } else {
         await guardarGastoOperativo({
-          tipo_pestaña: "operativo",
+          tipo_pestaña: "OPERATIVO",
           placa: selectedUnidad.placa.toUpperCase(),
           items: items.map(({ fecha, tipo_gasto, descripcion, monto }) => ({
             fecha,

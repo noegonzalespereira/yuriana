@@ -5,7 +5,6 @@ import {
   TrendingDown,
   Clock,
   CheckCircle2,
-  AlertTriangle,
   Truck,
   UserCircle,
 } from "lucide-react";
@@ -63,11 +62,6 @@ const ESTADO_SERVICIO_STYLE: Record<string, string> = {
   FINALIZADO: "bg-slate-100 text-slate-600 border-slate-200",
 };
 
-const URGENCIA_STYLE: Record<string, string> = {
-  VENCIDO: "bg-rose-500 text-white",
-  HOY: "bg-amber-500 text-white",
-  PROXIMO: "bg-orange-400 text-white",
-};
 
 export default function DashboardPage() {
   const now = new Date();
@@ -183,7 +177,7 @@ export default function DashboardPage() {
         {/* Estado de Resultados */}
         <div className="lg:col-span-2 bg-white rounded-3xl border border-border shadow-xl overflow-hidden">
           <div className="flex items-center justify-between px-6 pt-5 pb-3">
-            <h2 className="font-black text-sm uppercase tracking-tight text-slate-800">
+            <h2 className="font-black text-sm uppercase tracking-tight text-[var(--yuriana-base-gray-dark)]">
               Estado de Resultados
             </h2>
             <select
@@ -207,74 +201,36 @@ export default function DashboardPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-slate-50 border-y border-slate-100">
-                  <th className="px-6 py-2.5 text-left font-black uppercase text-slate-500 tracking-wider">
+                  <th className="px-6 py-2.5 text-left font-black uppercase text-[var(--yuriana-base-gray-dark)] tracking-wider text-[10px]">
                     Concepto
                   </th>
-                  <th className="px-6 py-2.5 text-right font-black uppercase text-slate-500 tracking-wider">
+                  <th className="px-6 py-2.5 text-right font-black uppercase text-[var(--yuriana-base-gray-dark)] tracking-wider text-[10px]">
                     Monto Acumulado
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-slate-100">
                 {[
-                  {
-                    label: "Ingresos Fletes",
-                    value: estadoResultados.ingresos_fletes,
-                    highlight: false,
-                  },
-                  {
-                    label: "Ingresos Extras",
-                    value: estadoResultados.ingresos_extras,
-                    highlight: false,
-                  },
-                  {
-                    label: "Total Gastos del Servicio",
-                    value: estadoResultados.total_gastos_servicio,
-                    highlight: false,
-                  },
-                  {
-                    label: "Total Gastos Operativos",
-                    value: estadoResultados.total_gastos_operativos,
-                    highlight: false,
-                  },
-                  {
-                    label: "Total Gastos Administrativos",
-                    value: estadoResultados.total_gastos_admin,
-                    highlight: false,
-                  },
-                  {
-                    label: "Total Gastos Generales",
-                    value: estadoResultados.total_gastos_generales,
-                    highlight: false,
-                  },
-                  {
-                    label: "Utilidad Neta",
-                    value: estadoResultados.utilidad_neta,
-                    highlight: true,
-                  },
+                  { label: "Ingresos Fletes",            value: estadoResultados.ingresos_fletes,        highlight: false },
+                  { label: "Ingresos Extras",             value: estadoResultados.ingresos_extras,        highlight: false },
+                  { label: "Total Gastos del Servicio",   value: estadoResultados.total_gastos_servicio,  highlight: false },
+                  { label: "Total Gastos Operativos",     value: estadoResultados.total_gastos_operativos,highlight: false },
+                  { label: "Total Gastos Administrativos",value: estadoResultados.total_gastos_admin,     highlight: false },
+                  { label: "Total Gastos Generales",      value: estadoResultados.total_gastos_generales, highlight: false },
+                  { label: "Utilidad Neta",               value: estadoResultados.utilidad_neta,          highlight: true  },
                 ].map((row) => (
                   <tr
                     key={row.label}
-                    className={
-                      row.highlight
-                        ? "bg-orange-50 font-black"
-                        : "hover:bg-slate-50/60 transition-colors"
-                    }
+                    className={row.highlight ? "bg-orange-50 font-black" : "hover:bg-slate-50/40 transition-colors"}
                   >
-                    <td
-                      className={`px-6 py-3 ${row.highlight ? "text-[var(--yuriana-base-orange)] uppercase tracking-wide" : "text-slate-700"}`}
-                    >
+                    <td className={`px-6 py-3 text-xs ${row.highlight ? "text-[var(--yuriana-base-orange)] uppercase tracking-wide font-black" : "text-[var(--yuriana-base-gray-dark)] font-medium"}`}>
                       {row.label}
                     </td>
-                    <td
-                      className={`px-6 py-3 text-right font-bold ${
-                        row.highlight
-                          ? row.value >= 0
-                            ? "text-emerald-600"
-                            : "text-rose-600"
-                          : "text-slate-700"
-                      }`}
-                    >
+                    <td className={`px-6 py-3 text-right text-xs font-bold ${
+                      row.highlight
+                        ? row.value >= 0 ? "text-emerald-600" : "text-[var(--yuriana-base-red)]"
+                        : "text-[var(--yuriana-base-gray-dark)]"
+                    }`}>
                       {fmt(row.value)} Bs
                     </td>
                   </tr>
@@ -288,69 +244,104 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Documentos Vencidos */}
-        <div className="bg-white rounded-3xl border border-border shadow-xl overflow-hidden">
-          <div className="flex items-center justify-between px-5 pt-5 pb-3">
-            <h2 className="font-black text-sm uppercase tracking-tight text-slate-800">
-              Documentos Vencidos
+        {/* Alertas Documentales */}
+        <div className="bg-white rounded-3xl border border-border shadow-xl overflow-hidden flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-100">
+            <h2 className="font-black text-sm uppercase tracking-tight text-[var(--yuriana-base-gray-dark)]">
+              Alertas Documentales
             </h2>
             {docsVencidos.length > 0 && (
-              <span className="bg-rose-500 text-white text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider">
-                URGENTE
+              <span className="bg-[var(--yuriana-alert-vencido-border)] text-white text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider">
+                {docsVencidos.length} alerta{docsVencidos.length !== 1 ? "s" : ""}
               </span>
             )}
           </div>
 
           {loadingDocs ? (
             <div className="py-12 text-center text-xs text-slate-400 italic">
-              Cargando...
+              Cargando alertas...
             </div>
           ) : docsVencidos.length === 0 ? (
-            <div className="py-12 text-center text-xs text-slate-400 italic px-4">
-              Sin documentos vencidos o próximos a vencer.
+            <div className="flex flex-col items-center justify-center py-10 gap-2 px-4">
+              <span className="text-2xl">✅</span>
+              <span className="text-xs font-bold text-[var(--yuriana-base-gray-dark)] text-center">
+                Todos los documentos están vigentes
+              </span>
             </div>
           ) : (
-            <div className="px-4 pb-5 space-y-2">
-              {/* Agrupa por tipo */}
-              {(["UNIDAD", "CONDUCTOR"] as const).map((tipo) => {
+            <div className="px-4 pb-5 pt-3 space-y-5 overflow-y-auto max-h-[420px] custom-scrollbar">
+              {(["CONDUCTOR", "UNIDAD"] as const).map((tipo) => {
                 const items = docsVencidos.filter((d) => d.tipo === tipo);
                 if (items.length === 0) return null;
+
                 return (
-                  <div key={tipo}>
-                    <div className="flex items-center gap-1.5 py-2 border-b border-slate-100 mb-2">
-                      {tipo === "UNIDAD" ? (
-                        <Truck size={13} className="text-slate-500" />
-                      ) : (
-                        <UserCircle size={13} className="text-slate-500" />
-                      )}
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <div key={tipo} className="space-y-2">
+                    {/* Sub-encabezado por tipo */}
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-100">
+                        {tipo === "UNIDAD" ? (
+                          <Truck size={13} className="text-[var(--yuriana-base-gray-dark)]" />
+                        ) : (
+                          <UserCircle size={13} className="text-[var(--yuriana-base-gray-dark)]" />
+                        )}
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-[var(--yuriana-base-gray-dark)]">
                         {tipo === "UNIDAD" ? "Unidades" : "Conductores"}
                       </span>
+                      <span className="ml-auto text-[9px] font-black bg-slate-100 text-[var(--yuriana-base-gray-dark)] px-2 py-0.5 rounded-full">
+                        {items.length}
+                      </span>
                     </div>
-                    {items.map((doc) => (
-                      <div
-                        key={doc.id_documento}
-                        className="flex items-center justify-between py-2.5 px-1 border-b border-slate-50 last:border-0"
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold text-slate-700">
-                            {doc.nombre}
-                          </span>
-                          <span className="text-[10px] text-slate-400">
-                            {doc.tipo_documento}
+
+                    {/* Tarjetas de documentos */}
+                    {items.map((doc) => {
+                      const esVencido = doc.urgencia === "VENCIDO";
+                      const esHoy = doc.urgencia === "HOY";
+                      return (
+                        <div
+                          key={doc.id_documento}
+                          className="flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 border-l-4"
+                          style={{
+                            background: esVencido
+                              ? "var(--yuriana-alert-vencido-bg)"
+                              : "var(--yuriana-alert-porvencer-bg)",
+                            borderLeftColor: esVencido
+                              ? "var(--yuriana-alert-vencido-border)"
+                              : "var(--yuriana-alert-porvencer-border)",
+                            borderTopColor: "transparent",
+                            borderRightColor: "transparent",
+                            borderBottomColor: "transparent",
+                          }}
+                        >
+                          {/* Nombre y tipo de documento */}
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-black text-[var(--yuriana-base-gray-dark)] truncate leading-tight">
+                              {doc.nombre}
+                            </span>
+                            <span className="text-[10px] font-semibold text-[var(--yuriana-base-gray-dark)] opacity-70 truncate">
+                              {doc.tipo_documento}
+                            </span>
+                          </div>
+
+                          {/* Badge de urgencia */}
+                          <span
+                            className="shrink-0 text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-wide text-white whitespace-nowrap"
+                            style={{
+                              background: esVencido
+                                ? "var(--yuriana-alert-vencido-border)"
+                                : "var(--yuriana-alert-porvencer-border)",
+                            }}
+                          >
+                            {esVencido
+                              ? "Vencido"
+                              : esHoy
+                                ? "Hoy"
+                                : `${doc.dias_restantes}d`}
                           </span>
                         </div>
-                        <span
-                          className={`text-[10px] font-black px-2 py-0.5 rounded-lg ${URGENCIA_STYLE[doc.urgencia]}`}
-                        >
-                          {doc.urgencia === "VENCIDO"
-                            ? "Vencido"
-                            : doc.urgencia === "HOY"
-                              ? "Expira Hoy"
-                              : `${doc.dias_restantes}d`}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 );
               })}
@@ -361,8 +352,8 @@ export default function DashboardPage() {
 
       {/* ── Últimos viajes ── */}
       <div className="bg-white rounded-3xl border border-border shadow-xl overflow-hidden">
-        <div className="px-6 pt-5 pb-3">
-          <h2 className="font-black text-sm uppercase tracking-tight text-slate-800">
+        <div className="px-6 pt-5 pb-3 border-b border-slate-100">
+          <h2 className="font-black text-sm uppercase tracking-tight text-[var(--yuriana-base-gray-dark)]">
             Viajes Recientes
           </h2>
         </div>
@@ -390,7 +381,7 @@ export default function DashboardPage() {
                   <th className="px-4 py-2.5">Estado</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border text-xs font-medium text-slate-700">
+              <tbody className="divide-y divide-border text-xs font-medium text-[var(--yuriana-base-gray-dark)]">
                 {ultimosViajes.map((v) => {
                   const esInternacional = v.tipo_categoria
                     ?.toUpperCase()
@@ -404,16 +395,16 @@ export default function DashboardPage() {
                         {v.codigo_servicio}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="font-semibold text-slate-700">
+                        <div className="font-semibold text-[var(--yuriana-base-gray-dark)]">
                           {v.cliente_nombre || "-"}
                         </div>
-                        <div className="text-slate-400 text-[10px]">
+                        <div className="text-[10px] opacity-60 font-medium">
                           {v.conductor_nombre || "-"}
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <div>{v.tracto_placa || "-"}</div>
-                        <div className="text-slate-400 text-[10px]">
+                        <div className="font-semibold">{v.tracto_placa || "-"}</div>
+                        <div className="text-[10px] opacity-60">
                           {v.remolque_placa || ""}
                         </div>
                       </td>
@@ -434,7 +425,7 @@ export default function DashboardPage() {
                       <td className="px-4 py-3 text-right font-bold">
                         {fmt(Number(v.total_flete))} Bs
                       </td>
-                      <td className="px-4 py-3 text-[10px] text-slate-500">
+                      <td className="px-4 py-3 text-[10px] text-[var(--yuriana-base-gray-dark)] opacity-80">
                         <div>Inicio: {fmtFecha(v.fecha_inicio)}</div>
                         <div>Fin: {fmtFecha(v.fecha_fin)}</div>
                       </td>

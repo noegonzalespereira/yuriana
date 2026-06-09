@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ModuleHeader } from "@/components/organisms/ModuleHeader";
 import { StatCard } from "@/components/atoms/StatCard";
 import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
+import { FilterSelect } from "@/components/atoms/FilterSelect";
 import { getFacturas, getTotalesFacturacion } from "@/lib/api/facturacion.api";
 import { getCategorias } from "@/lib/api/requisito.api";
 import { FacturaItem, TotalesFacturacion, FacturacionFilters } from "@/types/facturacion.types";
@@ -109,8 +110,6 @@ export default function FacturacionPage() {
 
   const INPUT_DATE =
     "border border-[var(--yuriana-input-border)] rounded-xl px-3 py-2 text-xs bg-[var(--yuriana-input-bg)] text-[var(--yuriana-input-text)] outline-none focus:border-[var(--yuriana-input-border-focus)] transition-all";
-  const SELECT_CLASS =
-    "border border-[var(--yuriana-input-border)] rounded-xl px-3 py-2 text-xs bg-[var(--yuriana-input-bg)] text-[var(--yuriana-input-text)] outline-none focus:border-[var(--yuriana-input-border-focus)] transition-all";
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
@@ -169,18 +168,15 @@ export default function FacturacionPage() {
           {/* Tipo de viaje */}
           <div className="flex flex-col gap-1">
             <span className="text-[9px] font-black uppercase tracking-widest text-[var(--yuriana-input-label)]">Tipo de Viaje</span>
-            <select
+            <FilterSelect
+              placeholder="Todos"
               value={filters.id_categoria ?? ""}
-              onChange={(e) => setFilters((f) => ({ ...f, id_categoria: e.target.value }))}
-              className={SELECT_CLASS}
-            >
-              <option value="">Todos</option>
-              {categorias.map((c) => (
-                <option key={c.id_categoria} value={String(c.id_categoria)}>
-                  {tipoViajeLabel(c.tipo_categoria)}
-                </option>
-              ))}
-            </select>
+              options={categorias.map((c) => ({
+                value: String(c.id_categoria),
+                label: tipoViajeLabel(c.tipo_categoria),
+              }))}
+              onChange={(v) => setFilters((f) => ({ ...f, id_categoria: v }))}
+            />
           </div>
 
           {/* Restablecer filtros */}

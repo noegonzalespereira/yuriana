@@ -140,7 +140,7 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
     try {
       setSaving(true);
       await guardarGastoServicio({
-        tipo_pestaña: "servicio",
+        tipo_pestaña: "SERVICIO",
         codigo_servicio: selectedServicio.codigo_servicio.toUpperCase(),
         moneda: moneda.toUpperCase(),
         tipo_cambio: tipoCambio,

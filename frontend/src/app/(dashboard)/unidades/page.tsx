@@ -16,7 +16,11 @@ import {
 } from "@/lib/api/unidad.api";
 import { toast } from "sonner";
 import { Truck, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
+import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
+import { TablePagination } from "@/components/molecules/TablePagination";
 import { Unidad, EstadoUnidad } from "@/types/unidad.types";
+
+const PAGE_SIZE = 10;
 
 export default function UnidadesPage() {
   const [view, setView] = useState<'list' | 'form'>('list');
@@ -28,7 +32,12 @@ export default function UnidadesPage() {
 
   const [vencidos, setVencidos] = useState<any[]>([]);
   const [porVencer, setPorVencer] = useState<any[]>([]);
-  const [filters, setFilters] = useState({ placa: "", id_categoria: "", estado_unidad: "", estado_documentos: "" });
+
+  const INITIAL_FILTERS = { placa: "", id_categoria: "", estado_unidad: "", estado_documentos: "" };
+  const [filters, setFilters] = useState(INITIAL_FILTERS);
+  const handleResetFilters = () => setFilters(INITIAL_FILTERS);
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => { setPagina(1); }, [filters]);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [placaParaEliminar, setPlacaParaEliminar] = useState<string | null>(null);
@@ -171,6 +180,10 @@ const handleFormSubmitUnificado = async (
     }
   };
 
+  const totalPaginas = Math.max(1, Math.ceil(unidades.length / PAGE_SIZE));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const registrosPagina = unidades.slice((paginaActual - 1) * PAGE_SIZE, paginaActual * PAGE_SIZE);
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <ModuleHeader 
@@ -178,6 +191,7 @@ const handleFormSubmitUnificado = async (
         subtitle={view === 'list' ? "Controle el estado operativo y vigencia técnica de tractos y remolques" : "Ingrese los datos mecánicos estructurales de la flota"}
         searchPlaceholder="Buscar unidad por placa..."
         onSearch={view === 'list' ? (val) => setFilters({ ...filters, placa: val }) : undefined}
+        searchValue={view === 'list' ? filters.placa : undefined}
         buttonLabel={view === 'list' ? "Nueva Unidad" : undefined}
         onButtonClick={() => { setSelectedUnidad(null); setIsReadOnly(false); setView('form'); }}
       />
@@ -193,23 +207,25 @@ const handleFormSubmitUnificado = async (
           <div className="bg-white rounded-3xl shadow-xl p-6 border border-border min-h-[400px]">
             <div className="flex justify-between items-center mb-6">
               <h2 className="font-bold text-gray-700 uppercase text-sm tracking-tighter px-2">Listado Operacional de Transporte</h2>
-              <div className="flex gap-4">
-                <FilterSelect placeholder="Tipo de Unidad" options={categorias.map(c => ({ value: c.id_categoria.toString(), label: c.tipo_categoria }))} onChange={(v) => setFilters({ ...filters, id_categoria: v })} />
-                <FilterSelect placeholder="Documentación" options={[{ value: "vencido", label: "Vencidos" }, { value: "por_vencer", label: "Por Vencer" }, { value: "vigente", label: "Vigentes" }]} onChange={(v) => setFilters({ ...filters, estado_documentos: v })} />
-                <FilterSelect placeholder="Estado" options={[{ value: "DISPONIBLE", label: "Disponibles" }, { value: "EN_VIAJE", label: "En Viaje" }, { value: "ASIGNADO", label: "Asignados" }, { value: "MANTENIMIENTO", label: "En Mantenimiento" }]} onChange={(v) => setFilters({ ...filters, estado_unidad: v })} />
+              <div className="flex items-center gap-3">
+                <FilterSelect placeholder="Tipo de Unidad" value={filters.id_categoria} options={categorias.map(c => ({ value: c.id_categoria.toString(), label: c.tipo_categoria }))} onChange={(v) => setFilters({ ...filters, id_categoria: v })} />
+                <FilterSelect placeholder="Documentación" value={filters.estado_documentos} options={[{ value: "vencido", label: "Vencidos" }, { value: "por_vencer", label: "Por Vencer" }, { value: "vigente", label: "Vigentes" }]} onChange={(v) => setFilters({ ...filters, estado_documentos: v })} />
+                <FilterSelect placeholder="Estado" value={filters.estado_unidad} options={[{ value: "DISPONIBLE", label: "Disponibles" }, { value: "EN_VIAJE", label: "En Viaje" }, { value: "ASIGNADO", label: "Asignados" }, { value: "MANTENIMIENTO", label: "En Mantenimiento" }]} onChange={(v) => setFilters({ ...filters, estado_unidad: v })} />
+                <ResetFiltersButton onClick={handleResetFilters} />
               </div>
             </div>
 
             {loading ? (
               <div className="py-24 text-center text-gray-400 italic text-sm">Consultando estado de la flota vehicular...</div>
             ) : (
-              <UnidadTable 
-                data={unidades}
+              <UnidadTable
+                data={registrosPagina}
                 onDelete={handleOpenDeleteConfirmation}
                 onEdit={(u) => { setSelectedUnidad(u); setIsReadOnly(false); setView('form'); }}
                 onView={(u) => { setSelectedUnidad(u); setIsReadOnly(true); setView('form'); }}
               />
             )}
+            <TablePagination pagina={paginaActual} totalPaginas={totalPaginas} totalRegistros={unidades.length} registrosMostrados={registrosPagina.length} onPageChange={setPagina} />
           </div>
 
           <ModuleAlertsPanel vencidos={vencidos} porVencer={porVencer} entityType="unidad" onAction={(placa) => setFilters({ ...filters, placa })} />

@@ -100,7 +100,7 @@ export const GastoAdministrativoForm = ({ initialData, isReadOnly = false, onCan
         toast.success("Gasto administrativo actualizado correctamente.");
       } else {
         await guardarGastoAdministrativo({
-          tipo_pestaña: "administrativo",
+          tipo_pestaña: "ADMINISTRATIVO",
           items: items.map(({ fecha, tipo_gasto, descripcion, monto }) => ({
             fecha,
             tipo_gasto,

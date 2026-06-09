@@ -1,7 +1,12 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { XCircle, Truck, Clock, AlertTriangle } from "lucide-react";
+import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
+import { FilterSelect } from "@/components/atoms/FilterSelect";
+import { TablePagination } from "@/components/molecules/TablePagination";
 import { toast } from "sonner";
+
+const PAGE_SIZE = 10;
 import { ModuleHeader } from "@/components/organisms/ModuleHeader";
 import { StatCard } from "@/components/atoms/StatCard";
 import { ServicioTable } from "@/components/organisms/ServicioTable";
@@ -26,9 +31,6 @@ type Vista = "list" | "form";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("es-BO", { maximumFractionDigits: 2 }).format(n);
-
-const SELECT_CLASS =
-  "border border-[var(--yuriana-input-border)] rounded-xl px-3 py-2 text-xs bg-[var(--yuriana-input-bg)] text-[var(--yuriana-input-text)] outline-none focus:border-[var(--yuriana-input-border-focus)] transition-all";
 
 const DeleteModal = ({
   onConfirm,
@@ -74,10 +76,14 @@ export default function ServiciosPage() {
 
   const [categoriasViaje, setCategoriasViaje] = useState<{ id_categoria: number; tipo_categoria: string }[]>([]);
 
-  const [filters, setFilters] = useState<FiltersServicio>({
+  const INITIAL_FILTERS: FiltersServicio = {
     buscar: "", operador: "", estado_pago: "", estado_servicio: "",
     fecha_inicio: "", fecha_fin: "", id_categoria: undefined, facturado: "",
-  });
+  };
+  const [filters, setFilters] = useState<FiltersServicio>(INITIAL_FILTERS);
+  const handleResetFilters = () => setFilters(INITIAL_FILTERS);
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => { setPagina(1); }, [filters]);
 
   // ── Cargar datos ──────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
@@ -146,6 +152,10 @@ export default function ServiciosPage() {
     return selected ? "Editar Viaje" : "Registrar Nuevo Viaje";
   };
 
+  const totalPaginas = Math.max(1, Math.ceil(servicios.length / PAGE_SIZE));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const registrosPagina = servicios.slice((paginaActual - 1) * PAGE_SIZE, paginaActual * PAGE_SIZE);
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <ModuleHeader
@@ -157,6 +167,7 @@ export default function ServiciosPage() {
         }
         searchPlaceholder="Buscar por código, origen o destino..."
         onSearch={vista === "list" ? (val) => setFilter("buscar", val) : undefined}
+        searchValue={vista === "list" ? filters.buscar : undefined}
         buttonLabel={vista === "list" ? "Nuevo Viaje" : undefined}
         onButtonClick={handleNuevo}
       />
@@ -205,40 +216,53 @@ export default function ServiciosPage() {
 
               {/* Fila 2: filtros de select */}
               <div className="flex items-center gap-3 flex-wrap">
-                <select className={SELECT_CLASS} value={filters.id_categoria ?? ""}
-                  onChange={(e) => setFilter("id_categoria", e.target.value ? Number(e.target.value) : undefined)}>
-                  <option value="">Tipo de Viaje</option>
-                  {categoriasViaje.map(c => (
-                    <option key={c.id_categoria} value={c.id_categoria}>
-                      {c.tipo_categoria.includes("INTERNACIONAL") ? "Internacional" : "Nacional"}
-                    </option>
-                  ))}
-                </select>
-                <select className={SELECT_CLASS} value={filters.estado_pago ?? ""}
-                  onChange={(e) => setFilter("estado_pago", e.target.value)}>
-                  <option value="">Estado de Pago</option>
-                  <option value={EstadoPago.PAGADO}>Pagado</option>
-                  <option value={EstadoPago.PENDIENTE}>Pendiente</option>
-                  <option value={EstadoPago.RETRASADO}>Retrasado</option>
-                </select>
-                <select className={SELECT_CLASS} value={filters.estado_servicio ?? ""}
-                  onChange={(e) => setFilter("estado_servicio", e.target.value)}>
-                  <option value="">Estado de Viaje</option>
-                  <option value={EstadoServicio.EN_CURSO}>En Curso</option>
-                  <option value={EstadoServicio.FINALIZADO}>Finalizado</option>
-                </select>
-                <select className={SELECT_CLASS} value={filters.operador ?? ""}
-                  onChange={(e) => setFilter("operador", e.target.value)}>
-                  <option value="">Operador</option>
-                  <option value={Operador.YURIANA}>Yuriana</option>
-                  <option value={Operador.OTROS}>Otros</option>
-                </select>
-                <select className={SELECT_CLASS} value={filters.facturado ?? ""}
-                  onChange={(e) => setFilter("facturado", e.target.value as any)}>
-                  <option value="">Facturado</option>
-                  <option value="si">Sí</option>
-                  <option value="no">No</option>
-                </select>
+                <FilterSelect
+                  placeholder="Tipo de Viaje"
+                  value={filters.id_categoria?.toString() ?? ""}
+                  options={categoriasViaje.map(c => ({
+                    value: String(c.id_categoria),
+                    label: c.tipo_categoria.includes("INTERNACIONAL") ? "Internacional" : "Nacional",
+                  }))}
+                  onChange={(v) => setFilter("id_categoria", v ? Number(v) : undefined)}
+                />
+                <FilterSelect
+                  placeholder="Estado de Pago"
+                  value={filters.estado_pago ?? ""}
+                  options={[
+                    { value: EstadoPago.PAGADO, label: "Pagado" },
+                    { value: EstadoPago.PENDIENTE, label: "Pendiente" },
+                    { value: EstadoPago.RETRASADO, label: "Retrasado" },
+                  ]}
+                  onChange={(v) => setFilter("estado_pago", v)}
+                />
+                <FilterSelect
+                  placeholder="Estado de Viaje"
+                  value={filters.estado_servicio ?? ""}
+                  options={[
+                    { value: EstadoServicio.EN_CURSO, label: "En Curso" },
+                    { value: EstadoServicio.FINALIZADO, label: "Finalizado" },
+                  ]}
+                  onChange={(v) => setFilter("estado_servicio", v)}
+                />
+                <FilterSelect
+                  placeholder="Operador"
+                  value={filters.operador ?? ""}
+                  options={[
+                    { value: Operador.YURIANA, label: "Yuriana" },
+                    { value: Operador.OTROS, label: "Otros" },
+                  ]}
+                  onChange={(v) => setFilter("operador", v)}
+                />
+                <FilterSelect
+                  placeholder="Facturado"
+                  value={filters.facturado ?? ""}
+                  options={[
+                    { value: "si", label: "Sí" },
+                    { value: "no", label: "No" },
+                  ]}
+                  onChange={(v) => setFilter("facturado", v as any)}
+                />
+                <ResetFiltersButton onClick={handleResetFilters} />
               </div>
 
               {/* Tabla */}
@@ -247,18 +271,14 @@ export default function ServiciosPage() {
                   Cargando viajes...
                 </div>
               ) : (
-                <>
-                  <ServicioTable
-                    data={servicios}
-                    onView={handleVer}
-                    onEdit={handleEditar}
-                    onDelete={(id) => setDeleteId(id)}
-                  />
-                  <p className="text-xs text-[var(--yuriana-input-placeholder)] font-medium">
-                    Mostrando {servicios.length} viaje{servicios.length !== 1 ? "s" : ""}
-                  </p>
-                </>
+                <ServicioTable
+                  data={registrosPagina}
+                  onView={handleVer}
+                  onEdit={handleEditar}
+                  onDelete={(id) => setDeleteId(id)}
+                />
               )}
+              <TablePagination pagina={paginaActual} totalPaginas={totalPaginas} totalRegistros={servicios.length} registrosMostrados={registrosPagina.length} onPageChange={setPagina} />
             </div>
           </div>
 

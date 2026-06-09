@@ -43,8 +43,8 @@ export class ColaboradorService {
       query.andWhere('colaborador.tipo_colaborador = :tipo_colaborador', { tipo_colaborador: filters.tipo_colaborador });
     }
     
-    if(filters.nombre){
-      query.andWhere('persona.nombre ILIKE :nombre', { nombre: `%${filters.nombre}%` });
+    if(filters.ci){
+      query.andWhere('CAST(persona.ci AS TEXT) LIKE :ci', { ci: `${filters.ci}%` });
     }
     if(filters.ciudad){
       query.andWhere('persona.ciudad ILIKE :ciudad', { ciudad: `%${filters.ciudad}%` });

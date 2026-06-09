@@ -1,7 +1,11 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { XCircle, TrendingUp, Truck } from "lucide-react";
+import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
+import { TablePagination } from "@/components/molecules/TablePagination";
 import { toast } from "sonner";
+
+const PAGE_SIZE = 10;
 import { ModuleHeader } from "@/components/organisms/ModuleHeader";
 import { StatCard } from "@/components/atoms/StatCard";
 import { IngresoExtraTable } from "@/components/organisms/IngresoExtraTable";
@@ -65,7 +69,11 @@ export default function IngresosPage() {
   const [totales, setTotales] = useState<TotalesIngreso>({ totalIngresoExtras: 0, totalFletes: 0 });
   const [ingresos, setIngresos] = useState<IngresoExtra[]>([]);
   const [selected, setSelected] = useState<IngresoExtra | null>(null);
-  const [filters, setFilters] = useState<IngresoFilters>({ fecha_inicio: "", fecha_fin: "", buscar: "" });
+  const INITIAL_FILTERS: IngresoFilters = { fecha_inicio: "", fecha_fin: "", buscar: "" };
+  const [filters, setFilters] = useState<IngresoFilters>(INITIAL_FILTERS);
+  const handleResetFilters = () => setFilters(INITIAL_FILTERS);
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => { setPagina(1); }, [filters]);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const loadData = useCallback(async () => {
@@ -148,6 +156,10 @@ export default function IngresosPage() {
     return selected ? "Editar Ingreso Extra" : "Registrar Ingresos Extras";
   };
 
+  const totalPaginas = Math.max(1, Math.ceil(ingresosFiltrados.length / PAGE_SIZE));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const registrosPagina = ingresosFiltrados.slice((paginaActual - 1) * PAGE_SIZE, paginaActual * PAGE_SIZE);
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <ModuleHeader
@@ -159,6 +171,7 @@ export default function IngresosPage() {
         }
         searchPlaceholder="Buscar por descripción, mes o año..."
         onSearch={vista === "list" ? (val) => setFilters((f) => ({ ...f, buscar: val })) : undefined}
+        searchValue={vista === "list" ? filters.buscar : undefined}
         buttonLabel={vista === "list" ? "Nuevo Ingreso" : undefined}
         onButtonClick={handleNuevo}
       />
@@ -198,7 +211,7 @@ export default function IngresosPage() {
           <div className="bg-white rounded-3xl shadow-xl border border-border overflow-hidden">
             <div className="p-6 space-y-4">
               {/* Filtros */}
-              <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
                 <div className="flex items-center gap-2 border border-[var(--yuriana-input-border)] rounded-xl px-4 py-2 bg-[var(--yuriana-input-bg)]">
                   <input
                     type="date"
@@ -214,15 +227,7 @@ export default function IngresosPage() {
                     className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]"
                   />
                 </div>
-                <div className="ml-auto">
-                  <button
-                    type="button"
-                    onClick={handleNuevo}
-                    className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black py-2 px-5 rounded-xl shadow text-xs transition-all active:scale-95"
-                  >
-                    + Nuevo Ingreso
-                  </button>
-                </div>
+                <ResetFiltersButton onClick={handleResetFilters} />
               </div>
 
               {loading ? (
@@ -230,18 +235,14 @@ export default function IngresosPage() {
                   Cargando registros...
                 </div>
               ) : (
-                <>
-                  <IngresoExtraTable
-                    data={ingresosFiltrados}
-                    onView={handleVer}
-                    onEdit={handleEditar}
-                    onDelete={(id) => setDeleteId(id)}
-                  />
-                  <p className="text-xs text-[var(--yuriana-input-placeholder)] font-medium">
-                    Mostrando {ingresosFiltrados.length} registro{ingresosFiltrados.length !== 1 ? "s" : ""}
-                  </p>
-                </>
+                <IngresoExtraTable
+                  data={registrosPagina}
+                  onView={handleVer}
+                  onEdit={handleEditar}
+                  onDelete={(id) => setDeleteId(id)}
+                />
               )}
+              <TablePagination pagina={paginaActual} totalPaginas={totalPaginas} totalRegistros={ingresosFiltrados.length} registrosMostrados={registrosPagina.length} onPageChange={setPagina} />
             </div>
           </div>
         </div>

@@ -18,11 +18,11 @@ export const getGastosServicio = async (filters: GastoFilters = {}): Promise<Gas
   if (filters.fecha_fin) params.append("fecha_fin", filters.fecha_fin);
   if (filters.buscar?.trim()) params.append("buscar", filters.buscar.trim());
   const q = params.toString();
-  return apiFetch(`/gastos/listado/servicio${q ? `?${q}` : ""}`);
+  return apiFetch(`/gastos/listado/${TipoPestana.SERVICIO}${q ? `?${q}` : ""}`);
 };
 
 export const getDetalleGastoServicio = async (id: number): Promise<GastosServicio> => {
-  return apiFetch(`/gastos/detalle/servicio/${id}`);
+  return apiFetch(`/gastos/detalle/${TipoPestana.SERVICIO}/${id}`);
 };
 
 export const guardarGastoServicio = async (data: {
@@ -59,11 +59,11 @@ export const getGastosOperativos = async (filters: GastoFilters = {}): Promise<G
   if (filters.buscar?.trim()) params.append("buscar", filters.buscar.trim());
   if (filters.tipo_gasto?.trim()) params.append("tipo_gasto", filters.tipo_gasto.trim());
   const q = params.toString();
-  return apiFetch(`/gastos/listado/operativo${q ? `?${q}` : ""}`);
+  return apiFetch(`/gastos/listado/${TipoPestana.OPERATIVO}${q ? `?${q}` : ""}`);
 };
 
 export const getDetalleGastoOperativo = async (id: number): Promise<GastoOperativo> => {
-  return apiFetch(`/gastos/detalle/operativo/${id}`);
+  return apiFetch(`/gastos/detalle/${TipoPestana.OPERATIVO}/${id}`);
 };
 
 export const guardarGastoOperativo = async (data: {
@@ -97,11 +97,11 @@ export const getGastosAdministrativos = async (filters: GastoFilters = {}): Prom
   if (filters.buscar?.trim()) params.append("buscar", filters.buscar.trim());
   if (filters.tipo_gasto?.trim()) params.append("tipo_gasto", filters.tipo_gasto.trim());
   const q = params.toString();
-  return apiFetch(`/gastos/listado/administrativo${q ? `?${q}` : ""}`);
+  return apiFetch(`/gastos/listado/${TipoPestana.ADMINISTRATIVO}${q ? `?${q}` : ""}`);
 };
 
 export const getDetalleGastoAdministrativo = async (id: number): Promise<GastoAdministrativo> => {
-  return apiFetch(`/gastos/detalle/administrativo/${id}`);
+  return apiFetch(`/gastos/detalle/${TipoPestana.ADMINISTRATIVO}/${id}`);
 };
 
 export const guardarGastoAdministrativo = async (data: {
@@ -134,11 +134,11 @@ export const getGastosGenerales = async (filters: GastoFilters = {}): Promise<Ga
   if (filters.buscar?.trim()) params.append("buscar", filters.buscar.trim());
   if (filters.tipo_gasto?.trim()) params.append("tipo_gasto", filters.tipo_gasto.trim());
   const q = params.toString();
-  return apiFetch(`/gastos/listado/general${q ? `?${q}` : ""}`);
+  return apiFetch(`/gastos/listado/${TipoPestana.GENERAL}${q ? `?${q}` : ""}`);
 };
 
 export const getDetalleGastoGeneral = async (id: number): Promise<GastoGeneral> => {
-  return apiFetch(`/gastos/detalle/general/${id}`);
+  return apiFetch(`/gastos/detalle/${TipoPestana.GENERAL}/${id}`);
 };
 
 export const guardarGastoGeneral = async (data: {

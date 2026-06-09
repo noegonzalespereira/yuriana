@@ -123,7 +123,7 @@ export class ConductorService {
       .leftJoinAndSelect('conductor.categoria', 'categoria')
       .where('conductor.status = :status', { status: true });
 
-    if (filters.ci) query.andWhere('persona.ci = :ci', { ci: filters.ci });
+    if (filters.ci) query.andWhere('CAST(persona.ci AS TEXT) LIKE :ci', { ci: `${filters.ci}%` });
     if (filters.nombre) query.andWhere('persona.nombre LIKE :nombre', { nombre: `%${filters.nombre}%` });
     if (filters.estado_laboral) query.andWhere('conductor.estado_laboral = :estado_laboral', { estado_laboral: filters.estado_laboral });
     if (filters.estado_operativo) query.andWhere('conductor.estado_operativo = :estado_operativo', { estado_operativo: filters.estado_operativo });

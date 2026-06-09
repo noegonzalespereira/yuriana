@@ -98,7 +98,7 @@ export const GastoGeneralForm = ({ initialData, isReadOnly = false, onCancel, on
         toast.success("Gasto general actualizado correctamente.");
       } else {
         await guardarGastoGeneral({
-          tipo_pestaña: "general",
+          tipo_pestaña: "GENERAL",
           items: items.map(({ fecha, tipo_gasto, descripcion, monto }) => ({
             fecha,
             tipo_gasto,

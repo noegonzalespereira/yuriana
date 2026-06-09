@@ -4,17 +4,25 @@ import { ModuleHeader } from "@/components/organisms/ModuleHeader";
 import { FilterSelect } from "@/components/atoms/FilterSelect";
 import { AsignacionTable } from "@/components/organisms/AsignacionTable";
 import { AsignacionForm } from "@/components/organisms/AsignacionForm";
-import { getAsignaciones, createAsignacion, desengancharUnidad } from "@/lib/api/asignacion.api";
+import { getAsignaciones, createAsignacion, updateAsignacion, desengancharUnidad } from "@/lib/api/asignacion.api";
 import { Asignacion } from "@/types/asignacion.types";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
+import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
+import { TablePagination } from "@/components/molecules/TablePagination";
+
+const PAGE_SIZE = 10;
 
 export default function AsignacionesPage() {
   const [view, setView] = useState<'list' | 'form'>('list');
   const [loading, setLoading] = useState(true);
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
-  const [filters, setFilters] = useState({ estado_asignacion: "ACTIVA", ci_conductor: "", placa_tracto: "", placa_remolque: "" });
-  
+  const INITIAL_FILTERS = { estado_asignacion: "ACTIVA", ci_conductor: "", placa_tracto: "", placa_remolque: "" };
+  const [filters, setFilters] = useState(INITIAL_FILTERS);
+  const handleResetFilters = () => setFilters(INITIAL_FILTERS);
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => { setPagina(1); }, [filters]);
+
   // Estados de control idénticos a Colaboradores
   const [selectedAsignacion, setSelectedAsignacion] = useState<Asignacion | null>(null);
   const [isReadOnly, setIsReadOnly] = useState(false);
@@ -41,13 +49,16 @@ export default function AsignacionesPage() {
 
   const handleFormSubmit = async (payload: { ci_conductor: number; placa_tracto: string; placa_remolque: string }) => {
     try {
-      const response = await createAsignacion(payload);
-      
+      const response = selectedAsignacion
+        ? await updateAsignacion(selectedAsignacion.id_asignacion, payload)
+        : await createAsignacion(payload);
+
       toast.success("Operación Exitosa", {
-        description: "La asignación se ha registrado correctamente",
+        description: selectedAsignacion
+          ? "La asignación fue actualizada correctamente."
+          : "La asignación se ha registrado correctamente.",
       });
 
-      // Muestra de alertas preventivas documentales en cascada
       if (response.alertas && response.alertas.length > 0) {
         response.alertas.forEach((alerta: any) => {
           toast.warning("Alerta Documental Preventiva", {
@@ -65,6 +76,10 @@ export default function AsignacionesPage() {
     }
   };
 
+  const totalPaginas = Math.max(1, Math.ceil(asignaciones.length / PAGE_SIZE));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const registrosPagina = asignaciones.slice((paginaActual - 1) * PAGE_SIZE, paginaActual * PAGE_SIZE);
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <ModuleHeader
@@ -72,6 +87,7 @@ export default function AsignacionesPage() {
         subtitle={view === 'list' ? "Vincule los conductores con sus repectivas unidades" : "Vinculación de unidades y conductores"}
         searchPlaceholder="Buscar por CI de conductor"
         onSearch={(value) => setFilters(prev => ({ ...prev, ci_conductor: value.trim() }))}
+        searchValue={filters.ci_conductor}
         buttonLabel={view === 'list' ? "Nueva Asignación" : undefined}
         onButtonClick={() => {
           setSelectedAsignacion(null);
@@ -84,25 +100,28 @@ export default function AsignacionesPage() {
         <div className="bg-white rounded-3xl shadow-xl p-6 border border-border min-h-[400px]">
           <div className="flex justify-between items-center mb-6">
             <h2 className="font-bold text-gray-700 uppercase text-sm tracking-tighter px-2">Listado de Asignaciones</h2>
-            <div className="flex gap-4">
-              <FilterSelect 
-                placeholder="Estado" 
-                options={[{ value: "ACTIVA", label: "Activos" }, { value: "ASIGNADO", label: "Asignados" }]} 
-                onChange={(v) => setFilters({ ...filters, estado_asignacion: v })} 
+            <div className="flex items-center gap-3">
+              <FilterSelect
+                placeholder="Estado"
+                value={filters.estado_asignacion}
+                options={[{ value: "ACTIVA", label: "Activos" }, { value: "ASIGNADO", label: "Asignados" }]}
+                onChange={(v) => setFilters({ ...filters, estado_asignacion: v })}
               />
+              <ResetFiltersButton onClick={handleResetFilters} />
             </div>
           </div>
 
           {loading ? (
             <div className="py-24 text-center text-gray-400 italic text-sm font-medium">Cargando los datos...</div>
           ) : (
-            <AsignacionTable 
-              data={asignaciones} 
-              onView={(asig) => { setSelectedAsignacion(asig); setIsReadOnly(true); setView('form'); }} 
+            <AsignacionTable
+              data={registrosPagina}
+              onView={(asig) => { setSelectedAsignacion(asig); setIsReadOnly(true); setView('form'); }}
               onEdit={(asig) => { setSelectedAsignacion(asig); setIsReadOnly(false); setView('form'); }}
               onDelete={(id) => { setIdParaDesenganchar(id); setShowDesengancheModal(true); }}
             />
           )}
+          <TablePagination pagina={paginaActual} totalPaginas={totalPaginas} totalRegistros={asignaciones.length} registrosMostrados={registrosPagina.length} onPageChange={setPagina} />
         </div>
       ) : (
         <AsignacionForm 

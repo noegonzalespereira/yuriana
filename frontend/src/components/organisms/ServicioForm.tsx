@@ -421,8 +421,8 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
           </Field>
           <Field label="Operador" required>
             <select className={INPUT_CLASS} value={operador} onChange={(e) => setOperador(e.target.value as Operador)} disabled={isReadOnly}>
-              <option value={Operador.YURIANA}>Yuriana</option>
-              <option value={Operador.OTROS}>Otros</option>
+              <option value={Operador.YURIANA}>YURIANA</option>
+              <option value={Operador.OTROS}>OTROS</option>
             </select>
           </Field>
           <Field label="Tipo de Viaje" required>
@@ -659,8 +659,8 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 items-end">
           <Field label="Seleccione la Moneda" required>
             <select className={INPUT_CLASS} value={moneda} onChange={(e) => setMoneda(e.target.value as Moneda)} disabled={isReadOnly}>
-              <option value={Moneda.DOLAR}>Dólar</option>
-              <option value={Moneda.BOLIVIANOS}>Bolivianos</option>
+              <option value={Moneda.DOLAR}>DOLAR</option>
+              <option value={Moneda.BOLIVIANOS}>BOLIVIANOS</option>
             </select>
           </Field>
           {moneda === Moneda.DOLAR && (
@@ -726,11 +726,11 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
             required={tieneFechaFin} optional={!tieneFechaFin}
             existingUrl={initialData?.comprobante_pago} />
           <Field label="Estado de Pago">
-            <input className={`${INPUT_CLASS} capitalize`} disabled readOnly
+            <input className={`${INPUT_CLASS} uppercase`} disabled readOnly
               value={initialData?.estado_pago ?? "PENDIENTE"} />
           </Field>
           <Field label="Estado de Viaje">
-            <input className={`${INPUT_CLASS} capitalize`} disabled readOnly
+            <input className={`${INPUT_CLASS} uppercase`} disabled readOnly
               value={initialData?.estado_servicio ?? "EN_CURSO"} />
           </Field>
         </div>

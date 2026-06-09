@@ -17,6 +17,10 @@ import {
 import { toast } from "sonner";
 import { Conductor, EstadoLaboral } from "@/types/conductor.types";
 import { Users, CheckCircle, XCircle } from "lucide-react";
+import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
+import { TablePagination } from "@/components/molecules/TablePagination";
+
+const PAGE_SIZE = 10;
 
 export default function ConductoresPage() {
   const [view, setView] = useState<'list' | 'form'>('list');
@@ -28,8 +32,14 @@ export default function ConductoresPage() {
 
   const [vencidos, setVencidos] = useState<any[]>([]);
   const [porVencer, setPorVencer] = useState<any[]>([]);
-  const [filters, setFilters] = useState({ nombre: "", estado_laboral: "", estado_operativo: "", estado_documentos: "" });
-  
+
+  const INITIAL_FILTERS = { nombre: "", estado_laboral: "", estado_operativo: "", estado_documentos: "" };
+  const [filters, setFilters] = useState(INITIAL_FILTERS);
+
+  const handleResetFilters = () => setFilters(INITIAL_FILTERS);
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => { setPagina(1); }, [filters]);
+
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [ciParaEliminar, setCiParaEliminar] = useState<number | null>(null);
 
@@ -160,6 +170,10 @@ export default function ConductoresPage() {
     }
   };
 
+  const totalPaginas = Math.max(1, Math.ceil(conductores.length / PAGE_SIZE));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const registrosPagina = conductores.slice((paginaActual - 1) * PAGE_SIZE, paginaActual * PAGE_SIZE);
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <ModuleHeader 
@@ -167,6 +181,7 @@ export default function ConductoresPage() {
         subtitle={view === 'form' ? "Complete el formulario para añadir un nuevo conductor" : "Monitoree las licencias y la vigencia operacional del personal"}
         searchPlaceholder="Buscar por nombre o CI..."
         onSearch={view === 'list' ? (val) => setFilters({ ...filters, nombre: val }) : undefined}
+        searchValue={view === 'list' ? filters.nombre : undefined}
         buttonLabel={view === 'list' ? "Nuevo Conductor" : undefined}
         onButtonClick={() => { setSelectedConductor(null); setIsReadOnly(false); setView('form'); }}
       />
@@ -182,22 +197,24 @@ export default function ConductoresPage() {
           <div className="bg-white rounded-3xl shadow-xl p-6 border border-border min-h-[400px]">
             <div className="flex justify-between items-center mb-6">
               <h2 className="font-bold text-gray-700 uppercase tracking-tighter text-sm px-2">Listado de Conductores</h2>
-              <div className="flex gap-4">
-                <FilterSelect placeholder="Estado Laboral" options={[{ value: EstadoLaboral.ACTIVO, label: "Activo" }, { value: EstadoLaboral.INACTIVO, label: "Inactivo" }]} onChange={(v) => setFilters({ ...filters, estado_laboral: v })} />
-                <FilterSelect placeholder="Documentos" options={[{ value: "vencido", label: "Vencidos" }, { value: "por_vencer", label: "Por Vencer" }, { value: "vigente", label: "Vigentes" }]} onChange={(v) => setFilters({ ...filters, estado_documentos: v })} />
+              <div className="flex items-center gap-3">
+                <FilterSelect placeholder="Estado Laboral" value={filters.estado_laboral} options={[{ value: EstadoLaboral.ACTIVO, label: "Activo" }, { value: EstadoLaboral.INACTIVO, label: "Inactivo" }]} onChange={(v) => setFilters({ ...filters, estado_laboral: v })} />
+                <FilterSelect placeholder="Documentos" value={filters.estado_documentos} options={[{ value: "vencido", label: "Vencidos" }, { value: "por_vencer", label: "Por Vencer" }, { value: "vigente", label: "Vigentes" }]} onChange={(v) => setFilters({ ...filters, estado_documentos: v })} />
+                <ResetFiltersButton onClick={handleResetFilters} />
               </div>
             </div>
 
             {loading ? (
               <div className="py-24 text-center text-gray-400 italic text-sm font-medium">Sincronizando conductores...</div>
             ) : (
-              <ConductorTable 
-                data={conductores}
+              <ConductorTable
+                data={registrosPagina}
                 onDelete={handleOpenDeleteConfirmation}
                 onEdit={(c) => { setSelectedConductor(c); setIsReadOnly(false); setView('form'); }}
                 onView={(c) => { setSelectedConductor(c); setIsReadOnly(true); setView('form'); }}
               />
             )}
+            <TablePagination pagina={paginaActual} totalPaginas={totalPaginas} totalRegistros={conductores.length} registrosMostrados={registrosPagina.length} onPageChange={setPagina} />
           </div>
 
           <ModuleAlertsPanel 

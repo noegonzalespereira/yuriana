@@ -2,19 +2,16 @@ import { apiFetch } from "../api";
 import { Colaborador, TipoColaborador } from "@/types/colaborador.types";
 
 export interface ColaboradorFilters {
-  nombre?: string;
+  ci?: string;
   ciudad?: string;
   tipo_colaborador?: TipoColaborador;
 }
 
-// src/lib/api/colaborador.api.ts
-
 export const getColaboradores = async (filters: ColaboradorFilters = {}): Promise<Colaborador[]> => {
   const queryParams = new URLSearchParams();
 
-  // Solo agregamos al query lo que realmente tenga un valor válido
-  if (filters.nombre?.trim()) queryParams.append("nombre", filters.nombre);
-  if (filters.ciudad?.trim()) queryParams.append("ciudad", filters.ciudad);
+  if (filters.ci?.trim()) queryParams.append("ci", filters.ci.trim());
+  if (filters.ciudad?.trim()) queryParams.append("ciudad", filters.ciudad.trim());
   
   if (filters.tipo_colaborador === "ATA" || filters.tipo_colaborador === "DESPACHANTE") {
     queryParams.append("tipo_colaborador", filters.tipo_colaborador);

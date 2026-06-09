@@ -2,7 +2,8 @@
 import { useForm } from "react-hook-form";
 import { Conductor, EstadoLaboral, EstadoOperativo } from "@/types/conductor.types";
 import { RequisitoDocumento } from "@/types/documento.types";
-import { getRequisitos } from "@/lib/api/requisito.api";
+import { getRequisitos, getCategorias } from "@/lib/api/requisito.api";
+import { TipoCategoria } from "@/types/documento.types";
 import { getDocumentosDeEntidad } from "@/lib/api/conductor.api";
 import { Info, FileText, Upload, Download, Loader2, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -31,7 +32,11 @@ export const ConductorForm = ({ initialData, onSubmit, onCancel, isReadOnly }: P
     const fetchMatrizRequisitos = async () => {
       try {
         setLoadingReqs(true);
-        const reqsData = await getRequisitos({ id_categoria: 2 });
+        const categorias = await getCategorias();
+        const catConductor = categorias.find(c => c.tipo_categoria === TipoCategoria.CONDUCTOR);
+        const reqsData = catConductor
+          ? await getRequisitos({ id_categoria: catConductor.id_categoria })
+          : [];
         setRequisitos(reqsData);
 
         if (initialData?.id_conductor) {

@@ -1,7 +1,12 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { XCircle, TrendingDown, Wrench, Building2, Layers } from "lucide-react";
+import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
+import { FilterSelect } from "@/components/atoms/FilterSelect";
+import { TablePagination } from "@/components/molecules/TablePagination";
 import { toast } from "sonner";
+
+const PAGE_SIZE = 10;
 import { ModuleHeader } from "@/components/organisms/ModuleHeader";
 import { StatCard } from "@/components/atoms/StatCard";
 import { GastoServicioTable } from "@/components/organisms/GastoServicioTable";
@@ -28,7 +33,7 @@ import {
   eliminarGastoGeneral,
   type GastoFilters,
 } from "@/lib/api/gasto.api";
-import { GastosServicio, GastoOperativo, GastoAdministrativo, GastoGeneral, TotalesPaneles, TipoPestana } from "@/types/gasto.types";
+import { GastosServicio, GastoOperativo, GastoAdministrativo, GastoGeneral, TotalesPaneles, TipoPestana, TipoGastoOperativo, TipoGastoAdministrativo, TipoGastoGeneral } from "@/types/gasto.types";
 
 type Vista = "list" | "form";
 type TabActiva = TipoPestana;
@@ -96,28 +101,47 @@ export default function GastosPage() {
   });
 
   // ── Servicio ──
+  const INIT_SERVICIO: GastoFilters = { buscar: "", fecha_inicio: "", fecha_fin: "" };
+  const INIT_OPERATIVO: GastoFilters = { buscar: "", fecha_inicio: "", fecha_fin: "", tipo_gasto: "" };
+  const INIT_ADMIN: GastoFilters    = { fecha_inicio: "", fecha_fin: "", tipo_gasto: "" };
+  const INIT_GENERAL: GastoFilters  = { fecha_inicio: "", fecha_fin: "", tipo_gasto: "" };
+
   const [gastosServicio, setGastosServicio] = useState<GastosServicio[]>([]);
   const [selectedServicio, setSelectedServicio] = useState<GastosServicio | null>(null);
-  const [filtersServicio, setFiltersServicio] = useState<GastoFilters>({ buscar: "", fecha_inicio: "", fecha_fin: "" });
+  const [filtersServicio, setFiltersServicio] = useState<GastoFilters>(INIT_SERVICIO);
   const [deleteServicioId, setDeleteServicioId] = useState<number | null>(null);
 
   // ── Operativo ──
   const [gastosOperativos, setGastosOperativos] = useState<GastoOperativo[]>([]);
   const [selectedOperativo, setSelectedOperativo] = useState<GastoOperativo | null>(null);
-  const [filtersOperativo, setFiltersOperativo] = useState<GastoFilters>({ buscar: "", fecha_inicio: "", fecha_fin: "" });
+  const [filtersOperativo, setFiltersOperativo] = useState<GastoFilters>(INIT_OPERATIVO);
   const [deleteOperativoId, setDeleteOperativoId] = useState<number | null>(null);
 
   // ── Administrativo ──
   const [gastosAdmin, setGastosAdmin] = useState<GastoAdministrativo[]>([]);
   const [selectedAdmin, setSelectedAdmin] = useState<GastoAdministrativo | null>(null);
-  const [filtersAdmin, setFiltersAdmin] = useState<GastoFilters>({ buscar: "", fecha_inicio: "", fecha_fin: "" });
+  const [filtersAdmin, setFiltersAdmin] = useState<GastoFilters>(INIT_ADMIN);
   const [deleteAdminId, setDeleteAdminId] = useState<number | null>(null);
 
   // ── General ──
   const [gastosGenerales, setGastosGenerales] = useState<GastoGeneral[]>([]);
   const [selectedGeneral, setSelectedGeneral] = useState<GastoGeneral | null>(null);
-  const [filtersGeneral, setFiltersGeneral] = useState<GastoFilters>({ buscar: "", fecha_inicio: "", fecha_fin: "" });
+  const [filtersGeneral, setFiltersGeneral] = useState<GastoFilters>(INIT_GENERAL);
   const [deleteGeneralId, setDeleteGeneralId] = useState<number | null>(null);
+
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => { setPagina(1); }, [tabActiva]);
+  useEffect(() => { setPagina(1); }, [filtersServicio]);
+  useEffect(() => { setPagina(1); }, [filtersOperativo]);
+  useEffect(() => { setPagina(1); }, [filtersAdmin]);
+  useEffect(() => { setPagina(1); }, [filtersGeneral]);
+
+  const handleResetFilters = () => {
+    if (tabActiva === TipoPestana.SERVICIO)       setFiltersServicio(INIT_SERVICIO);
+    if (tabActiva === TipoPestana.OPERATIVO)      setFiltersOperativo(INIT_OPERATIVO);
+    if (tabActiva === TipoPestana.ADMINISTRATIVO) setFiltersAdmin(INIT_ADMIN);
+    if (tabActiva === TipoPestana.GENERAL)        setFiltersGeneral(INIT_GENERAL);
+  };
 
   // ── Cargar listado según pestaña activa ──
   const loadServicioData = useCallback(async () => {
@@ -324,23 +348,40 @@ export default function GastosPage() {
     return "Registrar Gasto";
   };
 
+  const adminFiltrados = filtersAdmin.tipo_gasto
+    ? gastosAdmin.filter((g: any) => g.tipo_gasto === filtersAdmin.tipo_gasto)
+    : gastosAdmin;
+  const generalesFiltrados = filtersGeneral.tipo_gasto
+    ? gastosGenerales.filter((g: any) => g.tipo_gasto === filtersGeneral.tipo_gasto)
+    : gastosGenerales;
+  const activeData =
+    tabActiva === TipoPestana.SERVICIO       ? gastosServicio :
+    tabActiva === TipoPestana.OPERATIVO      ? gastosOperativos :
+    tabActiva === TipoPestana.ADMINISTRATIVO ? adminFiltrados :
+    generalesFiltrados;
+  const totalPaginas = Math.max(1, Math.ceil(activeData.length / PAGE_SIZE));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const pageStart = (paginaActual - 1) * PAGE_SIZE;
+  const pageEnd = paginaActual * PAGE_SIZE;
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <ModuleHeader
         title={headerTitle()}
         subtitle={vista === "form" ? "Complete el formulario para registrar el gasto" : "Control y seguimiento de todos los egresos operacionales"}
         searchPlaceholder="Buscar..."
-        onSearch={vista === "list" && tabActiva === TipoPestana.SERVICIO
-          ? (val) => setFiltersServicio((f) => ({ ...f, buscar: val }))
-          : vista === "list" && tabActiva === TipoPestana.OPERATIVO
-          ? (val) => setFiltersOperativo((f) => ({ ...f, buscar: val }))
-          : vista === "list" && tabActiva === TipoPestana.ADMINISTRATIVO
-          ? (val) => setFiltersAdmin((f) => ({ ...f, buscar: val }))
-          : vista === "list" && tabActiva === TipoPestana.GENERAL
-          ? (val) => setFiltersGeneral((f) => ({ ...f, buscar: val }))
-          : undefined}
-        buttonLabel={vista === "list" ? "Nuevo Gasto" : undefined}
-        onButtonClick={handleNuevoGasto}
+        onSearch={
+          vista === "list" && tabActiva === TipoPestana.SERVICIO
+            ? (val) => setFiltersServicio((f) => ({ ...f, buscar: val }))
+            : vista === "list" && tabActiva === TipoPestana.OPERATIVO
+            ? (val) => setFiltersOperativo((f) => ({ ...f, buscar: val }))
+            : undefined
+        }
+        searchValue={
+          vista === "list" && tabActiva === TipoPestana.SERVICIO ? (filtersServicio.buscar ?? "") :
+          vista === "list" && tabActiva === TipoPestana.OPERATIVO ? (filtersOperativo.buscar ?? "") :
+          undefined
+        }
       />
 
       {/* ── Vista FORM ── */}
@@ -415,6 +456,7 @@ export default function GastosPage() {
                       <span className="text-[var(--yuriana-input-placeholder)] text-xs">-</span>
                       <input type="date" value={filtersServicio.fecha_fin ?? ""} onChange={(e) => setFiltersServicio((f) => ({ ...f, fecha_fin: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
                     </div>
+                    <ResetFiltersButton onClick={handleResetFilters} />
                     <div className="ml-auto">
                       <button type="button" onClick={handleNuevoGasto} className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black py-2 px-5 rounded-xl shadow text-xs transition-all active:scale-95">
                         + Nuevo Gasto
@@ -425,10 +467,8 @@ export default function GastosPage() {
                     <div className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">Cargando registros...</div>
                   ) : (
                     <>
-                      <GastoServicioTable data={gastosServicio} onView={handleVerServicio} onEdit={handleEditarServicio} onDelete={(id) => setDeleteServicioId(id)} />
-                      <p className="text-xs text-[var(--yuriana-input-placeholder)] font-medium">
-                        Mostrando {gastosServicio.length} registro{gastosServicio.length !== 1 ? "s" : ""}
-                      </p>
+                      <GastoServicioTable data={gastosServicio.slice(pageStart, pageEnd)} onView={handleVerServicio} onEdit={handleEditarServicio} onDelete={(id) => setDeleteServicioId(id)} />
+                      <TablePagination pagina={paginaActual} totalPaginas={totalPaginas} totalRegistros={gastosServicio.length} registrosMostrados={gastosServicio.slice(pageStart, pageEnd).length} onPageChange={setPagina} />
                     </>
                   )}
                 </div>
@@ -437,12 +477,23 @@ export default function GastosPage() {
               {/* ── Gastos Operativos ── */}
               {tabActiva === TipoPestana.OPERATIVO && (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex items-center gap-2 border border-[var(--yuriana-input-border)] rounded-xl px-4 py-2 bg-[var(--yuriana-input-bg)]">
                       <input type="date" value={filtersOperativo.fecha_inicio ?? ""} onChange={(e) => setFiltersOperativo((f) => ({ ...f, fecha_inicio: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
                       <span className="text-[var(--yuriana-input-placeholder)] text-xs">-</span>
                       <input type="date" value={filtersOperativo.fecha_fin ?? ""} onChange={(e) => setFiltersOperativo((f) => ({ ...f, fecha_fin: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
                     </div>
+                    <FilterSelect
+                      placeholder="Tipo de Gasto"
+                      value={filtersOperativo.tipo_gasto ?? ""}
+                      options={[
+                        { value: TipoGastoOperativo.MANTENIMIENTO, label: "Mantenimiento" },
+                        { value: TipoGastoOperativo.COMBUSTIBLE, label: "Combustible" },
+                        { value: TipoGastoOperativo.REPUESTOS, label: "Repuestos" },
+                      ]}
+                      onChange={(v) => setFiltersOperativo((f) => ({ ...f, tipo_gasto: v }))}
+                    />
+                    <ResetFiltersButton onClick={handleResetFilters} />
                     <div className="ml-auto">
                       <button type="button" onClick={handleNuevoGasto} className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black py-2 px-5 rounded-xl shadow text-xs transition-all active:scale-95">
                         + Nuevo Gasto
@@ -453,10 +504,8 @@ export default function GastosPage() {
                     <div className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">Cargando registros...</div>
                   ) : (
                     <>
-                      <GastoOperativoTable data={gastosOperativos} onView={handleVerOperativo} onEdit={handleEditarOperativo} onDelete={(id) => setDeleteOperativoId(id)} />
-                      <p className="text-xs text-[var(--yuriana-input-placeholder)] font-medium">
-                        Mostrando {gastosOperativos.length} registro{gastosOperativos.length !== 1 ? "s" : ""}
-                      </p>
+                      <GastoOperativoTable data={gastosOperativos.slice(pageStart, pageEnd)} onView={handleVerOperativo} onEdit={handleEditarOperativo} onDelete={(id) => setDeleteOperativoId(id)} />
+                      <TablePagination pagina={paginaActual} totalPaginas={totalPaginas} totalRegistros={gastosOperativos.length} registrosMostrados={gastosOperativos.slice(pageStart, pageEnd).length} onPageChange={setPagina} />
                     </>
                   )}
                 </div>
@@ -465,12 +514,25 @@ export default function GastosPage() {
               {/* ── Gastos Administrativos ── */}
               {tabActiva === TipoPestana.ADMINISTRATIVO && (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex items-center gap-2 border border-[var(--yuriana-input-border)] rounded-xl px-4 py-2 bg-[var(--yuriana-input-bg)]">
                       <input type="date" value={filtersAdmin.fecha_inicio ?? ""} onChange={(e) => setFiltersAdmin((f) => ({ ...f, fecha_inicio: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
                       <span className="text-[var(--yuriana-input-placeholder)] text-xs">-</span>
                       <input type="date" value={filtersAdmin.fecha_fin ?? ""} onChange={(e) => setFiltersAdmin((f) => ({ ...f, fecha_fin: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
                     </div>
+                    <FilterSelect
+                      placeholder="Tipo de Gasto"
+                      value={filtersAdmin.tipo_gasto ?? ""}
+                      options={[
+                        { value: TipoGastoAdministrativo.CONTADOR, label: "Contador" },
+                        { value: TipoGastoAdministrativo.IMPUESTO, label: "Impuesto" },
+                        { value: TipoGastoAdministrativo.GPS, label: "GPS" },
+                        { value: TipoGastoAdministrativo.SUELDO_CONDUCTORES, label: "Sueldo Conductores" },
+                        { value: TipoGastoAdministrativo.OTROS, label: "Otros" },
+                      ]}
+                      onChange={(v) => setFiltersAdmin((f) => ({ ...f, tipo_gasto: v }))}
+                    />
+                    <ResetFiltersButton onClick={handleResetFilters} />
                     <div className="ml-auto">
                       <button type="button" onClick={handleNuevoGasto} className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black py-2 px-5 rounded-xl shadow text-xs transition-all active:scale-95">
                         + Nuevo Gasto
@@ -481,10 +543,8 @@ export default function GastosPage() {
                     <div className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">Cargando registros...</div>
                   ) : (
                     <>
-                      <GastoAdministrativoTable data={gastosAdmin} onView={handleVerAdmin} onEdit={handleEditarAdmin} onDelete={(id) => setDeleteAdminId(id)} />
-                      <p className="text-xs text-[var(--yuriana-input-placeholder)] font-medium">
-                        Mostrando {gastosAdmin.length} registro{gastosAdmin.length !== 1 ? "s" : ""}
-                      </p>
+                      <GastoAdministrativoTable data={adminFiltrados.slice(pageStart, pageEnd)} onView={handleVerAdmin} onEdit={handleEditarAdmin} onDelete={(id) => setDeleteAdminId(id)} />
+                      <TablePagination pagina={paginaActual} totalPaginas={totalPaginas} totalRegistros={adminFiltrados.length} registrosMostrados={adminFiltrados.slice(pageStart, pageEnd).length} onPageChange={setPagina} />
                     </>
                   )}
                 </div>
@@ -493,12 +553,23 @@ export default function GastosPage() {
               {/* ── Gastos Generales ── */}
               {tabActiva === TipoPestana.GENERAL && (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex items-center gap-2 border border-[var(--yuriana-input-border)] rounded-xl px-4 py-2 bg-[var(--yuriana-input-bg)]">
                       <input type="date" value={filtersGeneral.fecha_inicio ?? ""} onChange={(e) => setFiltersGeneral((f) => ({ ...f, fecha_inicio: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
                       <span className="text-[var(--yuriana-input-placeholder)] text-xs">-</span>
                       <input type="date" value={filtersGeneral.fecha_fin ?? ""} onChange={(e) => setFiltersGeneral((f) => ({ ...f, fecha_fin: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
                     </div>
+                    <FilterSelect
+                      placeholder="Tipo de Gasto"
+                      value={filtersGeneral.tipo_gasto ?? ""}
+                      options={[
+                        { value: TipoGastoGeneral.TALLER, label: "Taller" },
+                        { value: TipoGastoGeneral.LLANTAS, label: "Llantas" },
+                        { value: TipoGastoGeneral.OTROS, label: "Otros" },
+                      ]}
+                      onChange={(v) => setFiltersGeneral((f) => ({ ...f, tipo_gasto: v }))}
+                    />
+                    <ResetFiltersButton onClick={handleResetFilters} />
                     <div className="ml-auto">
                       <button type="button" onClick={handleNuevoGasto} className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black py-2 px-5 rounded-xl shadow text-xs transition-all active:scale-95">
                         + Nuevo Gasto
@@ -509,10 +580,8 @@ export default function GastosPage() {
                     <div className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">Cargando registros...</div>
                   ) : (
                     <>
-                      <GastoGeneralTable data={gastosGenerales} onView={handleVerGeneral} onEdit={handleEditarGeneral} onDelete={(id) => setDeleteGeneralId(id)} />
-                      <p className="text-xs text-[var(--yuriana-input-placeholder)] font-medium">
-                        Mostrando {gastosGenerales.length} registro{gastosGenerales.length !== 1 ? "s" : ""}
-                      </p>
+                      <GastoGeneralTable data={generalesFiltrados.slice(pageStart, pageEnd)} onView={handleVerGeneral} onEdit={handleEditarGeneral} onDelete={(id) => setDeleteGeneralId(id)} />
+                      <TablePagination pagina={paginaActual} totalPaginas={totalPaginas} totalRegistros={generalesFiltrados.length} registrosMostrados={generalesFiltrados.slice(pageStart, pageEnd).length} onPageChange={setPagina} />
                     </>
                   )}
                 </div>

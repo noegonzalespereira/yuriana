@@ -1,24 +1,30 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateIngresoExtraDto } from './dto/create-ingreso-extra.dto';
 import { UpdateIngresoExtraDto } from './dto/update-ingreso-extra.dto';
 import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IngresoExtra } from './entities/ingreso-extra.entity';
+import { Empresa } from '../empresa/entities/empresa.entity';
 
 @Injectable()
 export class IngresoExtraService {
   constructor(
       @InjectRepository(IngresoExtra)
       private readonly ingresoExtraRepository: Repository<IngresoExtra>,
+      @InjectRepository(Empresa)
+      private readonly empresaRepository: Repository<Empresa>,
       private readonly dataSource: DataSource,
     ) {}
 
 
   async create(createIngresoExtraDto: CreateIngresoExtraDto, userId: number): Promise<IngresoExtra> {
+    const empresa = await this.empresaRepository.findOne({ where: {} });
+    if (!empresa) throw new NotFoundException('No hay empresa registrada en el sistema');
+
     const fecha = new Date(createIngresoExtraDto.fecha);
     const nuevoIngresoExtra = this.ingresoExtraRepository.create({
       ...createIngresoExtraDto,
-      id_empresa: 1,
+      id_empresa: empresa.id_empresa,
       mes: (fecha.getMonth() + 1).toString().padStart(2, '0'),
       anio: fecha.getFullYear(),
       CreatedId: userId,
