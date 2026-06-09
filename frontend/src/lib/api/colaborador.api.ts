@@ -16,7 +16,7 @@ export const getColaboradores = async (filters: ColaboradorFilters = {}): Promis
   if (filters.nombre?.trim()) queryParams.append("nombre", filters.nombre);
   if (filters.ciudad?.trim()) queryParams.append("ciudad", filters.ciudad);
   
-  if (filters.tipo_colaborador === "ata" || filters.tipo_colaborador === "despachante") {
+  if (filters.tipo_colaborador === "ATA" || filters.tipo_colaborador === "DESPACHANTE") {
     queryParams.append("tipo_colaborador", filters.tipo_colaborador);
   }
 
