@@ -188,7 +188,8 @@ export const ConductorForm = ({ initialData, onSubmit, onCancel, isReadOnly }: P
       setIsSubmitting(true);
       await onSubmit(payloadConductor, archivosSeleccionados, fechasEnvio);
     } catch (err) {
-      console.error("Error en submit del formulario:", err);
+      const msg = err instanceof Error ? err.message : "Error al guardar el conductor";
+      toast.error("Error al guardar", { description: msg });
     } finally {
       setIsSubmitting(false);
     }
@@ -206,7 +207,7 @@ export const ConductorForm = ({ initialData, onSubmit, onCancel, isReadOnly }: P
         <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6">
           <ModuleField label="CI *" name="ci" type="number" register={register} disabled={isReadOnly || !!initialData} error={errors.ci} rules={{ required: "El CI es obligatorio" }} />
           <ModuleField label="Nombre" name="nombre" register={register} disabled={isReadOnly} error={errors.nombre} rules={{ required: "El nombre es obligatorio" }} />
-          <ModuleField label="Correo" name="correo" type="email" register={register} disabled={isReadOnly} />
+          <ModuleField label="Correo *" name="correo" type="email" register={register} disabled={isReadOnly} error={errors.correo} rules={{ required: "El correo es obligatorio" }} />
           <ModuleField label="Ciudad" name="ciudad" register={register} disabled={isReadOnly} />
           <ModuleField label="Teléfono" name="telefono" type="number" register={register} disabled={isReadOnly} />
           <ModuleField label="Sueldo (Bs)" name="sueldo" type="number" register={register} disabled={isReadOnly} error={errors.sueldo} rules={{ min: { value: 0, message: "El sueldo no puede ser negativo" } }} />
