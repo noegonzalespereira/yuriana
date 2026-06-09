@@ -28,6 +28,11 @@ export class FacturacionController {
     return this.facturacionService.findAll(filters);
   }
 
+  @Get('totales')
+  getTotales(@Query() filters: any) {
+    return this.facturacionService.getTotales(filters);
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.facturacionService.findOne(id);

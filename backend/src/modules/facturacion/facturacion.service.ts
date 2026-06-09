@@ -30,12 +30,32 @@ export class FacturacionService {
     return await this.facturaRepo.save(factura);
   }
 
-  async findAll(filters: any) {
+  async findAll(filters: { fecha_inicio?: string; fecha_fin?: string; id_categoria?: string }) {
     const query = this.facturaRepo.createQueryBuilder('factura')
       .leftJoinAndSelect('factura.servicio', 'servicio')
+      .leftJoinAndSelect('servicio.categoria', 'categoria')
       .where('factura.status = :status', { status: true });
-    
-    return await query.getMany();
+
+    if (filters.fecha_inicio) {
+      query.andWhere('factura.fecha_emision >= :f1', { f1: filters.fecha_inicio });
+    }
+    if (filters.fecha_fin) {
+      query.andWhere('factura.fecha_emision <= :f2', { f2: filters.fecha_fin });
+    }
+    if (filters.id_categoria) {
+      query.andWhere('servicio.id_categoria = :id_cat', { id_cat: parseInt(filters.id_categoria) });
+    }
+
+    return query.orderBy('factura.fecha_emision', 'DESC').getMany();
+  }
+
+  async getTotales(filters: { fecha_inicio?: string; fecha_fin?: string; id_categoria?: string }) {
+    const facturas = await this.findAll(filters);
+    const total_facturado = facturas.reduce((sum, f) => sum + Number(f.monto_factura), 0);
+    return {
+      total_facturado: +total_facturado.toFixed(2),
+      impuesto_it: +(total_facturado * 0.03).toFixed(2),
+    };
   }
   async findOne(id: number): Promise<Factura> {
     const factura = await this.facturaRepo.findOne({
