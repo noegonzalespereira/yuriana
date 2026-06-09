@@ -61,7 +61,7 @@ export default function UnidadesPage() {
         nombre_documento: u.documento_critico || "RUAT",
         entityId: u.placa,
         entityName: `Placa: ${u.placa}`,
-        dias_restantes: 15
+        dias_restantes: u.dias_restantes ?? null
       })));
 
     } catch (err) {

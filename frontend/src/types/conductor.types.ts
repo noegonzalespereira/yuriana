@@ -22,6 +22,7 @@ export interface Conductor {
   // Propiedades enriquecidas por el backend (getEstadoDocumentosPorEntidad)
   estado?: 'vigente' | 'por_vencer' | 'vencido' | 'sin_documentos';
   documento_critico?: string | null;
+  dias_restantes?: number | null;
 }
 
 export interface ConductorStats {

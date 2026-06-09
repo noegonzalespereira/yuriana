@@ -238,7 +238,7 @@ export class DocumentoService {
   async getEstadoDocumentosPorEntidad(
     referencia_id: number,
     tipo_entidad: 'conductor' | 'unidad' | 'viaje'
-  ): Promise<{ estado: string; documento_critico: string | null }> {
+  ): Promise<{ estado: string; documento_critico: string | null; dias_restantes: number | null }> {
 
     
     const columnaFk = 
@@ -253,30 +253,31 @@ export class DocumentoService {
       .getMany();
 
     if (documentos.length === 0) {
-      return { estado: 'sin_documentos', documento_critico: null };
+      return { estado: 'sin_documentos', documento_critico: null, dias_restantes: null };
     }
 
-    
-    let estadoFinal = 'vigente';         
-    let documento_critico: string | null = null; 
+    let estadoFinal = 'vigente';
+    let documento_critico: string | null = null;
+    let dias_restantes: number | null = null;
 
     for (const doc of documentos) {
-      const { estado } = this.calcularEstado(doc.fecha_vencimiento);
-      
+      const resultado = this.calcularEstado(doc.fecha_vencimiento);
 
-      if (estado === 'vencido') {
+      if (resultado.estado === 'vencido') {
         estadoFinal = 'vencido';
         documento_critico = doc.requisito_documento?.nombre_documento ?? 'Documento desconocido';
+        dias_restantes = resultado.dias_restantes;
         break;
       }
 
-      if (estado === 'por_vencer' && estadoFinal !== 'vencido') {
+      if (resultado.estado === 'por_vencer' && estadoFinal !== 'vencido') {
         estadoFinal = 'por_vencer';
         documento_critico = doc.requisito_documento?.nombre_documento ?? 'Documento desconocido';
+        dias_restantes = resultado.dias_restantes;
       }
     }
 
-    return { estado: estadoFinal, documento_critico };
+    return { estado: estadoFinal, documento_critico, dias_restantes };
   }
 
 

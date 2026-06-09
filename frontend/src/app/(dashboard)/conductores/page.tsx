@@ -77,7 +77,7 @@ export default function ConductoresPage() {
             entityId: c.persona.ci?.toString() || '0',
             entityName: c.persona.nombre.trim(), // ◄ CORREGIDO: Solo nombre unificado
             entityType: 'conductor',
-            dias_restantes: 15 
+            dias_restantes: c.dias_restantes ?? null
           }))
       );
 

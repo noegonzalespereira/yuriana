@@ -326,7 +326,7 @@ export default function DashboardPage() {
 
                           {/* Badge de urgencia */}
                           <span
-                            className="shrink-0 text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-wide text-white whitespace-nowrap"
+                            className="shrink-0 flex flex-col items-center text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wide text-white text-center"
                             style={{
                               background: esVencido
                                 ? "var(--yuriana-alert-vencido-border)"
@@ -337,7 +337,12 @@ export default function DashboardPage() {
                               ? "Vencido"
                               : esHoy
                                 ? "Hoy"
-                                : `${doc.dias_restantes}d`}
+                                : (
+                                  <>
+                                    <span>Por vencer</span>
+                                    <span>{doc.dias_restantes} días</span>
+                                  </>
+                                )}
                           </span>
                         </div>
                       );

@@ -41,12 +41,21 @@ export const AlertCard = ({ data, type, entityType, onAction }: AlertCardProps) 
           </span>
         </div>
         
-        <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-tighter ${
-          isVencido 
-            ? "bg-[var(--yuriana-base-red)] text-white" 
+        <span className={`flex flex-col items-center text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wide text-center ${
+          isVencido
+            ? "bg-[var(--yuriana-base-red)] text-white"
             : "bg-[var(--yuriana-base-yellow)] text-[var(--yuriana-base-black)]"
         }`}>
-          {isVencido ? "Vencido" : "Alerta"}
+          {isVencido ? (
+            "Vencido"
+          ) : (
+            <>
+              <span>Por vencer</span>
+              {data.dias_restantes != null && (
+                <span>{data.dias_restantes} días</span>
+              )}
+            </>
+          )}
         </span>
       </div>
 

@@ -40,4 +40,5 @@ export interface Unidad {
   // Atributos dinámicos enriquecidos por el DocumentoService proxy
   estado?: 'vigente' | 'por_vencer' | 'vencido' | 'sin_documentos';
   documento_critico?: string | null;
+  dias_restantes?: number | null;
 }
