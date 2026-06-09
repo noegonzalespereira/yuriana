@@ -27,8 +27,8 @@ export default function ClientesPage() {
       setData(res);
     } catch (error) {
       console.error("ERROR CARGANDO CLIENTES:", error);
-      toast.error("Error al cargar", {
-        description: "No se pudo obtener la lista de clientes."
+      toast.error("ERROR AL CARGAR", {
+        description: "NO SE PUDO OBTENER LISTA DE CLIENTES"
       });
     } finally {
       setLoading(false);
@@ -47,13 +47,13 @@ export default function ClientesPage() {
     if (!codigoParaEliminar) return;
     try {
       await deleteCliente(codigoParaEliminar);
-      toast.success("Cliente eliminado", {
-        description: `El cliente ${codigoParaEliminar} fue eliminado correctamente.`
+      toast.success("CLIENTE ELIMINADO", {
+        description: `El CLIENTE FUE ELIMINADO CORRECTAMENTE.`
       });
       loadData();
     } catch (error: any) {
-      toast.error("Error al eliminar", {
-        description: error.message || "No se pudo eliminar el cliente."
+      toast.error("ERROR AL ELIMINAR", {
+        description: error.message || "NO SE PUDO ELIMINAR EL CLIENTE"
       });
     } finally {
       setShowDeleteModal(false);
@@ -65,21 +65,21 @@ export default function ClientesPage() {
     try {
       if (selectedCliente) {
         await updateCliente(selectedCliente.codigo_cliente, formData);
-        toast.success("Cliente actualizado", {
-          description: "Los datos del cliente fueron actualizados correctamente."
+        toast.success("CLIENTE ACTUALIZADO", {
+          description: "LOS DATOS DEL CLIENTE FUERON ACTUALIZADOS CORRECTAMENTE."
         });
       } else {
         await createCliente(formData);
-        toast.success("Cliente registrado", {
-          description: "El nuevo cliente fue registrado con éxito."
+        toast.success("CLIENTE REGISTRADOS", {
+          description: "EL NUEVO CLIENTE FUE REGISTRADO CON EXITO"
         });
       }
       setView('list');
       loadData();
     } catch (error: any) {
       console.error("ERROR EN EL SERVIDOR (CLIENTES):", error);
-      toast.error("Error al guardar", {
-        description: error.message || "Verifique los datos e intente de nuevo."
+      toast.error("ERROR AL GUARDAR", {
+        description: error.message || "VERIFIQUE LOS DATOS E INTENTE DE NUEVO."
       });
     }
   };
@@ -87,9 +87,9 @@ export default function ClientesPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <ModuleHeader
-        title={view === 'list' ? "Gestión de Clientes" : selectedCliente ? (isReadOnly ? "Datos de la Empresa" : "Editar Parámetros de Cliente") : "Registrar Nuevo Cliente"}
-        subtitle={view === 'form' ? "Complete las casillas fiscales y la información de la persona de contacto" : undefined}
-        searchPlaceholder="Escriba código o empresa..."
+        title={view === 'list' ? "Gestión de Clientes" : selectedCliente ? (isReadOnly ? "Datos de la Empresa" : "Editar Datos de Cliente") : "Registrar Nuevo Cliente"}
+        subtitle={view === 'list' ? "Gestione los clientes de la empresa" : undefined}
+        searchPlaceholder="Escriba código de cliente"
         onSearch={view === 'list' ? (val) => setFilters({ nombre: val, codigo_cliente: val }) : undefined}
         buttonLabel={view === 'list' ? "Nuevo Cliente" : undefined}
         onButtonClick={() => { setSelectedCliente(null); setIsReadOnly(false); setView('form'); }}
@@ -98,11 +98,11 @@ export default function ClientesPage() {
       {view === 'list' ? (
         <div className="bg-white rounded-3xl shadow-xl p-6 border border-border">
           <div className="flex justify-between items-center mb-6 px-4">
-            <h2 className="font-bold text-gray-700 uppercase tracking-tighter text-sm">Listado de Clientes Activos</h2>
+            <h2 className="font-bold text-gray-700 uppercase tracking-tighter text-sm">Listado de Clientes </h2>
             <span className="text-xs text-[var(--yuriana-base-gray-light)] font-black uppercase">Mostrando {data.length} registros</span>
           </div>
           {loading ? (
-            <div className="py-20 text-center text-gray-400 italic text-sm font-medium">Sincronizando cuentas con el servidor...</div>
+            <div className="py-20 text-center text-gray-400 italic text-sm font-medium uppercase">Cargando datos...</div>
           ) : (
             <ClienteTable
               data={data}
@@ -130,11 +130,10 @@ export default function ClientesPage() {
             </div>
             <div>
               <h3 className="font-black text-gray-800 uppercase tracking-tighter text-base">¿Eliminar Cliente?</h3>
-              <p className="text-xs text-gray-500 mt-1">Esta acción desactivará el cliente del sistema.</p>
             </div>
             <div className="flex gap-3 pt-2">
               <button type="button" onClick={() => { setShowDeleteModal(false); setCodigoParaEliminar(null); }}
-                className="w-full py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-xs uppercase hover:bg-slate-200 transition-colors">
+                className="w-full py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-xs uppercase hover:bg-slate-200 transition-colors ">
                 Cancelar
               </button>
               <button type="button" onClick={handleConfirmDelete}

@@ -23,7 +23,7 @@ export const getAsignaciones = async (filters: AsignacionFilters = {}): Promise<
 
 // Consultas dinámicas para poblar el asistente por pasos del enganche
 export const getConductoresDisponibles = async (): Promise<Conductor[]> => {
-  return apiFetch("/conductor?estado_operativo=disponible&estado_laboral=activo");
+  return apiFetch("/conductor?estado_operativo=DISPONIBLE&estado_laboral=ACTIVO");
 };
 
 export const getUnidadesDisponibles = async (id_categoria?: number): Promise<Unidad[]> => {

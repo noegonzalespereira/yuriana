@@ -1,13 +1,13 @@
 import { Persona } from "./colaborador.types"; // Importación directa de la fuente
 export enum EstadoOperativo {
-  DISPONIBLE = 'disponible',
-  ASIGNADO = 'asignado',
-  VIAJE = 'en viaje',
+  DISPONIBLE = 'DISPONIBLE',
+  ASIGNADO = 'ASIGNADO',
+  VIAJE = 'EN VIAJE',
 }
 
 export enum EstadoLaboral {
-  ACTIVO = 'activo',
-  INACTIVO = 'inactivo',
+  ACTIVO = 'ACTIVO',
+  INACTIVO = 'INACTIVO',
 }
 
 export interface Conductor {

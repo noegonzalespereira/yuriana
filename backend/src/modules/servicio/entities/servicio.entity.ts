@@ -7,13 +7,13 @@ import { Documento } from "../../documento/entities/documento.entity";
 import { Factura } from "../../facturacion/entities/facturacion.entity";
 
 export enum EstadoPago {
-    PAGADO = 'pagado',
-    PENDIENTE = 'pendiente',
-    RETRASADO = 'retrasado',
+    PAGADO = 'PAGADO',
+    PENDIENTE = 'PENDIENTE',
+    RETRASADO = 'RETRASADO',
 }
 export enum EstadoServicio{
-    EN_CURSO = 'en curso',
-    FINALIZADO = 'finalizado',
+    EN_CURSO = 'EN_CURSO',
+    FINALIZADO = 'FINALIZADO',
 
 }
 export enum Operador{

@@ -86,7 +86,7 @@ export default function ColaboradoresPage() {
       {/* Encabezado dinámico según la vista */}
       <ModuleHeader 
         title={view === 'list' ? "Gestión de Colaboradores" : selectedColab ? (isReadOnly ? "Datos del Colaborador" : "Editar Colaborador") : "Registrar Nuevo Colaborador"}
-        subtitle={view === 'form' ? "Complete el formulario para añadir o modificar un colaborador" : undefined}
+        subtitle={view === 'list' ? "Gestione a los colaboradores de la empresa" : undefined}
         onSearch={view === 'list' ? (v) => setFilters({...filters, nombre: v}) : undefined}
         buttonLabel={view === 'list' ? "Nuevo Colaborador" : undefined}
         onButtonClick={handleOpenCreate}

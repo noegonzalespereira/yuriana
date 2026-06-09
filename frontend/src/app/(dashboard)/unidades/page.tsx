@@ -196,7 +196,7 @@ const handleFormSubmitUnificado = async (
               <div className="flex gap-4">
                 <FilterSelect placeholder="Tipo de Unidad" options={categorias.map(c => ({ value: c.id_categoria.toString(), label: c.tipo_categoria }))} onChange={(v) => setFilters({ ...filters, id_categoria: v })} />
                 <FilterSelect placeholder="Documentación" options={[{ value: "vencido", label: "Vencidos" }, { value: "por_vencer", label: "Por Vencer" }, { value: "vigente", label: "Vigentes" }]} onChange={(v) => setFilters({ ...filters, estado_documentos: v })} />
-                <FilterSelect placeholder="Estado" options={[{ value: "disponible", label: "Disponibles" }, { value: "en_viaje", label: "En Viaje" }, { value: "asignado", label: "Asignados" }, { value: "mantenimiento", label: "En Mantenimiento" }]} onChange={(v) => setFilters({ ...filters, estado_unidad: v })} />
+                <FilterSelect placeholder="Estado" options={[{ value: "DISPONIBLE", label: "Disponibles" }, { value: "EN_VIAJE", label: "En Viaje" }, { value: "ASIGNADO", label: "Asignados" }, { value: "MANTENIMIENTO", label: "En Mantenimiento" }]} onChange={(v) => setFilters({ ...filters, estado_unidad: v })} />
               </div>
             </div>
 

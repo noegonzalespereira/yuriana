@@ -9,8 +9,8 @@ import {
 } from 'typeorm';
 import { Rol } from '../../rol/entities/rol.entity';
 export enum EstadoUsuario {
-  ACTIVO = 'activo',
-  INACTIVO = 'inactivo',
+  ACTIVO = 'ACTIVO',
+  INACTIVO = 'INACTIVO',
 }
 @Entity('usuario')
 export class Usuario {

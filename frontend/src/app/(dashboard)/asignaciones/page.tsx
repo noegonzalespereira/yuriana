@@ -13,7 +13,7 @@ export default function AsignacionesPage() {
   const [view, setView] = useState<'list' | 'form'>('list');
   const [loading, setLoading] = useState(true);
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
-  const [filters, setFilters] = useState({ estado_asignacion: "activo", ci_conductor: "", placa_tracto: "", placa_remolque: "" });
+  const [filters, setFilters] = useState({ estado_asignacion: "ACTIVA", ci_conductor: "", placa_tracto: "", placa_remolque: "" });
   
   // Estados de control idénticos a Colaboradores
   const [selectedAsignacion, setSelectedAsignacion] = useState<Asignacion | null>(null);
@@ -41,11 +41,10 @@ export default function AsignacionesPage() {
 
   const handleFormSubmit = async (payload: { ci_conductor: number; placa_tracto: string; placa_remolque: string }) => {
     try {
-      // Al ser un módulo operacional de enganche estático, si hay selectedAsignacion se puede procesar actualización o mantener histórico
       const response = await createAsignacion(payload);
       
       toast.success("Operación Exitosa", {
-        description: "El enganche transaccional ha sido registrado con éxito en la flota.",
+        description: "La asignación se ha registrado correctamente",
       });
 
       // Muestra de alertas preventivas documentales en cascada
@@ -62,15 +61,15 @@ export default function AsignacionesPage() {
       syncAsignaciones();
     } catch (error: any) {
       console.error(error);
-      toast.error("Fallo de Validación", { description: error.message || "Unidades o tripulación no disponibles." });
+      toast.error("Fallo de Validación", { description: error.message || "Unidades o conductores no disponibles." });
     }
   };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       <ModuleHeader
-        title={view === 'list' ? "Gestión de asignaciones" : selectedAsignacion ? (isReadOnly ? "Detalles del Enganche" : "Modificar Asignación") : "Registrar Nueva Asignación"}
-        subtitle={view === 'list' ? "Controle el acoplamiento y emparejamiento de transportes de carga" : "Vincule la tripulación con las unidades de arrastre autorizadas"}
+        title={view === 'list' ? "Gestión de asignaciones" : selectedAsignacion ? (isReadOnly ? "Detalles de la asignación" : "Editar Asignación") : "Registrar Nueva Asignación"}
+        subtitle={view === 'list' ? "Vincule los conductores con sus repectivas unidades" : "Vinculación de unidades y conductores"}
         searchPlaceholder="Buscar por CI de conductor"
         onSearch={(value) => setFilters(prev => ({ ...prev, ci_conductor: value.trim() }))}
         buttonLabel={view === 'list' ? "Nueva Asignación" : undefined}
@@ -88,14 +87,14 @@ export default function AsignacionesPage() {
             <div className="flex gap-4">
               <FilterSelect 
                 placeholder="Estado" 
-                options={[{ value: "activo", label: "Activos" }, { value: "asignado", label: "Asignados" }]} 
+                options={[{ value: "ACTIVA", label: "Activos" }, { value: "ASIGNADO", label: "Asignados" }]} 
                 onChange={(v) => setFilters({ ...filters, estado_asignacion: v })} 
               />
             </div>
           </div>
 
           {loading ? (
-            <div className="py-24 text-center text-gray-400 italic text-sm font-medium">Consultando base de datos logísticos...</div>
+            <div className="py-24 text-center text-gray-400 italic text-sm font-medium">Cargando los datos...</div>
           ) : (
             <AsignacionTable 
               data={asignaciones} 
@@ -122,14 +121,14 @@ export default function AsignacionesPage() {
               <AlertCircle size={32} className="animate-bounce" />
             </div>
             <div className="space-y-2">
-              <h3 className="font-black text-slate-800 uppercase tracking-tight text-lg">¿Efectuar Desenganche?</h3>
+              <h3 className="font-black text-slate-800 uppercase tracking-tight text-lg">Eliminar la asignación?</h3>
               <p className="text-xs text-slate-500 leading-relaxed max-w-[320px] mx-auto">
-                Al disolver este acoplamiento operativo, las unidades y el conductor cambiarán de forma inmediata al estado <span className="text-emerald-600 font-bold uppercase">Disponible</span>.
+                Las unidades y el conductor cambiarán de forma inmediata al estado <span className="text-emerald-600 font-bold uppercase">Disponible</span>.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button type="button" onClick={() => { setShowDesengancheModal(false); setIdParaDesenganchar(null); }} className="w-full py-3.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-xl font-bold text-xs uppercase tracking-wider transition-all">
-                Mantener Vinculados
+                Mantener Asignación
               </button>
               <button 
                 type="button" 
@@ -137,10 +136,10 @@ export default function AsignacionesPage() {
                   if (idParaDesenganchar) {
                     try {
                       await desengancharUnidad(idParaDesenganchar);
-                      toast.success("Desenganche completado correctamente.");
+                      toast.success("ASIGNACIÓN ELIMINADA.");
                       syncAsignaciones();
                     } catch { 
-                      toast.error("Error al procesar el desenganche."); 
+                      toast.error("ERROR AL PROCESAR LA ELIMINACIÓN."); 
                     } finally { 
                       setShowDesengancheModal(false); 
                       setIdParaDesenganchar(null); 
@@ -149,7 +148,7 @@ export default function AsignacionesPage() {
                 }} 
                 className="w-full py-3.5 bg-[var(--yuriana-base-yellow)] text-[var(--yuriana-base-black)] hover:bg-amber-500 rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md"
               >
-                Confirmar Desenganche
+                CONFIRMAR
               </button>
             </div>
           </div>

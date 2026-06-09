@@ -1,7 +1,7 @@
 
 export enum EstadoUsuario {
-  ACTIVO = 'activo',
-  INACTIVO = 'inactivo',
+  ACTIVO = 'ACTIVO',
+  INACTIVO = 'INACTIVO',
 }
 
 export interface Rol {

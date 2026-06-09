@@ -14,7 +14,6 @@ export class FacturacionService {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  // Este método lo usaremos cuando se quiera subir una factura a un viaje ya existente
   async create(dto: CreateFacturacionDto, file: Express.Multer.File, userId: number) {
     const fEmision = new Date();
     const { url } = await this.cloudinaryService.subirArchivo(file, 'yuriana/facturas');
@@ -31,13 +30,11 @@ export class FacturacionService {
     return await this.facturaRepo.save(factura);
   }
 
-  // FindAll para la pantalla de "Gestión de Facturación" que tienes en tu interfaz
   async findAll(filters: any) {
     const query = this.facturaRepo.createQueryBuilder('factura')
       .leftJoinAndSelect('factura.servicio', 'servicio')
       .where('factura.status = :status', { status: true });
     
-    // Aquí puedes añadir filtros por mes/año para tus reportes
     return await query.getMany();
   }
   async findOne(id: number): Promise<Factura> {
@@ -47,7 +44,7 @@ export class FacturacionService {
     });
 
     if (!factura) {
-      throw new NotFoundException(`La factura con ID ${id} no existe o fue eliminada`);
+      throw new NotFoundException(`La factura  no existe o fue eliminada`);
     }
     return factura;
   }

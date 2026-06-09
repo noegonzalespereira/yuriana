@@ -2,9 +2,9 @@ import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGenerat
 import { Unidad } from "../../unidad/entities/unidad.entity";
 import { Gasto } from "../entities/gasto.entity";
 export enum TipoGastoOperativo {
-  MANTENIMIENTO = 'mantenimiento',
-  COMBUSTIBLE = 'combustible',
-  REPUESTOS = 'repuestos',
+  MANTENIMIENTO = 'MANTENIMIENTO',
+  COMBUSTIBLE = 'COMBUSTIBLE',
+  REPUESTOS = 'REPUESTOS',
 }
 @Entity('gasto_operativo')
 export class GastoOperativo {

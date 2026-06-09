@@ -727,11 +727,11 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
             existingUrl={initialData?.comprobante_pago} />
           <Field label="Estado de Pago">
             <input className={`${INPUT_CLASS} capitalize`} disabled readOnly
-              value={initialData?.estado_pago ?? "pendiente"} />
+              value={initialData?.estado_pago ?? "PENDIENTE"} />
           </Field>
           <Field label="Estado de Viaje">
             <input className={`${INPUT_CLASS} capitalize`} disabled readOnly
-              value={initialData?.estado_servicio ?? "en curso"} />
+              value={initialData?.estado_servicio ?? "EN_CURSO"} />
           </Field>
         </div>
       </div>

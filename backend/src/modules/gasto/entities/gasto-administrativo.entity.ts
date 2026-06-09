@@ -1,11 +1,11 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { Gasto } from "../entities/gasto.entity";
 export enum TipoGastoAdministrativo {
-  CONTADOR = 'contador',
-  IMPUESTO = 'impuesto',
-  GPS = 'gps',
-  SUELDO_CONDUCTORES = 'sueldo_conductores',
-  OTROS = 'otros',
+  CONTADOR = 'CONTADOR',
+  IMPUESTO = 'IMPUESTO',
+  GPS = 'GPS',
+  SUELDO_CONDUCTORES = 'SUELDO_CONDUCTORES',
+  OTROS = 'OTROS',
 }
 @Entity('gasto_administrativo')
 export class GastoAdministrativo {

@@ -9,8 +9,8 @@ export enum EstadoOperativo {
     }
 
 export enum EstadoLaboral {
-        ACTIVO = 'activo',
-        INACTIVO = 'inactivo',
+        ACTIVO = 'ACTIVO',
+        INACTIVO = 'INACTIVO',
     }
 @Entity('conductor')
 export class Conductor {

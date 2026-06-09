@@ -41,10 +41,10 @@ export const AsignacionForm = ({ initialData, isReadOnly = false, onSubmit, onCa
           setConductores(res);
         } else if (step === 2) {
           const res = await getUnidadesDisponibles(2); // Carga Tractos
-          setUnidades(res.filter(u => u.estado_unidad === "disponible"));
+          setUnidades(res.filter(u => u.estado_unidad === "DISPONIBLE"));
         } else if (step === 3) {
           const res = await getUnidadesDisponibles(); // Carga Acoplados
-          setUnidades(res.filter(u => u.estado_unidad === "disponible"));
+          setUnidades(res.filter(u => u.estado_unidad === "DISPONIBLE"));
         }
       } catch (err) {
         toast.error("Error sincronizando los catálogos del enganche.");

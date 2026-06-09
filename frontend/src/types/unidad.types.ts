@@ -1,14 +1,14 @@
 
 export enum EstadoUnidad {
-  DISPONIBLE = 'disponible',
-  ASIGNADO = 'asignado',
-  EN_VIAJE = 'en viaje',
-  MANTENIMIENTO = 'mantenimiento',
+  DISPONIBLE = 'DISPONIBLE',
+  ASIGNADO = 'ASIGNADO',
+  EN_VIAJE = 'EN VIAJE',
+  MANTENIMIENTO = 'MANTENIMIENTO',
 }
 
 export interface CategoriaUnidad {
   id_categoria: number;
-  tipo_categoria: 'tracto' | 'semiremolque' | 'remolque';
+  tipo_categoria: 'TRACTO' | 'SEMIREMOLQUE' | 'REMOLQUE';
   status: boolean;
 }
 

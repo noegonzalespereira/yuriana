@@ -8,6 +8,7 @@ export enum TipoCategoria{
   VIAJE_INTERNACIONAL = 'VIAJE_INTERNACIONAL',
   VIAJE_NACIONAL = 'VIAJE_NACIONAL',
 }
+
 @Entity('categoria_entidad')
 export class CategoriaEntidad {
     @PrimaryGeneratedColumn()

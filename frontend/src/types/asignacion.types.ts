@@ -2,8 +2,8 @@ import { Conductor } from "./conductor.types"; // Asegura que use tus types exis
 import { Unidad } from "./unidad.types";
 
 export enum EstadoAsignacion {
-  ACTIVA = 'activo',
-  ASIGNADO = 'asignado',
+  ACTIVA = 'ACTIVA',
+  ASIGNADO = 'ASIGNADO',
 }
 
 export interface AlertaDocumental {

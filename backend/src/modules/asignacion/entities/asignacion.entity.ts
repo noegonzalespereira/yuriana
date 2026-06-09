@@ -4,9 +4,9 @@ import { Conductor } from "../../conductor/entities/conductor.entity";
 import { Unidad } from "../../unidad/entities/unidad.entity";
 
 export enum EstadoAsignacion {
-        ACTIVA = 'activo',
-        ASIGNADO = 'asignado',
-        // FINALIZADA = 'finalizada',
+        ACTIVA = 'ACTIVA',
+        ASIGNADO = 'ASIGNADO',
+       
 
 }
 

@@ -1,6 +1,6 @@
 export enum TipoColaborador {
-  ATA = 'ata',
-  DESPACHANTE = 'despachante',
+  ATA = 'ATA',
+  DESPACHANTE = 'DESPACHANTE',
 }
 
 export interface Persona {

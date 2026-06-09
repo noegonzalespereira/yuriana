@@ -1,22 +1,22 @@
 export enum EstadoPago {
-  PAGADO = 'pagado',
-  PENDIENTE = 'pendiente',
-  RETRASADO = 'retrasado',
+  PAGADO = 'PAGADO',
+  PENDIENTE = 'PENDIENTE',
+  RETRASADO = 'RETRASADO',
 }
 
 export enum EstadoServicio {
-  EN_CURSO = 'en curso',
-  FINALIZADO = 'finalizado',
+  EN_CURSO = 'EN_CURSO',
+  FINALIZADO = 'FINALIZADO',
 }
 
 export enum Operador {
-  YURIANA = 'yuriana',
-  OTROS = 'otros',
+  YURIANA = 'YURIANA',
+  OTROS = 'OTROS',
 }
 
 export enum Moneda {
-  DOLAR = 'dolar',
-  BOLIVIANOS = 'bolivianos',
+  DOLAR = 'DOLAR',
+  BOLIVIANOS = 'BOLIVIANOS',
 }
 
 export interface ServicioItem {

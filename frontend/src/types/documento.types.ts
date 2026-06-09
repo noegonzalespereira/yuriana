@@ -1,12 +1,11 @@
-// src/types/documento.types.ts
 
 export enum TipoCategoria {
-  CONDUCTOR = 'Conductor',
-  TRACTO = 'Tracto',
-  SEMIREMOLQUE = 'Semiremolque',
-  REMOLQUE = 'Remolque',
-  VIAJE_INTERNACIONAL = 'Viaje_internacional',
-  VIAJE_NAClONAL = 'Viaje_nacional',
+  CONDUCTOR = 'CONDUCTOR',
+  TRACTO = 'TRACTO',
+  SEMIREMOLQUE = 'SEMIREMOLQUE',
+  REMOLQUE = 'REMOLQUE',
+  VIAJE_INTERNACIONAL = 'VIAJE_INTERNACIONAL',
+  VIAJE_NACIONAL = 'VIAJE_NACIONAL',
 }
 
 export interface CategoriaEntidad {

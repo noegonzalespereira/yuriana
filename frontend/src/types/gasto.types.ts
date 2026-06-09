@@ -1,36 +1,36 @@
 export enum TipoPestana {
-  SERVICIO = 'servicio',
-  OPERATIVO = 'operativo',
-  ADMINISTRATIVO = 'administrativo',
-  GENERAL = 'general',
+  SERVICIO = 'SERVICIO',
+  OPERATIVO = 'OPERATIVO',
+  ADMINISTRATIVO = 'ADMINISTRATIVO',
+  GENERAL = 'GENERAL',
 }
 
 export enum TipoGastoServicio {
-  VIATICOS = 'viaticos',
-  PEAJES = 'peajes',
-  ATA_ORIGEN = 'ata origen',
-  ATA_FRONTERA = 'ata frontera',
-  OTROS = 'otros',
+  VIATICOS = 'VIATICOS',
+  PEAJES = 'PEAJES',
+  ATA_ORIGEN = 'ATA_ORIGEN',
+  ATA_FRONTERA = 'ATA_FRONTERA',
+  OTROS = 'OTROS',
 }
 
 export enum TipoGastoOperativo {
-  MANTENIMIENTO = 'mantenimiento',
-  COMBUSTIBLE = 'combustible',
-  REPUESTOS = 'repuestos',
+  MANTENIMIENTO = 'MANTENIMIENTO',
+  COMBUSTIBLE = 'COMBUSTIBLE',
+  REPUESTOS = 'REPUESTOS',
 }
 
 export enum TipoGastoAdministrativo {
-  CONTADOR = 'contador',
-  IMPUESTO = 'impuesto',
-  GPS = 'gps',
-  SUELDO_CONDUCTORES = 'sueldo_conductores',
-  OTROS = 'otros',
+  CONTADOR = 'CONTADOR',
+  IMPUESTO = 'IMPUESTO',
+  GPS = 'GPS',
+  SUELDO_CONDUCTORES = 'SUELDO_CONDUCTORES',
+  OTROS = 'OTROS',
 }
 
 export enum TipoGastoGeneral {
-  TALLER = 'taller',
-  LLANTAS = 'llantas',
-  OTROS = 'otros',
+  TALLER = 'TALLER',
+  LLANTAS = 'LLANTAS',
+  OTROS = 'OTROS',
 }
 
 export interface Gasto {

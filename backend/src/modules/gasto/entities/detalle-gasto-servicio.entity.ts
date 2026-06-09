@@ -2,11 +2,11 @@ import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGenerat
 import { GastosServicio } from "../entities/gasto-servicio.entity";
 import { Gasto } from "../../gasto/entities/gasto.entity";
 export enum TipoGastoServicio {
-  VIATICOS = 'viaticos',
-  PEAJES = 'peajes',
-  ATA_ORIGEN = 'ata origen',
-  ATA_FRONTERA = 'ata frontera',
-  OTROS = 'otros',
+  VIATICOS = 'VIATICOS',
+  PEAJES = 'PEAJES',
+  ATA_ORIGEN = 'ATA_ORIGEN',
+  ATA_FRONTERA = 'ATA_FRONTERA',
+  OTROS = 'OTROS',
 }
 @Entity('detalle_gasto_servicio')
 export class DetalleGastoServicio {

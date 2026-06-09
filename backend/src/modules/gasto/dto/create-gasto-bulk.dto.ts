@@ -2,10 +2,10 @@ import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsArray, ValidateNe
 import { Type } from 'class-transformer';
 
 export enum TipoPestaña {
-  SERVICIO = 'servicio',
-  OPERATIVO = 'operativo',
-  ADMINISTRATIVO = 'administrativo',
-  GENERAL = 'general'
+  SERVICIO = 'SERVICIO',
+  OPERATIVO = 'OPERATIVO',
+  ADMINISTRATIVO = 'ADMINISTRATIVO',
+  GENERAL = 'GENERAL'
 }
 
 // Representa cada fila agregada dinámicamente en tus tablas naranjas de registro
