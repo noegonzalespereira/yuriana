@@ -5,6 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsuarioService } from '../usuario/usuario.service';
 import { LoginDto } from './dto/login.dto';
+import { EstadoUsuario } from '../usuario/entities/usuario.entity';
 
 @Injectable()
 export class AuthService {
@@ -18,7 +19,7 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales incorrectas');
 
     }
-    if (usuario.estado !== 'activo'){
+    if (usuario.estado !== EstadoUsuario.ACTIVO){
       throw new UnauthorizedException('Usuario inactivo');
 
     }
