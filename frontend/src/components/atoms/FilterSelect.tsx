@@ -7,11 +7,13 @@ interface FilterSelectProps {
   placeholder: string;
   options: Option[];
   onChange: (value: string) => void;
+  value?: string;
 }
 
-export const FilterSelect = ({ placeholder, options, onChange }: FilterSelectProps) => {
+export const FilterSelect = ({ placeholder, options, onChange, value }: FilterSelectProps) => {
   return (
-    <select 
+    <select
+      {...(value !== undefined ? { value } : {})}
       onChange={(e) => onChange(e.target.value)}
       className="bg-[var(--yuriana-input-bg)] border border-[var(--yuriana-input-border)] text-[var(--yuriana-base-black)] text-xs rounded-xl px-3 py-1.5 outline-none focus:border-[var(--yuriana-input-border-focus)] transition-colors cursor-pointer shadow-sm font-medium uppercase"
     >
