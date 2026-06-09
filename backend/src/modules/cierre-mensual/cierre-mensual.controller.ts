@@ -1,34 +1,35 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { CierreMensualService } from './cierre-mensual.service';
-import { CreateCierreMensualDto } from './dto/create-cierre-mensual.dto';
-import { UpdateCierreMensualDto } from './dto/update-cierre-mensual.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
+@UseGuards(JwtAuthGuard)
 @Controller('cierre-mensual')
 export class CierreMensualController {
   constructor(private readonly cierreMensualService: CierreMensualService) {}
 
-  @Post()
-  create(@Body() createCierreMensualDto: CreateCierreMensualDto) {
-    return this.cierreMensualService.create(createCierreMensualDto);
+  @Get('resumen')
+  getDashboardResumen() {
+    return this.cierreMensualService.getDashboardResumen();
   }
 
-  @Get()
-  findAll() {
-    return this.cierreMensualService.findAll();
+  @Get('estado-resultados')
+  getEstadoResultados(
+    @Query('mes') mes: string,
+    @Query('anio') anio: string,
+  ) {
+    const now = new Date();
+    const mesParam = mes || (now.getMonth() + 1).toString().padStart(2, '0');
+    const anioParam = anio ? parseInt(anio, 10) : now.getFullYear();
+    return this.cierreMensualService.getEstadoResultados(mesParam, anioParam);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.cierreMensualService.findOne(+id);
+  @Get('documentos-vencidos')
+  getDocumentosVencidos() {
+    return this.cierreMensualService.getDocumentosVencidos();
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCierreMensualDto: UpdateCierreMensualDto) {
-    return this.cierreMensualService.update(+id, updateCierreMensualDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.cierreMensualService.remove(+id);
+  @Get('ultimos-viajes')
+  getUltimosViajes() {
+    return this.cierreMensualService.getUltimosViajes();
   }
 }
