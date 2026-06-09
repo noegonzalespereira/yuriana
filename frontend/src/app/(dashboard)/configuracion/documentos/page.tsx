@@ -74,7 +74,7 @@ export default function DocumentosPage() {
     setTabPrincipal(target);
     if (target === 'Unidad') setSubTab(TipoCategoria.TRACTO);
     if (target === 'Conductor') setSubTab(TipoCategoria.CONDUCTOR);
-    if (target === 'Viaje') setSubTab(TipoCategoria.VIAJE_NAClONAL);
+    if (target === 'Viaje') setSubTab(TipoCategoria.VIAJE_NACIONAL);
   };
 
   const handleDelete = async (id: number) => {
