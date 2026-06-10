@@ -1,6 +1,6 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateServicioDto } from './create-servicio.dto';
-import { IsOptional, IsDateString, IsNumber } from 'class-validator';
+import { IsOptional, IsDateString, IsNumber, IsString } from 'class-validator';
 
 export class UpdateServicioDto extends PartialType(CreateServicioDto) {
   @IsOptional()
@@ -10,4 +10,8 @@ export class UpdateServicioDto extends PartialType(CreateServicioDto) {
   @IsOptional()
   @IsNumber()
   periodo_liquidacion?: number;
+
+  @IsOptional()
+  @IsString()
+  ids_fotos_eliminar?: string;
 }

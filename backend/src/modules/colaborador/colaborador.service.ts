@@ -50,7 +50,7 @@ export class ColaboradorService {
       query.andWhere('persona.ciudad ILIKE :ciudad', { ciudad: `%${filters.ciudad}%` });
 
     }
-    return query.getMany();
+    return query.orderBy('colaborador.createdAt', 'DESC').getMany();
   }
 
   async findOne(ci: number): Promise<Colaborador> {

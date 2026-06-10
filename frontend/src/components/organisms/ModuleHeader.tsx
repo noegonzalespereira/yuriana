@@ -21,7 +21,7 @@ export const ModuleHeader = ({
   onButtonClick,
 }: ModuleHeaderProps) => {
   return (
-    <div className="w-full bg-[var(--yuriana-base-orange)] rounded-2xl p-3 px-5 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4 transition-all">
+    <div className="w-full sticky top-0 z-40 bg-[var(--yuriana-base-orange)] rounded-2xl p-3 px-5 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4 transition-all">
       <div className="flex flex-col flex-1 text-left">
         <h1 className="text-base md:text-lg font-black text-white uppercase tracking-tight">
           {title}

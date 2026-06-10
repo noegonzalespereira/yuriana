@@ -128,7 +128,7 @@ export class ConductorService {
     if (filters.estado_laboral) query.andWhere('conductor.estado_laboral = :estado_laboral', { estado_laboral: filters.estado_laboral });
     if (filters.estado_operativo) query.andWhere('conductor.estado_operativo = :estado_operativo', { estado_operativo: filters.estado_operativo });
 
-    const conductores = await query.getMany();
+    const conductores = await query.orderBy('conductor.createdAt', 'DESC').getMany();
     const conductoresEnriquecidos = await Promise.all(
       conductores.map(async (conductor) => {
         const estadoDoc = await this.documentoService.getEstadoDocumentosPorEntidad(conductor.id_conductor, 'conductor');

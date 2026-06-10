@@ -19,7 +19,7 @@ export const ClienteTable = ({ data, onDelete, onEdit, onView }: Props) => {
             <th className="px-4 py-2.5">Empresa</th>
             <th className="px-4 py-2.5">Cliente</th>
             <th className="px-4 py-2.5">Contacto</th>
-            <th className="px-4 py-2.5">Viajes</th>
+          
             <th className="px-4 py-2.5 text-center">Acciones</th>
           </tr>
         </thead>
@@ -40,11 +40,7 @@ export const ClienteTable = ({ data, onDelete, onEdit, onView }: Props) => {
                   <span className="text-[var(--yuriana-base-gray-light)] font-medium">{item.persona.correo}</span>
                 </div>
               </td>
-              <td className="px-4 py-2.5">
-                <button className="bg-[var(--yuriana-base-yellow)] text-[var(--yuriana-base-black)] text-[10px] font-black px-3 py-1.5 rounded-lg hover:shadow-md transition-all uppercase tracking-wider">
-                  Ver Viajes
-                </button>
-              </td>
+              
               <td className="px-4 py-2.5">
                 <div className="flex justify-center gap-4">
                   <button onClick={() => onView(item)} className="text-[var(--yuriana-base-orange)] hover:scale-110 transition-transform"><Eye size={16} /></button>

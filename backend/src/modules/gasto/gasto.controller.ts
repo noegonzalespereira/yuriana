@@ -21,8 +21,11 @@ export class GastoController {
   }
 
   @Get('totales-paneles')
-  async obtenerTotalesPaneles() {
-    return this.gastosService.obtenerTotalesInformativos();
+  async obtenerTotalesPaneles(
+    @Query('mes') mes?: string,
+    @Query('anio') anio?: string,
+  ) {
+    return this.gastosService.obtenerTotalesInformativos(mes, anio ? parseInt(anio) : undefined);
   }
 
   @Get('listado/:pestana')

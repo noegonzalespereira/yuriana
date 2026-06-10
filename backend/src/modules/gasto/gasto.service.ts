@@ -363,26 +363,42 @@ export class GastosService {
   /**
    * SUMATORIAS CONSOLIDADAS: Calcula en Bs. el dinero total para las 4 tarjetas informativas de arriba
    */
-  async obtenerTotalesInformativos() {
-    const totalServicios = await this.gastosServicioRepo.sum('total_gastos_bs', { status: true }) || 0;
-    
-    const totalOps = await this.gastoOperativoRepo.createQueryBuilder('go')
-      .leftJoin('go.gasto', 'g').select('SUM(g.monto)', 'total')
-      .where('go.status = true AND g.status = true').getRawOne();
+  async obtenerTotalesInformativos(mes?: string, anio?: number) {
+    const now = new Date();
+    const mesParam = mes || (now.getMonth() + 1).toString().padStart(2, '0');
+    const anioParam = anio || now.getFullYear();
+    const mesNum = parseInt(mesParam, 10);
 
-    const totalAdmin = await this.gastoAdminRepo.createQueryBuilder('ga')
-      .leftJoin('ga.gasto', 'g').select('SUM(g.monto)', 'total')
-      .where('ga.status = true AND g.status = true').getRawOne();
+    const [totalServiciosResult, totalOps, totalAdmin, totalGral] = await Promise.all([
+      this.gastosServicioRepo.createQueryBuilder('gs')
+        .select('SUM(gs.total_gastos_bs)', 'total')
+        .where('gs.status = true AND EXTRACT(MONTH FROM gs.fecha_registro) = :mes AND EXTRACT(YEAR FROM gs.fecha_registro) = :anio', { mes: mesNum, anio: anioParam })
+        .getRawOne(),
+      this.gastoOperativoRepo.createQueryBuilder('go')
+        .leftJoin('go.gasto', 'g').select('SUM(g.monto)', 'total')
+        .where('go.status = true AND g.status = true AND g.mes = :mes AND g.anio = :anio', { mes: mesParam, anio: anioParam })
+        .getRawOne(),
+      this.gastoAdminRepo.createQueryBuilder('ga')
+        .leftJoin('ga.gasto', 'g').select('SUM(g.monto)', 'total')
+        .where('ga.status = true AND g.status = true AND g.mes = :mes AND g.anio = :anio', { mes: mesParam, anio: anioParam })
+        .getRawOne(),
+      this.gastoGeneralRepo.createQueryBuilder('gg')
+        .leftJoin('gg.gasto', 'g').select('SUM(g.monto)', 'total')
+        .where('gg.status = true AND g.status = true AND g.mes = :mes AND g.anio = :anio', { mes: mesParam, anio: anioParam })
+        .getRawOne(),
+    ]);
 
-    const totalGral = await this.gastoGeneralRepo.createQueryBuilder('gg')
-      .leftJoin('gg.gasto', 'g').select('SUM(g.monto)', 'total')
-      .where('gg.status = true AND g.status = true').getRawOne();
+    const totalGastosViaje = Number(totalServiciosResult?.total || 0);
+    const totalGastosOperativos = Number(totalOps?.total || 0);
+    const totalGastosAdministrativos = Number(totalAdmin?.total || 0);
+    const totalGastosGenerales = Number(totalGral?.total || 0);
 
     return {
-      totalGastosViaje: Number(totalServicios),
-      totalGastosOperativos: Number(totalOps?.total || 0),
-      totalGastosAdministrativos: Number(totalAdmin?.total || 0),
-      totalGastosGenerales: Number(totalGral?.total || 0)
+      totalGastosViaje,
+      totalGastosOperativos,
+      totalGastosAdministrativos,
+      totalGastosGenerales,
+      totalGastos: +(totalGastosViaje + totalGastosOperativos + totalGastosAdministrativos + totalGastosGenerales).toFixed(2),
     };
   }
 }

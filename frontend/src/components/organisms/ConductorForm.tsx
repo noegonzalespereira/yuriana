@@ -5,7 +5,7 @@ import { RequisitoDocumento } from "@/types/documento.types";
 import { getRequisitos, getCategorias } from "@/lib/api/requisito.api";
 import { TipoCategoria } from "@/types/documento.types";
 import { getDocumentosDeEntidad } from "@/lib/api/conductor.api";
-import { Info, FileText, Upload, Download, Loader2, RefreshCw } from "lucide-react";
+import { Info, FileText, Upload, Loader2, RefreshCw, Eye } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ModuleField } from "../molecules/ModuleField";
 import { toast } from "sonner";
@@ -286,7 +286,7 @@ export const ConductorForm = ({ initialData, onSubmit, onCancel, isReadOnly }: P
                           onClick={() => handleAbrirDocumento(docGuardado.id_documento, docGuardado.url_documento)}
                           className="px-3 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm transition-all"
                         >
-                          <Download size={12} /> Ver
+                          <Eye size={12} /> Ver
                         </button>
                       )}
 

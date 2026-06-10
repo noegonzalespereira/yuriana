@@ -1,13 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { PlusCircle, Trash2, Info, Truck, Search } from "lucide-react";
+import { PlusCircle, Trash2, Info, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { TipoGastoOperativo, GastoOperativo, ItemGastoForm } from "@/types/gasto.types";
 import { guardarGastoOperativo, editarGastoOperativo } from "@/lib/api/gasto.api";
 import { getUnidades } from "@/lib/api/unidad.api";
 import type { Unidad } from "@/types/unidad.types";
 import { ModuleField } from "@/components/molecules/ModuleField";
+import { SearchableCombobox } from "@/components/molecules/SearchableCombobox";
 
 // Clases compartidas con ModuleField para mantener consistencia visual
 const FIELD_LABEL_CLASS =
@@ -58,7 +59,8 @@ export const GastoOperativoForm = ({ initialData, isReadOnly = false, onCancel, 
 
   const [placa, setPlaca] = useState("");
   const [selectedUnidad, setSelectedUnidad] = useState<Unidad | null>(null);
-  const [buscando, setBuscando] = useState(false);
+  const [todasUnidades, setTodasUnidades] = useState<Unidad[]>([]);
+  const [loadingUnidades, setLoadingUnidades] = useState(false);
 
   const [items, setItems] = useState<ItemGastoForm[]>([]);
   const [newFecha, setNewFecha] = useState("");
@@ -67,6 +69,11 @@ export const GastoOperativoForm = ({ initialData, isReadOnly = false, onCancel, 
   const [newMonto, setNewMonto] = useState<number>(0);
 
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setLoadingUnidades(true);
+    getUnidades({}).then(setTodasUnidades).catch(() => {}).finally(() => setLoadingUnidades(false));
+  }, []);
 
   useEffect(() => {
     if (initialData) {
@@ -85,29 +92,12 @@ export const GastoOperativoForm = ({ initialData, isReadOnly = false, onCancel, 
     }
   }, [initialData, setValue]);
 
-  const buscarUnidad = async () => {
-    if (!placa.trim()) return toast.error("Ingresa una placa para buscar");
-    try {
-      setBuscando(true);
-      const lista = await getUnidades({ placa: placa.trim().toUpperCase() });
-      if (lista.length > 0) {
-        const u = lista[0];
-        setSelectedUnidad(u);
-        setValue("tipo_unidad", u.categoria?.tipo_categoria ?? "");
-        setValue("modelo", u.modelo ?? "");
-        setValue("marca", u.marca ?? "");
-      } else {
-        toast.error("No se encontró ninguna unidad con esa placa");
-        setSelectedUnidad(null);
-        setValue("tipo_unidad", "");
-        setValue("modelo", "");
-        setValue("marca", "");
-      }
-    } catch {
-      toast.error("Error al buscar la unidad");
-    } finally {
-      setBuscando(false);
-    }
+  const handleSelectUnidad = (u: Unidad) => {
+    setPlaca(u.placa);
+    setSelectedUnidad(u);
+    setValue("tipo_unidad", u.categoria?.tipo_categoria ?? "");
+    setValue("modelo", u.modelo ?? "");
+    setValue("marca", u.marca ?? "");
   };
 
   const handleAddItem = () => {
@@ -193,29 +183,21 @@ export const GastoOperativoForm = ({ initialData, isReadOnly = false, onCancel, 
                 Usa FIELD_LABEL_CLASS e INPUT_CLASS de ModuleField para consistencia visual. */}
             <div className="flex flex-col gap-1 w-full text-left">
               <label className={FIELD_LABEL_CLASS}>Placa</label>
-              {isReadOnly || isEdit ? (
-                <input value={placa} disabled className={`${INPUT_CLASS} disabled:bg-slate-50 disabled:text-slate-500`} />
-              ) : (
-                <div className="flex gap-1.5">
-                  <input
-                    type="text"
-                    value={placa}
-                    onChange={(e) => setPlaca(e.target.value.toUpperCase())}
-                    onKeyDown={(e) => e.key === "Enter" && buscarUnidad()}
-                    placeholder="Ej: 345 KDJ"
-                    className={`${INPUT_CLASS} flex-1 uppercase`}
-                  />
-                  <button
-                    type="button"
-                    onClick={buscarUnidad}
-                    disabled={buscando}
-                    title="Buscar unidad"
-                    className="bg-[var(--yuriana-base-orange)] text-white rounded-xl px-3 hover:opacity-90 transition-all active:scale-95 disabled:opacity-50"
-                  >
-                    <Search size={14} />
-                  </button>
-                </div>
-              )}
+              <SearchableCombobox
+                options={todasUnidades.map((u) => ({
+                  value: u.placa,
+                  label: u.placa,
+                  sublabel: `${u.categoria?.tipo_categoria ?? ""} · ${u.marca} ${u.modelo}`,
+                }))}
+                value={placa}
+                placeholder="Seleccionar placa..."
+                loading={loadingUnidades}
+                disabled={isReadOnly || isEdit}
+                onSelect={(opt) => {
+                  const u = todasUnidades.find((x) => x.placa === opt.value);
+                  if (u) handleSelectUnidad(u);
+                }}
+              />
             </div>
 
             {/* Campos auto-populados con ModuleField + RHF */}

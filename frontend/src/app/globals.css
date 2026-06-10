@@ -151,7 +151,20 @@ input[type="number"] {
 }
 
 /* ==========================================================================
-   4. SCROLLBAR PERSONALIZADO
+   4. TEXTO DE TABLAS — NEGRO GLOBAL
+   Sobreescribe text-gray-* hardcodeado en <td> y <tbody>.
+   Los <td> con clases de variable CSS (text-[var(...)]) quedan intactos.
+   ========================================================================== */
+table tbody {
+  color: var(--yuriana-base-black);
+}
+
+table tbody td:not([class*="text-["]) {
+  color: var(--yuriana-base-black);
+}
+
+/* ==========================================================================
+   5. SCROLLBAR PERSONALIZADO
    ========================================================================== */
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;

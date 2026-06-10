@@ -1,5 +1,6 @@
 "use client";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { TipoColaborador, Colaborador } from "@/types/colaborador.types";
 import { TypeSelector } from "../atoms/TypeSelector";
 import { Users } from "lucide-react";
@@ -32,20 +33,29 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
     }
   }, [initialData, reset]);
 
+  const MAX_INT = 2_147_483_647;
+
   const handleLocalSubmit = (data: any) => {
-    const payload = {
-      ...data,
+    const tel = data.telefono ? parseInt(data.telefono) : 0;
+    const tel2 = data.telefono2 ? parseInt(data.telefono2) : undefined;
+
+    if (tel > MAX_INT)
+      return toast.error("El teléfono supera el límite permitido (máx. 10 números)");
+    if (tel2 !== undefined && tel2 > MAX_INT)
+      return toast.error("El teléfono 2 supera el límite permitido (máx. 10 números)");
+
+    const payload: Record<string, any> = {
+      ci: data.ci ? parseInt(data.ci) : 0,
       nombre: data.nombre?.trim().toUpperCase(),
       correo: data.correo,
-      agencia: data.agencia?.trim().toUpperCase() || "",
+      telefono: tel,
       ciudad: data.ciudad?.trim().toUpperCase() || "",
-      notas: data.notas?.trim().toUpperCase() || "",
-      ci: data.ci ? parseInt(data.ci) : 0,
+      agencia: data.agencia?.trim().toUpperCase() || "",
       monto: data.monto ? parseFloat(data.monto) : 0,
-      telefono: data.telefono ? parseInt(data.telefono) : 0,
-      telefono2: data.telefono2 ? parseInt(data.telefono2) : undefined,
+      notas: data.notas?.trim().toUpperCase() || "",
       tipo_colaborador: tipo,
     };
+    if (tel2 !== undefined) payload.telefono2 = tel2;
     onSubmit(payload);
   };
 

@@ -1,42 +1,24 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import {
-  TrendingUp,
-  TrendingDown,
-  Clock,
-  CheckCircle2,
-  Truck,
-  UserCircle,
+  TrendingUp, TrendingDown, Clock, CheckCircle2, AlertTriangle, Truck, UserCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ModuleHeader } from "@/components/organisms/ModuleHeader";
 import { StatCard } from "@/components/atoms/StatCard";
 import {
-  getDashboardResumen,
-  getEstadoResultados,
-  getDocumentosVencidos,
-  getUltimosViajes,
-} from "@/lib/api/cierre-mensual.api";
-import {
-  DashboardResumen,
-  EstadoResultados,
-  DocumentoVencido,
-  UltimoViaje,
-} from "@/types/cierre-mensual.types";
+  getTotalesIngresos, getTotalesGastos, getTotalesPagos,
+  getAlertasDashboard, getViajesRecientes,
+  TotalesIngresos, TotalesGastos, TotalesPagos, DocumentoAlerta, ViajeReciente,
+} from "@/lib/api/dashboard.api";
 
 const MESES = [
-  { label: "Enero", value: "01" },
-  { label: "Febrero", value: "02" },
-  { label: "Marzo", value: "03" },
-  { label: "Abril", value: "04" },
-  { label: "Mayo", value: "05" },
-  { label: "Junio", value: "06" },
-  { label: "Julio", value: "07" },
-  { label: "Agosto", value: "08" },
-  { label: "Septiembre", value: "09" },
-  { label: "Octubre", value: "10" },
-  { label: "Noviembre", value: "11" },
-  { label: "Diciembre", value: "12" },
+  { label: "Enero", value: "01" }, { label: "Febrero", value: "02" },
+  { label: "Marzo", value: "03" },  { label: "Abril", value: "04" },
+  { label: "Mayo", value: "05" },   { label: "Junio", value: "06" },
+  { label: "Julio", value: "07" },  { label: "Agosto", value: "08" },
+  { label: "Septiembre", value: "09" }, { label: "Octubre", value: "10" },
+  { label: "Noviembre", value: "11" }, { label: "Diciembre", value: "12" },
 ];
 
 const fmt = (n: number) =>
@@ -44,11 +26,7 @@ const fmt = (n: number) =>
 
 const fmtFecha = (iso: string | null) => {
   if (!iso) return "-";
-  return new Date(iso).toLocaleDateString("es-BO", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  return new Date(iso).toLocaleDateString("es-BO", { day: "2-digit", month: "2-digit", year: "numeric" });
 };
 
 const ESTADO_PAGO_STYLE: Record<string, string> = {
@@ -56,127 +34,102 @@ const ESTADO_PAGO_STYLE: Record<string, string> = {
   PENDIENTE: "bg-amber-100 text-amber-700 border-amber-200",
   RETRASADO: "bg-rose-100 text-rose-700 border-rose-200",
 };
-
 const ESTADO_SERVICIO_STYLE: Record<string, string> = {
   EN_CURSO: "bg-blue-100 text-blue-700 border-blue-200",
   FINALIZADO: "bg-slate-100 text-slate-600 border-slate-200",
 };
-
 
 export default function DashboardPage() {
   const now = new Date();
   const [mesSeleccionado, setMesSeleccionado] = useState(
     (now.getMonth() + 1).toString().padStart(2, "0")
   );
-  const [anioSeleccionado] = useState(now.getFullYear());
+  const anio = now.getFullYear();
 
-  const [resumen, setResumen] = useState<DashboardResumen>({
-    total_ingresos: 0,
-    total_gastos: 0,
-    total_pagos_por_cobrar: 0,
-    total_pagos_cobrados: 0,
-  });
-  const [estadoResultados, setEstadoResultados] =
-    useState<EstadoResultados | null>(null);
-  const [docsVencidos, setDocsVencidos] = useState<DocumentoVencido[]>([]);
-  const [ultimosViajes, setUltimosViajes] = useState<UltimoViaje[]>([]);
-  const [loadingResumen, setLoadingResumen] = useState(true);
-  const [loadingEstado, setLoadingEstado] = useState(true);
-  const [loadingDocs, setLoadingDocs] = useState(true);
+  const [ingresos, setIngresos] = useState<TotalesIngresos>({ totalFletes: 0, totalIngresoExtras: 0, totalIngresos: 0 });
+  const [gastos, setGastos] = useState<TotalesGastos>({ totalGastosViaje: 0, totalGastosOperativos: 0, totalGastosAdministrativos: 0, totalGastosGenerales: 0, totalGastos: 0 });
+  const [pagos, setPagos] = useState<TotalesPagos>({ total_por_cobrar: 0, total_cobrado: 0, total_retrasado: 0 });
+  const [alertas, setAlertas] = useState<DocumentoAlerta[]>([]);
+  const [viajes, setViajes] = useState<ViajeReciente[]>([]);
+
+  const [loadingCards, setLoadingCards] = useState(true);
+  const [loadingAlertas, setLoadingAlertas] = useState(true);
   const [loadingViajes, setLoadingViajes] = useState(true);
 
+  // Cards: recargan al cambiar mes
   useEffect(() => {
+    setLoadingCards(true);
     Promise.all([
-      getDashboardResumen(),
-      getDocumentosVencidos(),
-      getUltimosViajes(),
+      getTotalesIngresos(mesSeleccionado, anio),
+      getTotalesGastos(mesSeleccionado, anio),
+      getTotalesPagos(mesSeleccionado, anio),
     ])
-      .then(([res, docs, viajes]) => {
-        setResumen(res);
-        setDocsVencidos(docs);
-        setUltimosViajes(viajes);
-      })
-      .catch(() => toast.error("Error al cargar el dashboard"))
-      .finally(() => {
-        setLoadingResumen(false);
-        setLoadingDocs(false);
-        setLoadingViajes(false);
-      });
+      .then(([ing, gst, pag]) => { setIngresos(ing); setGastos(gst); setPagos(pag); })
+      .catch(() => toast.error("Error al cargar los totales"))
+      .finally(() => setLoadingCards(false));
+  }, [mesSeleccionado, anio]);
+
+  // Alertas y viajes: cargan una sola vez
+  useEffect(() => {
+    getAlertasDashboard()
+      .then(setAlertas)
+      .catch(() => toast.error("Error al cargar alertas"))
+      .finally(() => setLoadingAlertas(false));
+
+    getViajesRecientes()
+      .then(setViajes)
+      .catch(() => toast.error("Error al cargar viajes recientes"))
+      .finally(() => setLoadingViajes(false));
   }, []);
 
-  const cargarEstadoResultados = useCallback(async () => {
-    setLoadingEstado(true);
-    try {
-      const data = await getEstadoResultados(mesSeleccionado, anioSeleccionado);
-      setEstadoResultados(data);
-    } catch {
-      toast.error("Error al cargar el estado de resultados");
-    } finally {
-      setLoadingEstado(false);
-    }
-  }, [mesSeleccionado, anioSeleccionado]);
-
-  useEffect(() => {
-    cargarEstadoResultados();
-  }, [cargarEstadoResultados]);
-
-  const mesLabel =
-    MESES.find((m) => m.value === mesSeleccionado)?.label ?? mesSeleccionado;
+  // Estado de resultados calculado desde los datos ya cargados
+  const utilidadNeta = ingresos.totalIngresos - gastos.totalGastos;
+  const mesLabel = MESES.find((m) => m.value === mesSeleccionado)?.label ?? mesSeleccionado;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
-      <ModuleHeader
-        title="Dashboard Principal"
-        subtitle="Panel de control de transporte y logística"
-      />
+      <ModuleHeader title="Dashboard Principal" subtitle="Panel de control de transporte y logística" />
 
-      {/* ── Tarjetas de resumen ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* ── Cards de totales ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           label="Ingresos Totales"
-          value={loadingResumen ? "..." : `${fmt(resumen.total_ingresos)} Bs`}
+          value={loadingCards ? "..." : `${fmt(ingresos.totalIngresos)} Bs`}
           icon={<TrendingUp size={20} />}
           borderColor="border-[var(--yuriana-card-border)]"
-          iconBg="bg-orange-50"
-          iconColor="text-[var(--yuriana-base-orange)]"
+          iconBg="bg-orange-50" iconColor="text-[var(--yuriana-base-orange)]"
         />
         <StatCard
           label="Gastos Totales"
-          value={loadingResumen ? "..." : `${fmt(resumen.total_gastos)} Bs`}
+          value={loadingCards ? "..." : `${fmt(gastos.totalGastos)} Bs`}
           icon={<TrendingDown size={20} />}
-          borderColor="border-rose-200"
-          iconBg="bg-rose-50"
-          iconColor="text-rose-500"
+          borderColor="border-rose-200" iconBg="bg-rose-50" iconColor="text-rose-500"
         />
         <StatCard
-          label="Total Pagos por Cobrar"
-          value={
-            loadingResumen
-              ? "..."
-              : `${fmt(resumen.total_pagos_por_cobrar)} Bs`
-          }
-          icon={<Clock size={20} />}
-          borderColor="border-amber-200"
-          iconBg="bg-amber-50"
-          iconColor="text-amber-500"
-        />
-        <StatCard
-          label="Total Pagos Cobrados"
-          value={
-            loadingResumen ? "..." : `${fmt(resumen.total_pagos_cobrados)} Bs`
-          }
+          label="Total Cobrado"
+          value={loadingCards ? "..." : `${fmt(pagos.total_cobrado)} Bs`}
           icon={<CheckCircle2 size={20} />}
-          borderColor="border-emerald-200"
-          iconBg="bg-emerald-50"
-          iconColor="text-emerald-500"
+          borderColor="border-emerald-200" iconBg="bg-emerald-50" iconColor="text-emerald-500"
+        />
+        <StatCard
+          label="Por Cobrar"
+          value={loadingCards ? "..." : `${fmt(pagos.total_por_cobrar)} Bs`}
+          icon={<Clock size={20} />}
+          borderColor="border-amber-200" iconBg="bg-amber-50" iconColor="text-amber-500"
+        />
+        <StatCard
+          label="Pagos Retrasados"
+          value={loadingCards ? "..." : `${fmt(pagos.total_retrasado)} Bs`}
+          icon={<AlertTriangle size={20} />}
+          borderColor="border-rose-300" iconBg="bg-rose-50" iconColor="text-rose-600"
         />
       </div>
 
-      {/* ── Estado de resultados + Documentos vencidos ── */}
+      {/* ── Estado de resultados + Alertas documentales ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Estado de Resultados */}
         <div className="lg:col-span-2 bg-white rounded-3xl border border-border shadow-xl overflow-hidden">
-          <div className="flex items-center justify-between px-6 pt-5 pb-3">
+          <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-slate-100">
             <h2 className="font-black text-sm uppercase tracking-tight text-[var(--yuriana-base-gray-dark)]">
               Estado de Resultados
             </h2>
@@ -185,164 +138,91 @@ export default function DashboardPage() {
               onChange={(e) => setMesSeleccionado(e.target.value)}
               className="text-xs font-bold bg-[var(--yuriana-base-orange)] text-white rounded-xl px-3 py-1.5 outline-none cursor-pointer"
             >
-              {MESES.map((m) => (
-                <option key={m.value} value={m.value}>
-                  {m.label}
-                </option>
-              ))}
+              {MESES.map((m) => <option key={m.value} value={m.value}>{m.label} {anio}</option>)}
             </select>
           </div>
-
-          {loadingEstado ? (
-            <div className="py-16 text-center text-xs text-slate-400 italic">
-              Cargando...
-            </div>
-          ) : estadoResultados ? (
+          {loadingCards ? (
+            <div className="py-16 text-center text-xs text-slate-400 italic">Cargando...</div>
+          ) : (
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-slate-50 border-y border-slate-100">
-                  <th className="px-6 py-2.5 text-left font-black uppercase text-[var(--yuriana-base-gray-dark)] tracking-wider text-[10px]">
-                    Concepto
-                  </th>
-                  <th className="px-6 py-2.5 text-right font-black uppercase text-[var(--yuriana-base-gray-dark)] tracking-wider text-[10px]">
-                    Monto Acumulado
-                  </th>
+                  <th className="px-6 py-2.5 text-left font-black uppercase text-[var(--yuriana-base-gray-dark)] tracking-wider text-[10px]">Concepto</th>
+                  <th className="px-6 py-2.5 text-right font-black uppercase text-[var(--yuriana-base-gray-dark)] tracking-wider text-[10px]">Monto</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {[
-                  { label: "Ingresos Fletes",            value: estadoResultados.ingresos_fletes,        highlight: false },
-                  { label: "Ingresos Extras",             value: estadoResultados.ingresos_extras,        highlight: false },
-                  { label: "Total Gastos del Servicio",   value: estadoResultados.total_gastos_servicio,  highlight: false },
-                  { label: "Total Gastos Operativos",     value: estadoResultados.total_gastos_operativos,highlight: false },
-                  { label: "Total Gastos Administrativos",value: estadoResultados.total_gastos_admin,     highlight: false },
-                  { label: "Total Gastos Generales",      value: estadoResultados.total_gastos_generales, highlight: false },
-                  { label: "Utilidad Neta",               value: estadoResultados.utilidad_neta,          highlight: true  },
+                  { label: "Ingresos Fletes",              value: ingresos.totalFletes,                  highlight: false },
+                  { label: "Ingresos Extras",               value: ingresos.totalIngresoExtras,           highlight: false },
+                  { label: "Total Gastos del Servicio",     value: gastos.totalGastosViaje,               highlight: false },
+                  { label: "Total Gastos Operativos",       value: gastos.totalGastosOperativos,          highlight: false },
+                  { label: "Total Gastos Administrativos",  value: gastos.totalGastosAdministrativos,     highlight: false },
+                  { label: "Total Gastos Generales",        value: gastos.totalGastosGenerales,           highlight: false },
+                  { label: "Utilidad Neta",                 value: utilidadNeta,                          highlight: true  },
                 ].map((row) => (
-                  <tr
-                    key={row.label}
-                    className={row.highlight ? "bg-orange-50 font-black" : "hover:bg-slate-50/40 transition-colors"}
-                  >
+                  <tr key={row.label} className={row.highlight ? "bg-orange-50 font-black" : "hover:bg-slate-50/40 transition-colors"}>
                     <td className={`px-6 py-3 text-xs ${row.highlight ? "text-[var(--yuriana-base-orange)] uppercase tracking-wide font-black" : "text-[var(--yuriana-base-gray-dark)] font-medium"}`}>
                       {row.label}
                     </td>
-                    <td className={`px-6 py-3 text-right text-xs font-bold ${
-                      row.highlight
-                        ? row.value >= 0 ? "text-emerald-600" : "text-[var(--yuriana-base-red)]"
-                        : "text-[var(--yuriana-base-gray-dark)]"
-                    }`}>
+                    <td className={`px-6 py-3 text-right text-xs font-bold ${row.highlight ? (row.value >= 0 ? "text-emerald-600" : "text-rose-500") : "text-[var(--yuriana-base-gray-dark)]"}`}>
                       {fmt(row.value)} Bs
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          ) : (
-            <div className="py-16 text-center text-xs text-slate-400 italic">
-              No hay datos para {mesLabel} {anioSeleccionado}
-            </div>
           )}
         </div>
 
         {/* Alertas Documentales */}
         <div className="bg-white rounded-3xl border border-border shadow-xl overflow-hidden flex flex-col">
-          {/* Header */}
           <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-100">
-            <h2 className="font-black text-sm uppercase tracking-tight text-[var(--yuriana-base-gray-dark)]">
-              Alertas Documentales
-            </h2>
-            {docsVencidos.length > 0 && (
+            <h2 className="font-black text-sm uppercase tracking-tight text-[var(--yuriana-base-gray-dark)]">Alertas Documentales</h2>
+            {alertas.length > 0 && (
               <span className="bg-[var(--yuriana-alert-vencido-border)] text-white text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider">
-                {docsVencidos.length} alerta{docsVencidos.length !== 1 ? "s" : ""}
+                {alertas.length} alerta{alertas.length !== 1 ? "s" : ""}
               </span>
             )}
           </div>
-
-          {loadingDocs ? (
-            <div className="py-12 text-center text-xs text-slate-400 italic">
-              Cargando alertas...
-            </div>
-          ) : docsVencidos.length === 0 ? (
+          {loadingAlertas ? (
+            <div className="py-12 text-center text-xs text-slate-400 italic">Cargando alertas...</div>
+          ) : alertas.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 gap-2 px-4">
               <span className="text-2xl">✅</span>
-              <span className="text-xs font-bold text-[var(--yuriana-base-gray-dark)] text-center">
-                Todos los documentos están vigentes
-              </span>
+              <span className="text-xs font-bold text-[var(--yuriana-base-gray-dark)] text-center">Todos los documentos están vigentes</span>
             </div>
           ) : (
             <div className="px-4 pb-5 pt-3 space-y-5 overflow-y-auto max-h-[420px] custom-scrollbar">
               {(["CONDUCTOR", "UNIDAD"] as const).map((tipo) => {
-                const items = docsVencidos.filter((d) => d.tipo === tipo);
+                const items = alertas.filter((d) => d.tipo === tipo);
                 if (items.length === 0) return null;
-
                 return (
                   <div key={tipo} className="space-y-2">
-                    {/* Sub-encabezado por tipo */}
                     <div className="flex items-center gap-2 mb-1">
                       <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-100">
-                        {tipo === "UNIDAD" ? (
-                          <Truck size={13} className="text-[var(--yuriana-base-gray-dark)]" />
-                        ) : (
-                          <UserCircle size={13} className="text-[var(--yuriana-base-gray-dark)]" />
-                        )}
+                        {tipo === "UNIDAD" ? <Truck size={13} className="text-[var(--yuriana-base-gray-dark)]" /> : <UserCircle size={13} className="text-[var(--yuriana-base-gray-dark)]" />}
                       </div>
                       <span className="text-[10px] font-black uppercase tracking-widest text-[var(--yuriana-base-gray-dark)]">
                         {tipo === "UNIDAD" ? "Unidades" : "Conductores"}
                       </span>
-                      <span className="ml-auto text-[9px] font-black bg-slate-100 text-[var(--yuriana-base-gray-dark)] px-2 py-0.5 rounded-full">
-                        {items.length}
-                      </span>
+                      <span className="ml-auto text-[9px] font-black bg-slate-100 text-[var(--yuriana-base-gray-dark)] px-2 py-0.5 rounded-full">{items.length}</span>
                     </div>
-
-                    {/* Tarjetas de documentos */}
                     {items.map((doc) => {
                       const esVencido = doc.urgencia === "VENCIDO";
                       const esHoy = doc.urgencia === "HOY";
                       return (
-                        <div
-                          key={doc.id_documento}
+                        <div key={doc.id_documento}
                           className="flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 border-l-4"
-                          style={{
-                            background: esVencido
-                              ? "var(--yuriana-alert-vencido-bg)"
-                              : "var(--yuriana-alert-porvencer-bg)",
-                            borderLeftColor: esVencido
-                              ? "var(--yuriana-alert-vencido-border)"
-                              : "var(--yuriana-alert-porvencer-border)",
-                            borderTopColor: "transparent",
-                            borderRightColor: "transparent",
-                            borderBottomColor: "transparent",
-                          }}
+                          style={{ background: esVencido ? "var(--yuriana-alert-vencido-bg)" : "var(--yuriana-alert-porvencer-bg)", borderLeftColor: esVencido ? "var(--yuriana-alert-vencido-border)" : "var(--yuriana-alert-porvencer-border)", borderTopColor: "transparent", borderRightColor: "transparent", borderBottomColor: "transparent" }}
                         >
-                          {/* Nombre y tipo de documento */}
                           <div className="flex flex-col min-w-0">
-                            <span className="text-xs font-black text-[var(--yuriana-base-gray-dark)] truncate leading-tight">
-                              {doc.nombre}
-                            </span>
-                            <span className="text-[10px] font-semibold text-[var(--yuriana-base-gray-dark)] opacity-70 truncate">
-                              {doc.tipo_documento}
-                            </span>
+                            <span className="text-xs font-black text-[var(--yuriana-base-gray-dark)] truncate leading-tight">{doc.nombre}</span>
+                            <span className="text-[10px] font-semibold text-[var(--yuriana-base-gray-dark)] opacity-70 truncate">{doc.tipo_documento}</span>
                           </div>
-
-                          {/* Badge de urgencia */}
-                          <span
-                            className="shrink-0 flex flex-col items-center text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wide text-white text-center"
-                            style={{
-                              background: esVencido
-                                ? "var(--yuriana-alert-vencido-border)"
-                                : "var(--yuriana-alert-porvencer-border)",
-                            }}
-                          >
-                            {esVencido
-                              ? "Vencido"
-                              : esHoy
-                                ? "Hoy"
-                                : (
-                                  <>
-                                    <span>Por vencer</span>
-                                    <span>{doc.dias_restantes} días</span>
-                                  </>
-                                )}
+                          <span className="shrink-0 flex flex-col items-center text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wide text-white text-center"
+                            style={{ background: esVencido ? "var(--yuriana-alert-vencido-border)" : "var(--yuriana-alert-porvencer-border)" }}>
+                            {esVencido ? "Vencido" : esHoy ? "Hoy" : <><span>Por vencer</span><span>{doc.dias_restantes} días</span></>}
                           </span>
                         </div>
                       );
@@ -355,22 +235,15 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Últimos viajes ── */}
+      {/* ── Viajes Recientes ── */}
       <div className="bg-white rounded-3xl border border-border shadow-xl overflow-hidden">
         <div className="px-6 pt-5 pb-3 border-b border-slate-100">
-          <h2 className="font-black text-sm uppercase tracking-tight text-[var(--yuriana-base-gray-dark)]">
-            Viajes Recientes
-          </h2>
+          <h2 className="font-black text-sm uppercase tracking-tight text-[var(--yuriana-base-gray-dark)]">Viajes Recientes</h2>
         </div>
-
         {loadingViajes ? (
-          <div className="py-12 text-center text-xs text-slate-400 italic">
-            Cargando...
-          </div>
-        ) : ultimosViajes.length === 0 ? (
-          <div className="py-12 text-center text-xs text-slate-400 italic">
-            No hay viajes registrados.
-          </div>
+          <div className="py-12 text-center text-xs text-slate-400 italic">Cargando...</div>
+        ) : viajes.length === 0 ? (
+          <div className="py-12 text-center text-xs text-slate-400 italic">No hay viajes registrados.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -387,64 +260,35 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-xs font-medium text-[var(--yuriana-base-gray-dark)]">
-                {ultimosViajes.map((v) => {
-                  const esInternacional = v.tipo_categoria
-                    ?.toUpperCase()
-                    .includes("INTERNACIONAL");
+                {viajes.map((v) => {
+                  const esInternacional = v.tipo_categoria?.toUpperCase().includes("INTERNACIONAL");
                   return (
-                    <tr
-                      key={v.id_servicio}
-                      className="hover:bg-slate-50/70 transition-colors"
-                    >
-                      <td className="px-4 py-3 font-bold text-[var(--yuriana-base-orange)]">
-                        {v.codigo_servicio}
-                      </td>
+                    <tr key={v.id_servicio} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="px-4 py-3 font-bold text-[var(--yuriana-base-orange)]">{v.codigo_servicio}</td>
                       <td className="px-4 py-3">
-                        <div className="font-semibold text-[var(--yuriana-base-gray-dark)]">
-                          {v.cliente_nombre || "-"}
-                        </div>
-                        <div className="text-[10px] opacity-60 font-medium">
-                          {v.conductor_nombre || "-"}
-                        </div>
+                        <div className="font-semibold">{v.cliente_nombre || "-"}</div>
+                        <div className="text-[10px] opacity-60">{v.conductor_nombre || "-"}</div>
                       </td>
                       <td className="px-4 py-3">
                         <div className="font-semibold">{v.tracto_placa || "-"}</div>
-                        <div className="text-[10px] opacity-60">
-                          {v.remolque_placa || ""}
-                        </div>
+                        <div className="text-[10px] opacity-60">{v.remolque_placa || ""}</div>
                       </td>
                       <td className="px-4 py-3">
-                        <div>
-                          {v.origen} → {v.destino}
-                        </div>
-                        <span
-                          className={`inline-block mt-0.5 text-[10px] font-black px-2 py-0.5 rounded-md border ${
-                            esInternacional
-                              ? "bg-blue-50 text-blue-600 border-blue-200"
-                              : "bg-emerald-50 text-emerald-600 border-emerald-200"
-                          }`}
-                        >
+                        <div>{v.origen} → {v.destino}</div>
+                        <span className={`inline-block mt-0.5 text-[10px] font-black px-2 py-0.5 rounded-md border ${esInternacional ? "bg-blue-50 text-blue-600 border-blue-200" : "bg-emerald-50 text-emerald-600 border-emerald-200"}`}>
                           {esInternacional ? "INTERNACIONAL" : "NACIONAL"}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right font-bold">
-                        {fmt(Number(v.total_flete))} Bs
-                      </td>
-                      <td className="px-4 py-3 text-[10px] text-[var(--yuriana-base-gray-dark)] opacity-80">
+                      <td className="px-4 py-3 text-right font-bold">{fmt(Number(v.total_flete))} Bs</td>
+                      <td className="px-4 py-3 text-[10px] opacity-80">
                         <div>Inicio: {fmtFecha(v.fecha_inicio)}</div>
                         <div>Fin: {fmtFecha(v.fecha_fin)}</div>
                       </td>
                       <td className="px-4 py-3">
-                        <span
-                          className={`text-[10px] font-black px-2.5 py-1 rounded-lg border ${ESTADO_PAGO_STYLE[v.estado_pago]}`}
-                        >
-                          {v.estado_pago}
-                        </span>
+                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg border ${ESTADO_PAGO_STYLE[v.estado_pago]}`}>{v.estado_pago}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span
-                          className={`text-[10px] font-black px-2.5 py-1 rounded-lg border ${ESTADO_SERVICIO_STYLE[v.estado_servicio]}`}
-                        >
+                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg border ${ESTADO_SERVICIO_STYLE[v.estado_servicio]}`}>
                           • {v.estado_servicio === "EN_CURSO" ? "EN CURSO" : "FINALIZADO"}
                         </span>
                       </td>

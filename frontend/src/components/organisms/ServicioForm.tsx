@@ -1,13 +1,19 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { Info, MapPin, FileText, Ship, Users, Truck, UserCheck, DollarSign, Calendar, Package, Search, Upload, X } from "lucide-react";
+import { Info, MapPin, FileText, Ship, Users, Truck, UserCheck, DollarSign, Calendar, Package, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { ServicioItem, Moneda, Operador } from "@/types/servicio.types";
 import { crearServicio, editarServicio } from "@/lib/api/servicio.api";
 import { getCategorias } from "@/lib/api/requisito.api";
 import { getAsignaciones } from "@/lib/api/asignacion.api";
 import { getRequisitos } from "@/lib/api/requisito.api";
+import { getClientes } from "@/lib/api/cliente.api";
+import { getColaboradores } from "@/lib/api/colaborador.api";
 import { apiFetch } from "@/lib/api";
+import { SearchableCombobox } from "@/components/molecules/SearchableCombobox";
+import type { Cliente } from "@/types/cliente.types";
+import type { Colaborador } from "@/types/colaborador.types";
+import type { Asignacion } from "@/types/asignacion.types";
 
 const INPUT_CLASS =
   "w-full bg-[var(--yuriana-input-bg)] border border-[var(--yuriana-input-border)] rounded-xl py-2 px-3 text-xs font-medium text-[var(--yuriana-input-text)] placeholder:text-[var(--yuriana-input-placeholder)] outline-none focus:border-[var(--yuriana-input-border-focus)] transition-all disabled:opacity-60";
@@ -186,8 +192,29 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
   const [descripcionCarga, setDescripcionCarga] = useState("");
   const [voucher, setVoucher] = useState<File | null>(null);
 
+  const [fotosEliminadas, setFotosEliminadas] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
   const facturaInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Listas para comboboxes ───────────────────────────────────────────────
+  const [listaClientes, setListaClientes] = useState<Cliente[]>([]);
+  const [listaAsignaciones, setListaAsignaciones] = useState<Asignacion[]>([]);
+  const [listaColaboradores, setListaColaboradores] = useState<Colaborador[]>([]);
+  const [loadingListas, setLoadingListas] = useState(false);
+
+  // ── Cargar listas para comboboxes al montar ──────────────────────────────
+  useEffect(() => {
+    if (isReadOnly) return;
+    setLoadingListas(true);
+    Promise.all([getClientes(), getAsignaciones(), getColaboradores()])
+      .then(([clientes, asignaciones, colaboradores]) => {
+        setListaClientes(clientes);
+        setListaAsignaciones(asignaciones);
+        setListaColaboradores(colaboradores);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingListas(false));
+  }, [isReadOnly]);
 
   // ── Cargar categorías y requisitos ───────────────────────────────────────
   useEffect(() => {
@@ -288,7 +315,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
 
   // ── Buscar colaborador por CI ────────────────────────────────────────────
   const buscarColaborador = async () => {
-    if (!ciColaborador.trim()) return;
+    if (!ciColaborador.trim()) return toast.error("Ingresa el CI del colaborador");
     try {
       const data = await apiFetch(`/colaborador/${ciColaborador.trim()}`);
       setIdColaborador(data.id_colaborador);
@@ -309,6 +336,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     if (esInternacional && !crt.trim()) return toast.error("El CRT es obligatorio para viajes internacionales");
     if (!idCliente) return toast.error("Busca y selecciona un cliente");
     if (!idAsignacion) return toast.error("Busca y selecciona un conductor/unidad");
+    if (!idColaborador) return toast.error("Busca y selecciona un colaborador");
     if (!fechaInicio) return toast.error("La fecha de inicio es obligatoria");
     if (flete <= 0) return toast.error("El flete debe ser mayor a 0");
     if (fleteAdicional < 0) return toast.error("El flete adicional no puede ser negativo");
@@ -336,11 +364,11 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     if (fechaFin) {
       if (!periodoLiquidacion || periodoLiquidacion <= 0)
         return toast.error("El período de liquidación es obligatorio al finalizar el viaje");
-      if (!voucher && !initialData?.comprobante_pago)
-        return toast.error("El comprobante de pago es obligatorio al finalizar el viaje");
-      const tieneFacturasExistentes = (initialData?.factura?.fotos?.length ?? 0) > 0;
-      if (esFacturado !== "si" || (archivosFactura.length === 0 && !tieneFacturasExistentes))
-        return toast.error("La factura es obligatoria al finalizar el viaje");
+      if (esFacturado === "si") {
+        const tieneFacturasExistentes = (initialData?.factura?.fotos?.filter(f => !fotosEliminadas.includes(f.id_foto_factura)).length ?? 0) > 0;
+        if (archivosFactura.length === 0 && !tieneFacturasExistentes)
+          return toast.error("Si el viaje está facturado, sube al menos una foto de factura");
+      }
     }
 
     const fd = new FormData();
@@ -357,9 +385,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     }
     fd.append("id_cliente",     String(idCliente));
     fd.append("id_asignacion",  String(idAsignacion));
-    if (idColaborador) {
-      fd.append("id_colaborador", String(idColaborador));
-    }
+    fd.append("id_colaborador", String(idColaborador));
     fd.append("moneda",         moneda);
     if (moneda === Moneda.DOLAR && tipoCambio > 0) fd.append("tipo_cambio", String(tipoCambio));
     fd.append("flete",          String(flete));
@@ -369,6 +395,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     if (periodoLiquidacion > 0) fd.append("periodo_liquidacion", String(periodoLiquidacion));
     if (descripcionCarga) fd.append("descripcion_carga", descripcionCarga.trim());
     if (voucher) fd.append("vaucher", voucher);
+    if (fotosEliminadas.length > 0) fd.append("ids_fotos_eliminar", fotosEliminadas.join(","));
 
     // Documentación aduanera
     const idsRequisitos: number[] = [];
@@ -495,11 +522,19 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {/* Fotos existentes */}
-                  {initialData?.factura?.fotos?.map((f) => (
-                    <a key={f.id_foto_factura} href={f.url_foto} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 px-3 py-2 rounded-xl border-2 border-dashed border-[var(--yuriana-base-orange)] bg-orange-50/40 text-[10px] font-bold text-[var(--yuriana-base-orange)] underline min-h-[50px]">
-                      Ver archivo
-                    </a>
+                  {initialData?.factura?.fotos?.filter(f => !fotosEliminadas.includes(f.id_foto_factura)).map((f) => (
+                    <div key={f.id_foto_factura} className="relative flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-dashed border-[var(--yuriana-base-orange)] bg-orange-50/40 min-h-[50px]">
+                      <a href={f.url_foto} target="_blank" rel="noopener noreferrer"
+                        className="text-[10px] font-bold text-[var(--yuriana-base-orange)] underline">
+                        Ver archivo
+                      </a>
+                      {!isReadOnly && (
+                        <button type="button" onClick={() => setFotosEliminadas(prev => [...prev, f.id_foto_factura])}
+                          className="absolute top-1 right-1 text-rose-400 hover:text-rose-600">
+                          <X size={10} />
+                        </button>
+                      )}
+                    </div>
                   ))}
                   {/* Nuevos archivos seleccionados */}
                   {archivosFactura.map((f, i) => (
@@ -512,7 +547,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
                     </div>
                   ))}
                   {/* Botón agregar */}
-                  {!isReadOnly && ((initialData?.factura?.fotos?.length ?? 0) + archivosFactura.length) < 10 && (
+                  {!isReadOnly && ((initialData?.factura?.fotos?.filter(f => !fotosEliminadas.includes(f.id_foto_factura)).length ?? 0) + archivosFactura.length) < 10 && (
                     <button type="button" onClick={() => facturaInputRef.current?.click()}
                       className="flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-xl border-2 border-dashed border-[var(--yuriana-input-border)] hover:border-[var(--yuriana-base-orange)] bg-[var(--yuriana-input-bg)] min-h-[50px] transition-all">
                       <Upload size={14} className="text-[var(--yuriana-input-placeholder)]" />
@@ -530,7 +565,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
                       }
                       return true;
                     });
-                    const total = (initialData?.factura?.fotos?.length ?? 0) + archivosFactura.length;
+                    const total = (initialData?.factura?.fotos?.filter(f => !fotosEliminadas.includes(f.id_foto_factura)).length ?? 0) + archivosFactura.length;
                     const disponibles = Math.max(0, 10 - total);
                     setArchivosFactura(prev => [...prev, ...validos.slice(0, disponibles)]);
                     e.target.value = "";
@@ -573,17 +608,28 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
       <div className="bg-[var(--yuriana-card-bg)] rounded-3xl border border-border shadow-xl p-8 space-y-5">
         <SectionHeader icon={<Users size={16} />} title="Datos del Cliente" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-          <Field label="Id Cliente (CI)" required>
-            <div className="flex gap-2">
-              <input className={INPUT_CLASS} value={ciCliente} onChange={(e) => setCiCliente(e.target.value)}
-                disabled={isReadOnly} placeholder="Buscar CI..." onKeyDown={(e) => e.key === "Enter" && buscarCliente()} />
-              {!isReadOnly && (
-                <button type="button" onClick={buscarCliente}
-                  className="px-3 rounded-xl bg-[var(--yuriana-base-yellow)] hover:opacity-90 active:scale-95 transition-all">
-                  <Search size={13} />
-                </button>
-              )}
-            </div>
+          <Field label="Cliente" required>
+            <SearchableCombobox
+              options={listaClientes.map((c) => ({
+                value: c.id_cliente,
+                label: c.persona.nombre,
+                sublabel: `CI: ${c.persona.ci} · ${c.razon_social ?? ""}`,
+              }))}
+              value={nombreCliente}
+              placeholder="Seleccionar cliente..."
+              loading={loadingListas}
+              disabled={isReadOnly}
+              onSelect={(opt) => {
+                const c = listaClientes.find((x) => x.id_cliente === opt.value);
+                if (c) {
+                  setIdCliente(c.id_cliente);
+                  setCiCliente(String(c.persona.ci));
+                  setNombreCliente(c.persona.nombre);
+                  setNitCliente(String(c.nit ?? ""));
+                  setRazonSocial(c.razon_social ?? "");
+                }
+              }}
+            />
           </Field>
           <Field label="NIT">
             <input className={INPUT_CLASS} value={nitCliente} disabled readOnly placeholder="-" />
@@ -601,17 +647,28 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
       <div className="bg-[var(--yuriana-card-bg)] rounded-3xl border border-border shadow-xl p-8 space-y-5">
         <SectionHeader icon={<Truck size={16} />} title="Datos del Conductor y la Unidad" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-          <Field label="CI del Conductor" required>
-            <div className="flex gap-2">
-              <input className={INPUT_CLASS} value={ciConductor} onChange={(e) => setCiConductor(e.target.value)}
-                disabled={isReadOnly} placeholder="Buscar CI..." onKeyDown={(e) => e.key === "Enter" && buscarAsignacion()} />
-              {!isReadOnly && (
-                <button type="button" onClick={buscarAsignacion}
-                  className="px-3 rounded-xl bg-[var(--yuriana-base-yellow)] hover:opacity-90 active:scale-95 transition-all">
-                  <Search size={13} />
-                </button>
-              )}
-            </div>
+          <Field label="Conductor" required>
+            <SearchableCombobox
+              options={listaAsignaciones.map((a) => ({
+                value: a.id_asignacion,
+                label: a.conductor?.persona?.nombre ?? "",
+                sublabel: `CI: ${a.conductor?.persona?.ci ?? ""} · ${a.tracto?.placa ?? ""}`,
+              }))}
+              value={nombreConductor}
+              placeholder="Seleccionar conductor..."
+              loading={loadingListas}
+              disabled={isReadOnly}
+              onSelect={(opt) => {
+                const a = listaAsignaciones.find((x) => x.id_asignacion === opt.value);
+                if (a) {
+                  setIdAsignacion(a.id_asignacion);
+                  setCiConductor(String(a.conductor?.persona?.ci ?? ""));
+                  setNombreConductor(a.conductor?.persona?.nombre ?? "");
+                  setPlacaTracto(a.tracto?.placa ?? "");
+                  setTipoUnidad((a.tracto as any)?.categoria?.tipo_categoria ?? "");
+                }
+              }}
+            />
           </Field>
           <Field label="Nombre Conductor">
             <input className={INPUT_CLASS} value={nombreConductor} disabled readOnly placeholder="-" />
@@ -625,21 +682,31 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
         </div>
       </div>
 
-      {/* Sección: Datos del Colaborador (opcional) */}
+      {/* Sección: Datos del Colaborador */}
       <div className="bg-[var(--yuriana-card-bg)] rounded-3xl border border-border shadow-xl p-8 space-y-5">
         <SectionHeader icon={<UserCheck size={16} />} title="Datos del Colaborador" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-          <Field label="CI del Colaborador" optional>
-            <div className="flex gap-2">
-              <input className={INPUT_CLASS} value={ciColaborador} onChange={(e) => setCiColaborador(e.target.value)}
-                disabled={isReadOnly} placeholder="Opcional..." onKeyDown={(e) => e.key === "Enter" && buscarColaborador()} />
-              {!isReadOnly && (
-                <button type="button" onClick={buscarColaborador}
-                  className="px-3 rounded-xl bg-[var(--yuriana-base-yellow)] hover:opacity-90 active:scale-95 transition-all">
-                  <Search size={13} />
-                </button>
-              )}
-            </div>
+          <Field label="Colaborador" required>
+            <SearchableCombobox
+              options={listaColaboradores.map((c) => ({
+                value: c.id_colaborador,
+                label: c.persona.nombre,
+                sublabel: `CI: ${c.persona.ci} · ${c.agencia ?? ""}`,
+              }))}
+              value={nombreColaborador}
+              placeholder="Seleccionar colaborador..."
+              loading={loadingListas}
+              disabled={isReadOnly}
+              onSelect={(opt) => {
+                const c = listaColaboradores.find((x) => x.id_colaborador === opt.value);
+                if (c) {
+                  setIdColaborador(c.id_colaborador);
+                  setCiColaborador(String(c.persona.ci));
+                  setNombreColaborador(c.persona.nombre);
+                  setAgenciaColaborador(c.agencia ?? "");
+                }
+              }}
+            />
           </Field>
           <Field label="Nombre Colaborador">
             <input className={INPUT_CLASS} value={nombreColaborador} disabled readOnly placeholder="-" />
@@ -723,7 +790,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
           </Field>
           <FileUploadSlot label="Voucher / Comprobante"
             file={voucher} onChange={setVoucher} disabled={isReadOnly}
-            required={tieneFechaFin} optional={!tieneFechaFin}
+            optional
             existingUrl={initialData?.comprobante_pago} />
           <Field label="Estado de Pago">
             <input className={`${INPUT_CLASS} uppercase`} disabled readOnly

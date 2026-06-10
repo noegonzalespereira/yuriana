@@ -186,7 +186,7 @@ async registrarConDocumentos(
     if (filters.id_categoria) query.andWhere('unidad.id_categoria = :id_categoria', { id_categoria: filters.id_categoria });
     if (filters.placa) query.andWhere('unidad.placa LIKE :placa', { placa: `%${filters.placa.toUpperCase()}%` });
 
-    const unidades = await query.getMany();
+    const unidades = await query.orderBy('unidad.createdAt', 'DESC').getMany();
     return await Promise.all(
       unidades.map(async (unidad) => {
         unidad.fotos = (unidad.fotos || []).filter(f => f.status === true);

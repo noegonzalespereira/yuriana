@@ -60,7 +60,7 @@ export class FacturacionService {
   async findOne(id: number): Promise<Factura> {
     const factura = await this.facturaRepo.findOne({
       where: { id_factura: id, status: true },
-      relations: ['servicio']
+      relations: ['servicio', 'fotos']
     });
 
     if (!factura) {

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { PlusCircle, Trash2, Info, Users, Wallet, ClipboardList } from "lucide-react";
+import { SearchableCombobox } from "@/components/molecules/SearchableCombobox";
 import { toast } from "sonner";
 import { TipoGastoServicio, ItemGastoForm, ServicioResumen, GastosServicio } from "@/types/gasto.types";
 import { guardarGastoServicio } from "@/lib/api/gasto.api";
@@ -186,22 +187,20 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
               <label className="text-[10px] font-black uppercase tracking-widest text-[var(--yuriana-input-label)]">
                 ID Viaje
               </label>
-              {isReadOnly ? (
-                <ReadField label="" value={selectedServicio?.codigo_servicio ?? "-"} />
-              ) : (
-                <select
-                  value={selectedServicio?.id_servicio ?? ""}
-                  onChange={handleSelectServicio}
-                  className="bg-[var(--yuriana-input-bg)] border border-[var(--yuriana-input-border)] text-sm rounded-xl px-4 py-2.5 outline-none focus:border-[var(--yuriana-input-border-focus)] transition-colors font-medium min-h-[42px]"
-                >
-                  <option value="">Introduce el id_viaje</option>
-                  {servicios.map((s) => (
-                    <option key={s.id_servicio} value={s.id_servicio}>
-                      {s.codigo_servicio}
-                    </option>
-                  ))}
-                </select>
-              )}
+              <SearchableCombobox
+                options={servicios.map((s) => ({
+                  value: s.id_servicio,
+                  label: s.codigo_servicio,
+                  sublabel: `${s.origen ?? ""} → ${s.destino ?? ""}`,
+                }))}
+                value={selectedServicio?.codigo_servicio ?? ""}
+                placeholder="Seleccionar viaje..."
+                disabled={isReadOnly}
+                onSelect={(opt) => {
+                  const sv = servicios.find((s) => s.id_servicio === opt.value) ?? null;
+                  setSelectedServicio(sv);
+                }}
+              />
             </div>
             <ReadField label="Tipo viaje" value={selectedServicio?.categoria?.nombre ?? "-"} />
             <ReadField label="Origen" value={selectedServicio?.origen ?? ""} />

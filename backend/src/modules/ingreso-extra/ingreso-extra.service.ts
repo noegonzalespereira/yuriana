@@ -46,23 +46,29 @@ export class IngresoExtraService {
     return query.orderBy('ie.fecha', 'DESC').getMany();
   }
 
-  async getTotales() {
-    const totalExtras = await this.ingresoExtraRepository
-      .createQueryBuilder('ie')
-      .select('SUM(ie.monto)', 'total')
-      .where('ie.status = true')
-      .getRawOne();
+  async getTotales(mes?: string, anio?: number) {
+    const now = new Date();
+    const mesParam = mes || (now.getMonth() + 1).toString().padStart(2, '0');
+    const anioParam = anio || now.getFullYear();
 
-    const totalFletes = await this.dataSource
-      .createQueryBuilder()
-      .select('SUM(s.total_flete)', 'total')
-      .from('servicio', 's')
-      .where('s.status = true')
-      .getRawOne();
+    const [extrasResult, fletesResult] = await Promise.all([
+      this.ingresoExtraRepository.createQueryBuilder('ie')
+        .select('SUM(ie.monto)', 'total')
+        .where('ie.status = true AND ie.mes = :mes AND ie.anio = :anio', { mes: mesParam, anio: anioParam })
+        .getRawOne(),
+      this.dataSource.createQueryBuilder()
+        .select('SUM(s.total_flete)', 'total')
+        .from('servicio', 's')
+        .where('s.status = true AND s.mes = :mes AND s.anio = :anio', { mes: mesParam, anio: anioParam })
+        .getRawOne(),
+    ]);
 
+    const totalIngresoExtras = Number(extrasResult?.total || 0);
+    const totalFletes = Number(fletesResult?.total || 0);
     return {
-      totalIngresoExtras: Number(totalExtras?.total || 0),
-      totalFletes: Number(totalFletes?.total || 0),
+      totalIngresoExtras,
+      totalFletes,
+      totalIngresos: +(totalFletes + totalIngresoExtras).toFixed(2),
     };
   }
 

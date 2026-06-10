@@ -15,3 +15,12 @@ export const getFacturas = async (filters: FacturacionFilters = {}): Promise<Fac
 
 export const getTotalesFacturacion = async (filters: FacturacionFilters = {}): Promise<TotalesFacturacion> =>
   apiFetch(`/facturacion/totales${buildQuery(filters)}`);
+
+export const getFactura = async (id: number): Promise<FacturaItem> =>
+  apiFetch(`/facturacion/${id}`);
+
+export const updateFactura = async (id: number, formData: FormData): Promise<FacturaItem> =>
+  apiFetch(`/facturacion/${id}`, { method: "PATCH", body: formData });
+
+export const deleteFactura = async (id: number): Promise<void> =>
+  apiFetch(`/facturacion/${id}`, { method: "DELETE" });

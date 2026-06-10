@@ -5,7 +5,7 @@ import { RequisitoDocumento } from "@/types/documento.types";
 import { getRequisitos } from "@/lib/api/requisito.api";
 import { getDocumentosDeUnidad } from "@/lib/api/unidad.api"; 
 import { apiFetch } from "@/lib/api";
-import { Info, FileText, Upload, Download, Loader2, RefreshCw, Truck, X, Image as ImageIcon, Plus } from "lucide-react";
+import { Info, FileText, Upload, Loader2, RefreshCw, Truck, X, Image as ImageIcon, Plus, Eye } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ModuleField } from "../molecules/ModuleField";
 import { toast } from "sonner";
@@ -249,37 +249,39 @@ export const UnidadForm = ({ initialData, categoriasValidadas, onSubmit, onCance
   return (
     <form onSubmit={handleSubmit(handleValidationAndSubmit)} className="space-y-6 text-left animate-in fade-in duration-300">
       
-      {/* SECCIÓN 1: TIPO DE UNIDAD (MOCKUP CORPORATIVO REACIVADO Y CON VARIACIONES DE ESTILO) */}
-      <div className="bg-white p-8 rounded-[2.5rem] border border-[var(--yuriana-base-orange)] shadow-sm space-y-4">
-        <div className="flex items-center gap-2 text-[var(--yuriana-base-black)]">
-          <Truck size={20} className="text-[var(--yuriana-section-icon)]" />
-          <h3 className="font-bold uppercase text-sm tracking-tight">Tipo de Unidad</h3>
+      {/* SECCIÓN 1: TIPO DE UNIDAD — solo visible en modo edición/registro */}
+      {!isReadOnly && (
+        <div className="bg-white p-8 rounded-[2.5rem] border border-[var(--yuriana-base-orange)] shadow-sm space-y-4">
+          <div className="flex items-center gap-2 text-[var(--yuriana-base-black)]">
+            <Truck size={20} className="text-[var(--yuriana-section-icon)]" />
+            <h3 className="font-bold uppercase text-sm tracking-tight">Tipo de Unidad</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {categoriasValidadas.map((cat) => {
+              const esSeleccionado = categoriaSeleccionadaId === cat.id_categoria.toString();
+              return (
+                <button
+                  key={cat.id_categoria}
+                  type="button"
+                  onClick={() => setValue("id_categoria", cat.id_categoria.toString(), { shouldValidate: true })}
+                  className={`flex flex-col items-center justify-center py-6 px-4 rounded-2xl border-2 transition-all gap-2 font-bold uppercase tracking-tight text-xs h-32 ${
+                    esSeleccionado
+                      ? "bg-[var(--yuriana-base-yellow)] text-white border-[var(--yuriana-base-yellow)] shadow-md scale-102"
+                      : "bg-white text-[var(--yuriana-base-black)] border-[var(--yuriana-base-orange)] hover:border-gray-300 hover:bg-slate-50"
+                  }`}
+                >
+                  <Truck size={24} className={esSeleccionado ? "text-white" : "text-[var(--yuriana-base-black)]"} />
+                  <span>{cat.tipo_categoria}</span>
+                </button>
+              );
+            })}
+          </div>
+          <input type="hidden" {...register("id_categoria", { required: "Debe seleccionar la clasificación del transporte" })} />
+          {errors.id_categoria && <span className="text-xs text-[var(--yuriana-input-error)] font-bold ml-1">{errors.id_categoria.message as string}</span>}
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {categoriasValidadas.map((cat) => {
-            const esSeleccionado = categoriaSeleccionadaId === cat.id_categoria.toString();
-            return (
-              <button
-                key={cat.id_categoria}
-                type="button"
-                disabled={isReadOnly }
-                onClick={() => setValue("id_categoria", cat.id_categoria.toString(), { shouldValidate: true })}
-                className={`flex flex-col items-center justify-center py-6 px-4 rounded-2xl border-2 transition-all gap-2 font-bold uppercase tracking-tight text-xs h-32 ${
-                  esSeleccionado 
-                    ? "bg-[var(--yuriana-base-yellow)] text-white border-[var(--yuriana-base-yellow)] shadow-md scale-102" 
-                    : "bg-white text-[var(--yuriana-base-black)] border-[var(--yuriana-base-orange)] hover:border-gray-300 hover:bg-slate-50"
-                }`}
-              >
-                <Truck size={24} className={esSeleccionado ? "text-white" : "text-[var(--yuriana-base-black)]"} />
-                <span>{cat.tipo_categoria}</span>
-              </button>
-            );
-          })}
-        </div>
-        <input type="hidden" {...register("id_categoria", { required: "Debe seleccionar la clasificación del transporte" })} />
-        {errors.id_categoria && <span className="text-xs text-[var(--yuriana-input-error)] font-bold ml-1">{errors.id_categoria.message as string}</span>}
-      </div>
+      )}
+      {/* Input oculto necesario para que watch() funcione en modo lectura */}
+      {isReadOnly && <input type="hidden" {...register("id_categoria")} />}
 
       {/* SECCIÓN 2: INFORMACIÓN GENERAL */}
       <div className="bg-white p-8 rounded-[2.5rem] border border-border shadow-sm space-y-6">
@@ -289,6 +291,25 @@ export const UnidadForm = ({ initialData, categoriasValidadas, onSubmit, onCance
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6">
+          {/* Tipo de Unidad integrado en la grilla — solo en modo lectura */}
+          {isReadOnly && (() => {
+            const cat = categoriasValidadas.find(c => c.id_categoria.toString() === categoriaSeleccionadaId);
+            return (
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-black text-[var(--yuriana-input-label)] uppercase tracking-widest ml-1">
+                  Tipo de Unidad
+                </label>
+                <div className="w-full bg-slate-50 border border-[var(--yuriana-input-border)] rounded-xl py-3 px-4 flex items-center gap-2.5">
+                  <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-[var(--yuriana-base-orange)] shrink-0">
+                    <Truck size={14} className="text-white" />
+                  </div>
+                  <span className="text-sm font-bold text-[var(--yuriana-base-gray-dark)] uppercase tracking-wide">
+                    {cat?.tipo_categoria ?? '—'}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
           <ModuleField label="Placa" name="placa" register={register} disabled={isReadOnly || !!initialData} error={errors.placa} rules={{ required: "La placa es obligatoria" }} />
           <ModuleField label="Número de Chasis" name="num_chasis" register={register} disabled={isReadOnly} error={errors.num_chasis} rules={{ required: "El chasis es obligatorio" }} />
           <ModuleField label="Marca" name="marca" register={register} disabled={isReadOnly} error={errors.marca} rules={{ required: "La marca es obligatoria" }} />
@@ -361,7 +382,7 @@ export const UnidadForm = ({ initialData, categoriasValidadas, onSubmit, onCance
                           onClick={() => handleAbrirDocumento(docGuardado.id_documento, docGuardado.url_documento)}
                           className="px-3 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm transition-all"
                         >
-                          <Download size={12} /> Ver
+                          <Eye size={12} /> Ver
                         </button>
                       )}
 

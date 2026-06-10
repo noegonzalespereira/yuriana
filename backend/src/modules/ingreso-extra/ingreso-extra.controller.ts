@@ -18,8 +18,11 @@ export class IngresoExtraController {
   }
 
   @Get('totales')
-  getTotales() {
-    return this.ingresoExtraService.getTotales();
+  getTotales(
+    @Query('mes') mes?: string,
+    @Query('anio') anio?: string,
+  ) {
+    return this.ingresoExtraService.getTotales(mes, anio ? parseInt(anio) : undefined);
   }
 
   @Get()

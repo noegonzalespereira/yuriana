@@ -56,6 +56,27 @@ export class DocumentoController {
     return this.documentoService.obtenerPorVencer();
   }
 
+  @Get('alertas/dashboard')
+  async getAlertasDashboard() {
+    const [vencidos, porVencer] = await Promise.all([
+      this.documentoService.obtenerVencidos(),
+      this.documentoService.obtenerPorVencer(),
+    ]);
+    return [...vencidos, ...porVencer].map((doc: any) => {
+      const esConductor = !!doc.id_conductor;
+      const dias: number = doc.dias_restantes ?? 0;
+      return {
+        id_documento: doc.id_documento,
+        tipo: esConductor ? 'CONDUCTOR' : 'UNIDAD',
+        nombre: esConductor ? (doc.conductor?.persona?.nombre ?? 'N/A') : (doc.unidad?.placa ?? 'N/A'),
+        tipo_documento: doc.requisito_documento?.nombre_documento ?? 'Documento',
+        fecha_vencimiento: doc.fecha_vencimiento,
+        urgencia: dias < 0 ? 'VENCIDO' : dias === 0 ? 'HOY' : 'PROXIMO',
+        dias_restantes: dias,
+      };
+    });
+  }
+
   
   @Get('ver/:id')
   async verDocumento(

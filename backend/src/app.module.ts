@@ -21,7 +21,6 @@ import { IngresoExtraModule } from './modules/ingreso-extra/ingreso-extra.module
 import { DocumentoModule } from './modules/documento/documento.module';
 import { CategoriaEntidadModule } from './modules/categoria-entidad/categoria-entidad.module';
 import { RequisitoDocumentoModule } from './modules/requisito-documento/requisito-documento.module';
-import { CierreMensualModule } from './modules/cierre-mensual/cierre-mensual.module';
 
 @Module({
   imports: [
@@ -59,8 +58,7 @@ import { CierreMensualModule } from './modules/cierre-mensual/cierre-mensual.mod
     UnidadModule, EmpresaModule, AsignacionModule, 
     ServicioModule, GastoModule,  
     FacturacionModule, IngresoExtraModule, DocumentoModule, 
-    CategoriaEntidadModule, RequisitoDocumentoModule, 
-    CierreMensualModule],
+    CategoriaEntidadModule, RequisitoDocumentoModule],
   controllers: [AppController],
   providers: [AppService],
 })

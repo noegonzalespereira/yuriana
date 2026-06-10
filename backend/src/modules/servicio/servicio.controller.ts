@@ -39,6 +39,19 @@ export class ServicioController {
     return this.servicioService.contador();
   }
 
+  @Get('totales-pagos')
+  totalesPagos(
+    @Query('mes') mes?: string,
+    @Query('anio') anio?: string,
+  ) {
+    return this.servicioService.totalesPagos(mes, anio ? parseInt(anio) : undefined);
+  }
+
+  @Get('recientes')
+  findRecientes() {
+    return this.servicioService.findRecientes(10);
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.servicioService.findOne(id);

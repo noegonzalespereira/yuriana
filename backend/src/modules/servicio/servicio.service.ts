@@ -18,6 +18,7 @@ import { AsignacionService } from '../asignacion/asignacion.service';
 export class ServicioService {
   constructor(
     @InjectRepository(Servicio) private readonly servicioRepo: Repository<Servicio>,
+    @InjectRepository(FotoFactura) private readonly fotoFacturaRepo: Repository<FotoFactura>,
     private readonly asignacionService: AsignacionService,
     private readonly dataSource: DataSource,
     private readonly cloudinaryService: CloudinaryService,
@@ -70,11 +71,8 @@ export class ServicioService {
         if (!dto.periodo_liquidacion || Number(dto.periodo_liquidacion) <= 0) {
           throw new BadRequestException('El período de liquidación es obligatorio cuando el viaje tiene fecha de finalización');
         }
-        if (!files?.vaucher?.[0]) {
-          throw new BadRequestException('El comprobante de pago es obligatorio cuando el viaje tiene fecha de finalización');
-        }
-        if (dto.es_facturado !== 'si' || !files?.foto_factura?.length) {
-          throw new BadRequestException('La factura es obligatoria cuando el viaje tiene fecha de finalización');
+        if (dto.es_facturado === 'si' && !files?.foto_factura?.length) {
+          throw new BadRequestException('Si el viaje está facturado, debes subir al menos una foto de factura');
         }
       }
 
@@ -271,9 +269,12 @@ export class ServicioService {
       if (!periodoFinal || Number(periodoFinal) <= 0) {
         throw new BadRequestException('El período de liquidación es obligatorio al finalizar un viaje');
       }
-      if (!fileVoucher && !servicio.comprobante_pago) {
-        throw new BadRequestException('El comprobante de pago es obligatorio al finalizar un viaje');
-      }
+    }
+
+    // Eliminar fotos de factura si se solicita
+    if (dto.ids_fotos_eliminar) {
+      const ids = String(dto.ids_fotos_eliminar).split(',').map(Number).filter(n => !isNaN(n));
+      if (ids.length > 0) await this.fotoFacturaRepo.delete(ids);
     }
 
     // Subir voucher si viene
@@ -314,5 +315,55 @@ export class ServicioService {
     const pendientes = await this.servicioRepo.count({ where: { status: true, estado_pago: EstadoPago.PENDIENTE } });
     const retrasados = await this.servicioRepo.count({ where: { status: true, estado_pago: EstadoPago.RETRASADO } });
     return { en_curso, pendientes, retrasados };
+  }
+
+  async totalesPagos(mes?: string, anio?: number) {
+    await this.marcarRetrasados();
+    const now = new Date();
+    const mesParam = mes || (now.getMonth() + 1).toString().padStart(2, '0');
+    const anioParam = anio || now.getFullYear();
+
+    const [porCobrar, cobrado, retrasado] = await Promise.all([
+      this.servicioRepo.createQueryBuilder('s').select('COALESCE(SUM(s.total_flete), 0)', 'total')
+        .where('s.status = true AND s.estado_pago IN (:...estados) AND s.mes = :mes AND s.anio = :anio', { estados: ['PENDIENTE', 'RETRASADO'], mes: mesParam, anio: anioParam })
+        .getRawOne(),
+      this.servicioRepo.createQueryBuilder('s').select('COALESCE(SUM(s.total_flete), 0)', 'total')
+        .where('s.status = true AND s.estado_pago = :estado AND s.mes = :mes AND s.anio = :anio', { estado: EstadoPago.PAGADO, mes: mesParam, anio: anioParam })
+        .getRawOne(),
+      this.servicioRepo.createQueryBuilder('s').select('COALESCE(SUM(s.total_flete), 0)', 'total')
+        .where('s.status = true AND s.estado_pago = :estado AND s.mes = :mes AND s.anio = :anio', { estado: EstadoPago.RETRASADO, mes: mesParam, anio: anioParam })
+        .getRawOne(),
+    ]);
+
+    return {
+      total_por_cobrar: +Number(porCobrar?.total || 0).toFixed(2),
+      total_cobrado: +Number(cobrado?.total || 0).toFixed(2),
+      total_retrasado: +Number(retrasado?.total || 0).toFixed(2),
+    };
+  }
+
+  async findRecientes(limit = 10) {
+    return this.dataSource.query(
+      `SELECT s.id_servicio, s.codigo_servicio, s.origen, s.destino,
+              s.total_flete, s.fecha_inicio, s.fecha_fin,
+              s.estado_pago, s.estado_servicio,
+              cl.razon_social AS cliente_nombre,
+              p.nombre        AS conductor_nombre,
+              u.placa         AS tracto_placa,
+              u2.placa        AS remolque_placa,
+              cat.tipo_categoria
+       FROM servicio s
+       LEFT JOIN cliente cl          ON s.id_cliente    = cl.id_cliente
+       LEFT JOIN asignacion_unidad a ON s.id_asignacion = a.id_asignacion
+       LEFT JOIN conductor c         ON a.id_conductor  = c.id_conductor
+       LEFT JOIN persona p           ON c.id_persona    = p.id_persona
+       LEFT JOIN unidad u            ON a.id_tracto     = u.id_unidad
+       LEFT JOIN unidad u2           ON a.id_remolque   = u2.id_unidad
+       LEFT JOIN categoria_entidad cat ON s.id_categoria = cat.id_categoria
+       WHERE s.status = true
+       ORDER BY s."createdAt" DESC
+       LIMIT $1`,
+      [limit],
+    );
   }
 }
