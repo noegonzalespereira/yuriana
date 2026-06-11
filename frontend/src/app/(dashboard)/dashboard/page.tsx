@@ -189,7 +189,6 @@ export default function DashboardPage() {
             <div className="py-12 text-center text-xs text-slate-400 italic">Cargando alertas...</div>
           ) : alertas.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 gap-2 px-4">
-              <span className="text-2xl">✅</span>
               <span className="text-xs font-bold text-[var(--yuriana-base-gray-dark)] text-center">Todos los documentos están vigentes</span>
             </div>
           ) : (
