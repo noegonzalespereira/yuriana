@@ -42,28 +42,32 @@ export default function UnidadesPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [placaParaEliminar, setPlacaParaEliminar] = useState<string | null>(null);
 
-  const syncPageData = useCallback(async () => {
+  const cargarAlertas = useCallback(async () => {
     try {
-      setLoading(true);
-      
-      const resUnidades = await getUnidades(filters);
-      setUnidades(resUnidades);
-
-      setVencidos(resUnidades.filter((u: Unidad) => u.estado === 'vencido').map((u: Unidad) => ({
+      const todas = await getUnidades({});
+      setVencidos(todas.filter((u: Unidad) => u.estado === 'vencido').map((u: Unidad) => ({
         id_documento: u.id_unidad,
         nombre_documento: u.documento_critico || "SOAT / Inspección",
         entityId: u.placa,
         entityName: `Placa: ${u.placa}`
       })));
-
-      setPorVencer(resUnidades.filter((u: Unidad) => u.estado === 'por_vencer').map((u: Unidad) => ({
+      setPorVencer(todas.filter((u: Unidad) => u.estado === 'por_vencer').map((u: Unidad) => ({
         id_documento: u.id_unidad,
         nombre_documento: u.documento_critico || "RUAT",
         entityId: u.placa,
         entityName: `Placa: ${u.placa}`,
         dias_restantes: u.dias_restantes ?? null
       })));
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
 
+  const cargarTabla = useCallback(async () => {
+    try {
+      setLoading(true);
+      const resUnidades = await getUnidades(filters);
+      setUnidades(resUnidades);
     } catch (err) {
       console.error(err);
       toast.error("Error operacional al sincronizar la unidad.");
@@ -72,10 +76,13 @@ export default function UnidadesPage() {
     }
   }, [filters]);
 
-  useEffect(() => {
-    syncPageData();
+  const syncPageData = useCallback(async () => {
+    await Promise.all([cargarTabla(), cargarAlertas()]);
+  }, [cargarTabla, cargarAlertas]);
 
-    // Consumimos a través de la capa API limpia de unidades con validación de arreglos integrada
+  // Carga inicial: tabla + alertas + categorías
+  useEffect(() => {
+    cargarAlertas();
     getCategoriasEntidad()
       .then(data => {
         if (Array.isArray(data)) {
@@ -92,7 +99,13 @@ export default function UnidadesPage() {
         console.error("Error cargando el catálogo de categorías:", err);
         setCategorias([]);
       });
-  }, [syncPageData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Recarga solo la tabla cuando cambian los filtros
+  useEffect(() => {
+    cargarTabla();
+  }, [cargarTabla]);
 
 const handleFormSubmitUnificado = async (
   payloadUnidad: any,

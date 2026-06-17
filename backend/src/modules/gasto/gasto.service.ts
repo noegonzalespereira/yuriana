@@ -361,6 +361,21 @@ export class GastosService {
   }
 
   /**
+   * AÑOS CON REGISTROS: Devuelve los años distintos con al menos un gasto, flete o ingreso extra
+   */
+  async obtenerAniosDisponibles(): Promise<number[]> {
+    const result = await this.dataSource.query(`
+      SELECT DISTINCT anio FROM gasto WHERE status = true
+      UNION
+      SELECT DISTINCT anio FROM servicio WHERE status = true
+      UNION
+      SELECT DISTINCT anio FROM ingreso_extra WHERE status = true
+      ORDER BY anio DESC
+    `);
+    return result.map((r: { anio: string | number }) => Number(r.anio));
+  }
+
+  /**
    * SUMATORIAS CONSOLIDADAS: Calcula en Bs. el dinero total para las 4 tarjetas informativas de arriba
    */
   async obtenerTotalesInformativos(mes?: string, anio?: number) {

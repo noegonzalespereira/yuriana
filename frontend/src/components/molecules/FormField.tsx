@@ -22,11 +22,11 @@ export const FormField = ({ label, icon, type, placeholder, register }: FormFiel
       </div>
       
       {/* Input */}
-      <Input 
+      <Input
         {...register}
-        type={type} 
-        placeholder={placeholder} 
-        className="border-none focus-visible:ring-0 bg-transparent text-[var(--yuriana-input-text)] placeholder:text-[var(--yuriana-input-placeholder)] h-12 w-full font-medium" 
+        type={type}
+        placeholder={placeholder}
+        className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent text-[var(--yuriana-input-text)] placeholder:text-[var(--yuriana-input-placeholder)] h-12 flex-1 min-w-0 px-4 font-medium"
       />
     </div>
   </div>

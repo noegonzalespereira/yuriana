@@ -8,6 +8,7 @@ import { apiFetch } from "@/lib/api";
 import { Info, FileText, Upload, Loader2, RefreshCw, Truck, X, Image as ImageIcon, Plus, Eye } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ModuleField } from "../molecules/ModuleField";
+import { FormActions } from "../atoms/FormActions";
 import { toast } from "sonner";
 
 interface Props {
@@ -500,18 +501,7 @@ export const UnidadForm = ({ initialData, categoriasValidadas, onSubmit, onCance
         </div>
         </div>
 
-      {/* BOTONERÍA */}
-      <div className="flex justify-end gap-4 pt-2">
-        <button type="button" disabled={isSubmitting} onClick={onCancel} className="px-10 py-4 bg-slate-600 text-white rounded-xl font-bold hover:bg-slate-700 text-sm uppercase">
-          {isReadOnly ? "Cerrar" : "Cancelar"}
-        </button>
-        {!isReadOnly && (
-          <button type="submit" disabled={isSubmitting || !categoriaSeleccionadaId} className="px-10 py-4 bg-[var(--yuriana-base-yellow)] text-black rounded-xl font-black text-sm uppercase flex items-center gap-2 shadow-lg disabled:bg-gray-200 disabled:text-gray-400">
-            {isSubmitting && <Loader2 size={16} className="animate-spin" />}
-            <span>{initialData ? "Actualizar Unidad" : "Guardar Unidad"}</span>
-          </button>
-        )}
-      </div>
+      <FormActions onCancel={onCancel} isReadOnly={isReadOnly} isSubmitting={isSubmitting} isEditing={!!initialData} entityLabel="Unidad" disabled={!categoriaSeleccionadaId} />
 
 
         {/* MODAL VISOR EN ALTA RESOLUCIÓN */}

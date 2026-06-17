@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString, IsOptional } from "class-validator";
+import { IsNotEmpty, IsNumber, IsString, IsOptional, Min } from "class-validator";
 import { Transform } from "class-transformer";
 
 export class CreateFacturacionDto {
@@ -13,6 +13,7 @@ export class CreateFacturacionDto {
 
     @IsNotEmpty({ message: "El monto de la factura es obligatorio" })
     @IsNumber()
+    @Min(0.01, { message: "El monto de la factura debe ser mayor a cero" })
     @Transform(({ value }) => parseFloat(value))
     monto_factura!: number;
 

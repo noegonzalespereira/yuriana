@@ -11,6 +11,7 @@ export interface ComboboxOption {
 interface Props {
   options: ComboboxOption[];
   value?: string;
+  selectedOptionValue?: string | number;
   placeholder?: string;
   loading?: boolean;
   disabled?: boolean;
@@ -20,6 +21,7 @@ interface Props {
 export const SearchableCombobox = ({
   options,
   value = "",
+  selectedOptionValue,
   placeholder = "Seleccionar...",
   loading = false,
   disabled = false,
@@ -128,7 +130,7 @@ export const SearchableCombobox = ({
                       </span>
                     )}
                   </div>
-                  {value === opt.label && (
+                  {(selectedOptionValue !== undefined ? selectedOptionValue === opt.value : value === opt.label) && (
                     <Check size={12} className="text-[var(--yuriana-base-orange)] shrink-0" />
                   )}
                 </button>

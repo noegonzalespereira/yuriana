@@ -6,6 +6,7 @@ import { TypeSelector } from "../atoms/TypeSelector";
 import { Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ModuleField } from "../molecules/ModuleField";
+import { FormActions } from "../atoms/FormActions";
 
 interface Props {
   initialData?: Colaborador | null;
@@ -145,7 +146,7 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
                 register={register}
                 disabled={isReadOnly}
                 error={errors.telefono}
-                rules={{ required: "El teléfono es obligatorio", minLength: { value: 7, message: "Mínimo 7 dígitos" } }}
+                rules={{ required: "El teléfono es obligatorio", min: { value: 10000000, message: "El teléfono debe tener exactamente 8 dígitos (ej: 68626895)" }, max: { value: 99999999, message: "El teléfono debe tener exactamente 8 dígitos (ej: 68626895)" } }}
               />
               <ModuleField
                 label="Teléfono 2"
@@ -153,6 +154,8 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
                 type="number"
                 register={register}
                 disabled={isReadOnly}
+                error={errors.telefono2}
+                rules={{ min: { value: 10000000, message: "El teléfono debe tener exactamente 8 dígitos (ej: 68626895)" }, max: { value: 99999999, message: "El teléfono debe tener exactamente 8 dígitos (ej: 68626895)" } }}
               />
               <ModuleField
                 label="Ciudad"
@@ -203,24 +206,7 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
         </div>
       </div>
 
-      {/* Botones */}
-      <div className="flex justify-end gap-3 pt-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-8 py-3.5 bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
-        >
-          {isReadOnly ? "Cerrar" : "Cancelar"}
-        </button>
-        {!isReadOnly && (
-          <button
-            type="submit"
-            className="px-10 py-3.5 bg-[var(--yuriana-base-yellow)] text-[var(--yuriana-base-black)] rounded-xl font-black hover:shadow-lg transition-all shadow-md text-xs uppercase tracking-wider"
-          >
-            {initialData ? "Actualizar Colaborador" : "Guardar Colaborador"}
-          </button>
-        )}
-      </div>
+      <FormActions onCancel={onCancel} isReadOnly={isReadOnly} isEditing={!!initialData} entityLabel="Colaborador" />
     </form>
   );
 };

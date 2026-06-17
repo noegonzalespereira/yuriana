@@ -1,5 +1,5 @@
 "use client";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { TableActions } from "@/components/atoms/TableActions";
 import { GastoAdministrativo, TipoGastoAdministrativo } from "@/types/gasto.types";
 
 interface Props {
@@ -67,17 +67,7 @@ export const GastoAdministrativoTable = ({ data, onView, onEdit, onDelete }: Pro
                   {fmt(item.gasto?.monto ?? 0)}
                 </td>
                 <td className="px-4 py-2.5">
-                  <div className="flex items-center justify-center gap-4">
-                    <button type="button" onClick={() => onView(item)} className="text-[var(--yuriana-base-orange)] hover:scale-110 transition-transform">
-                      <Eye size={16} />
-                    </button>
-                    <button type="button" onClick={() => onEdit(item)} className="text-[var(--yuriana-input-placeholder)] hover:text-slate-600 hover:scale-110 transition-transform">
-                      <Pencil size={16} />
-                    </button>
-                    <button type="button" onClick={() => onDelete(item.id_gasto_admin)} className="text-[var(--yuriana-input-error)] hover:scale-110 transition-transform">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+                  <TableActions onView={() => onView(item)} onEdit={() => onEdit(item)} onDelete={() => onDelete(item.id_gasto_admin)} size={16} />
                 </td>
               </tr>
             ))

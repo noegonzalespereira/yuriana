@@ -5,6 +5,7 @@ import { Rol, User, EstadoUsuario } from "@/types/auth.types";
 import { Info, ShieldAlert } from "lucide-react";
 import { useEffect } from "react";
 import { ModuleField } from "../molecules/ModuleField";
+import { FormActions } from "../atoms/FormActions";
 
 interface UserFormProps {
   onSubmit: (data: any) => void;
@@ -125,24 +126,7 @@ export const UserForm = ({ onSubmit, onCancel, roles, initialData, isReadOnly = 
         </div>
       </div>
 
-      {/* BOTONERÍA DE CONTROL DE ACCIONES INTERNAS */}
-      <div className="flex justify-end gap-4 pt-4">
-        <button 
-          type="button" 
-          onClick={onCancel} 
-          className="px-10 py-4 bg-slate-600 text-white rounded-xl font-bold hover:bg-slate-700 transition-all shadow-lg text-sm uppercase tracking-tighter"
-        >
-          {isReadOnly ? "Cerrar Panel" : "Cancelar"}
-        </button>
-        {!isReadOnly && (
-          <button 
-            type="submit" 
-            className="px-10 py-4 bg-[var(--yuriana-base-yellow)] text-[var(--yuriana-base-black)] rounded-xl font-black hover:shadow-xl transition-all shadow-lg text-sm uppercase tracking-tighter"
-          >
-            {initialData ? "Actualizar Datos" : "Guardar Operario"}
-          </button>
-        )}
-      </div>
+      <FormActions onCancel={onCancel} isReadOnly={isReadOnly} isEditing={!!initialData} entityLabel="Operario" />
     </form>
   );
 };

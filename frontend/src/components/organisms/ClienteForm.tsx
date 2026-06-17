@@ -3,6 +3,7 @@
 import { useForm } from "react-hook-form";
 import { Cliente } from "@/types/cliente.types";
 import { Info, User } from "lucide-react";
+import { FormActions } from "../atoms/FormActions";
 import { useEffect } from "react";
 import { ModuleField } from "../molecules/ModuleField";
 
@@ -50,7 +51,7 @@ export const ClienteForm = ({ initialData, onSubmit, onCancel, isReadOnly }: Pro
       <div className="bg-[var(--yuriana-base-white)] p-8 rounded-[2.5rem] border border-[var(--yuriana-card-border)] shadow-sm space-y-6">
         <div className="flex items-center gap-2 text-[var(--yuriana-base-orange)] border-b border-[var(--yuriana-card-border)] pb-4">
           <Info size={20} />
-          <h3 className="font-bold uppercase text-sm tracking-tight">Datos de la empresa</h3>
+          <h3 className="font-bold uppercase text-sm tracking-tight">Datos del cliente</h3>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6">
@@ -66,28 +67,19 @@ export const ClienteForm = ({ initialData, onSubmit, onCancel, isReadOnly }: Pro
       <div className="bg-[var(--yuriana-base-white)] p-8 rounded-[2.5rem] border border-[var(--yuriana-card-border)] shadow-sm space-y-6">
         <div className="flex items-center gap-2 text-[var(--yuriana-base-orange)] border-b border-[var(--yuriana-card-border)] pb-4">
           <User size={20} />
-          <h3 className="font-bold uppercase text-sm tracking-tight">Datos del cliente</h3>
+          <h3 className="font-bold uppercase text-sm tracking-tight">Datos del contacto</h3>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6">
-          <ModuleField label="CI" name="ci" type="number" register={register} disabled={isReadOnly} error={errors.ci} rules={{ required: "El CI es obligatorio" }} />
-          <ModuleField label="Nombre Cliente" name="nombre" register={register} disabled={isReadOnly} error={errors.nombre} rules={{ required: "El nombre es obligatorio" }} />
-          <ModuleField label="Teléfono" name="telefono" type="number" register={register} disabled={isReadOnly} error={errors.telefono} rules={{ required: "Requerido", minLength: { value: 7, message: "Mínimo 7 dígitos" } }} />
-          <ModuleField label="Teléfono 2" name="telefono2" type="number" register={register} disabled={isReadOnly} />
+          <ModuleField label="CI" name="ci" type="number" register={register} disabled={isReadOnly} error={errors.ci} rules={{ required: "El CI es obligatorio", min: { value: 10000, message: "El CI debe tener al menos 5 dígitos" }, max: { value: 99999999, message: "El CI no puede tener más de 8 dígitos" } }} />
+          <ModuleField label="Nombre del Contacto" name="nombre" register={register} disabled={isReadOnly} error={errors.nombre} rules={{ required: "El nombre es obligatorio" }} />
+          <ModuleField label="Teléfono" name="telefono" type="number" register={register} disabled={isReadOnly} error={errors.telefono} rules={{ required: "Requerido", min: { value: 10000000, message: "El teléfono debe tener exactamente 8 dígitos (ej: 68626895)" }, max: { value: 99999999, message: "El teléfono debe tener exactamente 8 dígitos (ej: 68626895)" } }} />
+          <ModuleField label="Teléfono 2" name="telefono2" type="number" register={register} disabled={isReadOnly} error={errors.telefono2} rules={{ min: { value: 10000000, message: "El teléfono debe tener exactamente 8 dígitos (ej: 68626895)" }, max: { value: 99999999, message: "El teléfono debe tener exactamente 8 dígitos (ej: 68626895)" } }} />
           <ModuleField label="Notas" name="notas" register={register} disabled={isReadOnly} />
         </div>
       </div>
 
-      <div className="flex justify-end gap-4 pt-4">
-        <button type="button" onClick={onCancel} className="px-10 py-4 bg-slate-600 text-white rounded-xl font-bold hover:bg-slate-700 transition-all shadow-lg text-sm uppercase tracking-tighter">
-          {isReadOnly ? "Cerrar" : "Cancelar"}
-        </button>
-        {!isReadOnly && (
-          <button type="submit" className="px-10 py-4 bg-[var(--yuriana-base-yellow)] text-[var(--yuriana-base-black)] rounded-xl font-bold hover:shadow-xl transition-all shadow-lg text-sm uppercase tracking-tighter">
-            {initialData ? "Actualizar Cliente" : "Guardar Cliente"}
-          </button>
-        )}
-      </div>
+      <FormActions onCancel={onCancel} isReadOnly={isReadOnly} isEditing={!!initialData} entityLabel="Cliente" />
     </form>
   );
 };

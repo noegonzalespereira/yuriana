@@ -1,5 +1,5 @@
 "use client";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { TableActions } from "@/components/atoms/TableActions";
 import { ServicioItem, EstadoPago, EstadoServicio } from "@/types/servicio.types";
 
 const fmt = (n: number) =>
@@ -130,20 +130,7 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete }: Props) => {
 
               {/* Acciones */}
               <td className="px-4 py-2.5">
-                <div className="flex items-center justify-center gap-3">
-                  <button type="button" onClick={() => onView(item)}
-                    className="text-[var(--yuriana-input-placeholder)] hover:text-[var(--yuriana-base-orange)] transition-colors hover:scale-110" title="Ver">
-                    <Eye size={14} />
-                  </button>
-                  <button type="button" onClick={() => onEdit(item)}
-                    className="text-[var(--yuriana-input-placeholder)] hover:text-blue-500 transition-colors hover:scale-110" title="Editar">
-                    <Pencil size={14} />
-                  </button>
-                  <button type="button" onClick={() => onDelete(item.id_servicio)}
-                    className="text-[var(--yuriana-input-placeholder)] hover:text-rose-500 transition-colors hover:scale-110" title="Eliminar">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+                <TableActions onView={() => onView(item)} onEdit={() => onEdit(item)} onDelete={() => onDelete(item.id_servicio)} size={14} />
               </td>
             </tr>
           ))}

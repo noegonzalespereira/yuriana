@@ -1,16 +1,17 @@
-import { Injectable, ConflictException,NotFoundException } from '@nestjs/common';
-
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateFacturacionDto } from './dto/create-facturacion.dto';
 import { UpdateFacturacionDto } from './dto/update-facturacion.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Factura } from '../facturacion/entities/facturacion.entity';
-import { Not, Repository } from 'typeorm';
+import { FotoFactura } from '../facturacion/entities/foto-factura.entity';
+import { Repository, In } from 'typeorm';
 import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 
 @Injectable()
 export class FacturacionService {
   constructor(
     @InjectRepository(Factura) private readonly facturaRepo: Repository<Factura>,
+    @InjectRepository(FotoFactura) private readonly fotoFacturaRepo: Repository<FotoFactura>,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
@@ -60,7 +61,7 @@ export class FacturacionService {
   async findOne(id: number): Promise<Factura> {
     const factura = await this.facturaRepo.findOne({
       where: { id_factura: id, status: true },
-      relations: ['servicio', 'fotos']
+      relations: ['servicio', 'servicio.categoria', 'fotos']
     });
 
     if (!factura) {
@@ -69,27 +70,58 @@ export class FacturacionService {
     return factura;
   }
 
-  async update(id: number, dto: UpdateFacturacionDto, file: Express.Multer.File, userId: number): Promise<Factura> {
+  async update(
+    id: number,
+    dto: UpdateFacturacionDto,
+    files: { foto_factura?: Express.Multer.File[]; fotos_nuevas?: Express.Multer.File[] },
+    userId: number,
+  ): Promise<Factura> {
     const factura = await this.findOne(id);
 
-    // Si el usuario sube una nueva foto de la factura
-    if (file) {
-      // 1. Borramos la foto anterior de Cloudinary para no llenar espacio innecesario
+    // 1. Eliminar foto principal si se solicitó
+    if (dto.eliminar_foto_principal === 'true' && factura.foto_factura) {
+      await this.cloudinaryService.eliminarArchivo(factura.foto_factura);
+      factura.foto_factura = undefined;
+    }
+
+    // 2. Reemplazar foto principal si se subió una nueva
+    const fotoPrincipalFile = files?.foto_factura?.[0];
+    if (fotoPrincipalFile) {
       if (factura.foto_factura) {
         await this.cloudinaryService.eliminarArchivo(factura.foto_factura);
       }
-      // 2. Subimos la nueva
-      const { url } = await this.cloudinaryService.subirArchivo(file, 'yuriana/facturas');
+      const { url } = await this.cloudinaryService.subirArchivo(fotoPrincipalFile, 'yuriana/facturas');
       factura.foto_factura = url;
     }
 
-    // Actualizamos los campos de auditoría y los datos del DTO
-    Object.assign(factura, {
-      ...dto,
-      UpdatedId: userId,
-    });
+    // 3. Eliminar fotos adicionales seleccionadas
+    if (dto.ids_fotos_eliminar) {
+      const ids = dto.ids_fotos_eliminar.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+      if (ids.length > 0) {
+        const fotosAEliminar = await this.fotoFacturaRepo.findBy({ id_foto_factura: In(ids) });
+        for (const foto of fotosAEliminar) {
+          await this.cloudinaryService.eliminarArchivo(foto.url_foto);
+          await this.fotoFacturaRepo.remove(foto);
+        }
+      }
+    }
 
-    return await this.facturaRepo.save(factura);
+    // 4. Subir nuevas fotos adicionales
+    if (files?.fotos_nuevas?.length) {
+      for (const archivo of files.fotos_nuevas) {
+        const { url } = await this.cloudinaryService.subirArchivo(archivo, 'yuriana/facturas');
+        const nuevaFoto = this.fotoFacturaRepo.create({ id_factura: factura.id_factura, url_foto: url, CreatedId: userId });
+        await this.fotoFacturaRepo.save(nuevaFoto);
+      }
+    }
+
+    // 5. Actualizar campos del DTO (excluir los campos de control de fotos)
+    // Se usa update() en lugar de save() para evitar que TypeORM cascade sobre
+    // fotos y trate de nullificar las recién agregadas que no están en memoria.
+    const { ids_fotos_eliminar, eliminar_foto_principal, ...camposDto } = dto;
+    await this.facturaRepo.update(id, { ...camposDto, UpdatedId: userId });
+
+    return await this.findOne(id);
   }
 
   async remove(id: number, userId: number): Promise<Factura> {

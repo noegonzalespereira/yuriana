@@ -1,6 +1,7 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Download, Receipt, TrendingUp, Eye, Pencil, Trash2, X, AlertTriangle, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Download, Receipt, TrendingUp, Eye, Pencil, Trash2, X, AlertTriangle, Loader2, Plus, FileText, Image as ImageIcon } from "lucide-react";
+import { TableActions } from "@/components/atoms/TableActions";
 import { toast } from "sonner";
 import { ModuleHeader } from "@/components/organisms/ModuleHeader";
 import { StatCard } from "@/components/atoms/StatCard";
@@ -26,6 +27,8 @@ const tipoViajeLabel = (tipo: string) => {
   if (tipo?.includes("NACIONAL")) return "Nacional";
   return tipo ?? "-";
 };
+
+const esPdf = (url: string) => /\.pdf($|\?)/i.test(url);
 
 const PAGE_SIZE = 10;
 
@@ -74,7 +77,7 @@ export default function FacturacionPage() {
   const [filters, setFilters] = useState<FacturacionFilters>(INITIAL_FILTERS);
   const handleResetFilters = () => setFilters(INITIAL_FILTERS);
 
-  // ── Modal state ────────────────────────────────────────────────────────────
+  // ── Modal state ─────────────────────────────────────────────────────────────
   const [modalType, setModalType] = useState<ModalType>(null);
   const [selectedFactura, setSelectedFactura] = useState<FacturaItem | null>(null);
   const [loadingModal, setLoadingModal] = useState(false);
@@ -83,8 +86,15 @@ export default function FacturacionPage() {
   // Edit form fields
   const [editFacturaTransporte, setEditFacturaTransporte] = useState("");
   const [editMonto, setEditMonto] = useState("");
-  const [editFile, setEditFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Gallery edit state
+  const [eliminarFotoPrincipal, setEliminarFotoPrincipal] = useState(false);
+  const [fotosEliminadas, setFotosEliminadas] = useState<number[]>([]);
+  const [archivosNuevos, setArchivosNuevos] = useState<File[]>([]);
+  const [previewsNuevos, setPreviewsNuevos] = useState<string[]>([]);
+
+  // Lightbox
+  const [fotoExpandidaUrl, setFotoExpandidaUrl] = useState<string | null>(null);
 
   const cargarDatos = useCallback(async () => {
     try {
@@ -113,7 +123,7 @@ export default function FacturacionPage() {
       .catch(() => {});
   }, []);
 
-  // ── Modal handlers ─────────────────────────────────────────────────────────
+  // ── Modal handlers ──────────────────────────────────────────────────────────
   const abrirModal = async (tipo: ModalType, factura: FacturaItem) => {
     setLoadingModal(true);
     try {
@@ -122,7 +132,10 @@ export default function FacturacionPage() {
       if (tipo === "editar") {
         setEditFacturaTransporte(data.factura_transporte ?? "");
         setEditMonto(String(data.monto_factura ?? ""));
-        setEditFile(null);
+        setEliminarFotoPrincipal(false);
+        setFotosEliminadas([]);
+        setArchivosNuevos([]);
+        setPreviewsNuevos([]);
       }
       setModalType(tipo);
     } catch {
@@ -133,12 +146,57 @@ export default function FacturacionPage() {
   };
 
   const cerrarModal = () => {
+    previewsNuevos.forEach((p) => URL.revokeObjectURL(p));
     setModalType(null);
     setSelectedFactura(null);
-    setEditFile(null);
+    setEliminarFotoPrincipal(false);
+    setFotosEliminadas([]);
+    setArchivosNuevos([]);
+    setPreviewsNuevos([]);
   };
 
-  const handleEditar = async (e: React.FormEvent) => {
+  // Gallery helpers
+  const fotosExistentesVisibles = (() => {
+    if (!selectedFactura) return [];
+    return (selectedFactura.fotos ?? []).filter((f) => !fotosEliminadas.includes(f.id_foto_factura));
+  })();
+
+  const totalFotos = (eliminarFotoPrincipal || !selectedFactura?.foto_factura ? 0 : 1)
+    + fotosExistentesVisibles.length
+    + archivosNuevos.length;
+
+  const handleAgregarArchivos = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    const disponibles = 10 - totalFotos;
+    if (disponibles <= 0) {
+      toast.error("Límite alcanzado: máximo 10 archivos por factura");
+      return;
+    }
+    const nuevos = files.slice(0, disponibles);
+    const previews = nuevos.map((f) =>
+      f.type.startsWith("image/") ? URL.createObjectURL(f) : ""
+    );
+    setArchivosNuevos((prev) => [...prev, ...nuevos]);
+    setPreviewsNuevos((prev) => [...prev, ...previews]);
+    e.target.value = "";
+  };
+
+  const handleQuitarNuevo = (index: number) => {
+    if (previewsNuevos[index]) URL.revokeObjectURL(previewsNuevos[index]);
+    setArchivosNuevos((prev) => prev.filter((_, i) => i !== index));
+    setPreviewsNuevos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const abrirFoto = (url: string) => {
+    if (esPdf(url)) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    } else {
+      setFotoExpandidaUrl(url);
+    }
+  };
+
+  const handleEditar = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedFactura) return;
     if (!editFacturaTransporte.trim()) return toast.error("El número de factura es obligatorio");
@@ -149,7 +207,9 @@ export default function FacturacionPage() {
       const fd = new FormData();
       fd.append("factura_transporte", editFacturaTransporte.trim());
       fd.append("monto_factura", String(montoNum));
-      if (editFile) fd.append("foto_factura", editFile);
+      if (eliminarFotoPrincipal) fd.append("eliminar_foto_principal", "true");
+      if (fotosEliminadas.length > 0) fd.append("ids_fotos_eliminar", fotosEliminadas.join(","));
+      archivosNuevos.forEach((f) => fd.append("fotos_nuevas", f));
       await updateFactura(selectedFactura.id_factura, fd);
       toast.success("Factura actualizada correctamente");
       cerrarModal();
@@ -176,7 +236,7 @@ export default function FacturacionPage() {
     }
   };
 
-  // ── Pagination ─────────────────────────────────────────────────────────────
+  // ── Pagination ──────────────────────────────────────────────────────────────
   const totalPaginas = Math.max(1, Math.ceil(facturas.length / PAGE_SIZE));
   const paginaActual = Math.min(pagina, totalPaginas);
   const registrosPagina = facturas.slice((paginaActual - 1) * PAGE_SIZE, paginaActual * PAGE_SIZE);
@@ -189,14 +249,80 @@ export default function FacturacionPage() {
 
   const LABEL_CLASS = "text-[9px] font-black uppercase tracking-widest text-[var(--yuriana-input-label)]";
 
-  // ── Fotos helper ───────────────────────────────────────────────────────────
-  const todasLasFotos = (() => {
-    if (!selectedFactura) return [];
-    const result: { url: string; label: string }[] = [];
-    if (selectedFactura.foto_factura) result.push({ url: selectedFactura.foto_factura, label: "Foto factura" });
-    (selectedFactura.fotos ?? []).forEach((f, i) => result.push({ url: f.url_foto, label: `Foto ${i + 1}` }));
-    return result;
-  })();
+  // ── Foto card helpers ───────────────────────────────────────────────────────
+  const FotoCard = ({
+    url,
+    label,
+    badge,
+    onRemove,
+    onClick,
+    isNew = false,
+  }: {
+    url: string;
+    label?: string;
+    badge?: React.ReactNode;
+    onRemove?: () => void;
+    onClick?: () => void;
+    isNew?: boolean;
+  }) => {
+    const pdf = !url || esPdf(url) || esPdf(label ?? "");
+    return (
+      <div
+        className={`relative aspect-square rounded-2xl overflow-hidden group shadow-sm cursor-pointer hover:shadow-md transition-all ${
+          isNew ? "border-2 border-blue-200" : "border border-border"
+        }`}
+        onClick={onClick}
+      >
+        {pdf ? (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-red-50 gap-2 p-2">
+            <FileText size={28} className="text-red-400" />
+            <span className="text-[9px] font-black text-red-500 uppercase text-center leading-tight truncate w-full text-center px-1">
+              {label ?? "PDF"}
+            </span>
+          </div>
+        ) : (
+          <img
+            src={url}
+            alt={label ?? "foto"}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "https://placehold.co/200x200?text=Error";
+            }}
+          />
+        )}
+
+        {badge && (
+          <div className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-black/50">
+            {badge}
+          </div>
+        )}
+
+        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+          {pdf ? (
+            <span className="text-[9px] text-white font-black uppercase">Abrir PDF</span>
+          ) : (
+            <Eye size={18} className="text-white" />
+          )}
+        </div>
+
+        {onRemove && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            className="absolute top-1.5 right-1.5 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-md transition-colors z-10 opacity-0 group-hover:opacity-100"
+          >
+            <X size={11} />
+          </button>
+        )}
+
+        {isNew && (
+          <div className="absolute top-1.5 left-1.5 bg-blue-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase">
+            Nueva
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
@@ -326,36 +452,15 @@ export default function FacturacionPage() {
                     <td className="px-5 py-4 font-black text-[var(--yuriana-base-orange)]">
                       {fmt(Number(f.monto_factura))} Bs
                     </td>
-                    {/* Acciones */}
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
+                        <TableActions
                           disabled={loadingModal}
-                          onClick={() => abrirModal("ver", f)}
-                          title="Ver detalles"
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 transition-colors text-[10px] font-black disabled:opacity-40"
-                        >
-                          <Eye size={11} /> Ver
-                        </button>
-                        <button
-                          type="button"
-                          disabled={loadingModal}
-                          onClick={() => abrirModal("editar", f)}
-                          title="Editar factura"
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-600 border border-amber-100 hover:bg-amber-100 transition-colors text-[10px] font-black disabled:opacity-40"
-                        >
-                          <Pencil size={11} /> Editar
-                        </button>
-                        <button
-                          type="button"
-                          disabled={loadingModal}
-                          onClick={() => abrirModal("eliminar", f)}
-                          title="Eliminar factura"
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-100 transition-colors text-[10px] font-black disabled:opacity-40"
-                        >
-                          <Trash2 size={11} /> Eliminar
-                        </button>
+                          onView={() => abrirModal("ver", f)}
+                          onEdit={() => abrirModal("editar", f)}
+                          onDelete={() => abrirModal("eliminar", f)}
+                          size={16}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -418,77 +523,94 @@ export default function FacturacionPage() {
         </div>
       </div>
 
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* MODAL OVERLAY                                                        */}
-      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* MODAL OVERLAY                                                          */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
       {modalType && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 py-6"
           onClick={(e) => { if (e.target === e.currentTarget) cerrarModal(); }}
         >
-          {/* ── VER ─────────────────────────────────────────────────────── */}
-          {modalType === "ver" && selectedFactura && (
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-4 bg-[var(--yuriana-base-orange)] text-white">
-                <h2 className="font-black text-sm uppercase tracking-wider">Detalle de Factura</h2>
-                <button type="button" onClick={cerrarModal} className="hover:opacity-70 transition-opacity">
-                  <X size={16} />
-                </button>
-              </div>
-              <div className="p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className={LABEL_CLASS}>ID Viaje</p>
-                    <p className="text-xs font-bold text-[var(--yuriana-base-gray-dark)] mt-1">
-                      {selectedFactura.servicio?.codigo_servicio ?? "-"}
-                    </p>
+          {/* ── VER ──────────────────────────────────────────────────────── */}
+          {modalType === "ver" && selectedFactura && (() => {
+            const fotos: { url: string; label: string; isPrincipal?: boolean }[] = [];
+            if (selectedFactura.foto_factura) fotos.push({ url: selectedFactura.foto_factura, label: esPdf(selectedFactura.foto_factura) ? "PDF Principal" : "Foto Principal", isPrincipal: true });
+            (selectedFactura.fotos ?? []).forEach((f, i) => fotos.push({ url: f.url_foto, label: esPdf(f.url_foto) ? `PDF ${i + 1}` : `Foto ${i + 1}` }));
+            return (
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                <div className="flex items-center justify-between px-6 py-4 bg-[var(--yuriana-base-orange)] text-white flex-shrink-0">
+                  <h2 className="font-black text-sm uppercase tracking-wider">Detalle de Factura</h2>
+                  <button type="button" onClick={cerrarModal} className="hover:opacity-70 transition-opacity">
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="overflow-y-auto p-6 space-y-5">
+                  {/* Info */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className={LABEL_CLASS}>ID Viaje</p>
+                      <p className="text-xs font-bold text-[var(--yuriana-base-gray-dark)] mt-1">
+                        {selectedFactura.servicio?.codigo_servicio ?? "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className={LABEL_CLASS}>Tipo de Viaje</p>
+                      <p className="text-xs font-semibold text-[var(--yuriana-input-text)] mt-1">
+                        {tipoViajeLabel(selectedFactura.servicio?.categoria?.tipo_categoria)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className={LABEL_CLASS}>N° Factura de Transporte</p>
+                      <p className="text-xs font-semibold text-[var(--yuriana-input-text)] mt-1">
+                        {selectedFactura.factura_transporte}
+                      </p>
+                    </div>
+                    <div>
+                      <p className={LABEL_CLASS}>Fecha Emisión</p>
+                      <p className="text-xs font-semibold text-[var(--yuriana-input-text)] mt-1">
+                        {fmtFecha(selectedFactura.fecha_emision)}
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className={LABEL_CLASS}>Monto Facturado</p>
+                      <p className="text-sm font-black text-[var(--yuriana-base-orange)] mt-1">
+                        {fmt(Number(selectedFactura.monto_factura))} Bs
+                      </p>
+                    </div>
                   </div>
+
+                  {/* Gallery */}
                   <div>
-                    <p className={LABEL_CLASS}>Tipo de Viaje</p>
-                    <p className="text-xs font-semibold text-[var(--yuriana-input-text)] mt-1">
-                      {tipoViajeLabel(selectedFactura.servicio?.categoria?.tipo_categoria)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className={LABEL_CLASS}>N° Factura de Transporte</p>
-                    <p className="text-xs font-semibold text-[var(--yuriana-input-text)] mt-1">
-                      {selectedFactura.factura_transporte}
-                    </p>
-                  </div>
-                  <div>
-                    <p className={LABEL_CLASS}>Fecha Emisión</p>
-                    <p className="text-xs font-semibold text-[var(--yuriana-input-text)] mt-1">
-                      {fmtFecha(selectedFactura.fecha_emision)}
-                    </p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className={LABEL_CLASS}>Monto Facturado</p>
-                    <p className="text-sm font-black text-[var(--yuriana-base-orange)] mt-1">
-                      {fmt(Number(selectedFactura.monto_factura))} Bs
-                    </p>
+                    <div className="flex items-center gap-2 mb-3 border-b border-border pb-3">
+                      <ImageIcon size={15} className="text-[var(--yuriana-base-orange)]" />
+                      <p className={LABEL_CLASS}>Archivos adjuntos ({fotos.length})</p>
+                    </div>
+                    {fotos.length === 0 ? (
+                      <div className="py-8 text-center text-[var(--yuriana-input-placeholder)] italic text-[11px] border border-dashed border-border rounded-2xl bg-slate-50/50">
+                        Sin archivos adjuntos
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                        {fotos.map((foto, i) => (
+                          <FotoCard
+                            key={i}
+                            url={foto.url}
+                            label={foto.label}
+                            onClick={() => abrirFoto(foto.url)}
+                            badge={
+                              foto.isPrincipal ? (
+                                <span className="text-[8px] text-amber-300 font-black uppercase">⭐ Principal</span>
+                              ) : undefined
+                            }
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {todasLasFotos.length > 0 && (
-                  <div>
-                    <p className={`${LABEL_CLASS} mb-2`}>Fotos de Factura</p>
-                    <div className="flex flex-wrap gap-2">
-                      {todasLasFotos.map((foto, i) => (
-                        <a
-                          key={i}
-                          href={foto.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 transition-colors text-[10px] font-black"
-                        >
-                          <Eye size={11} /> {foto.label}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex justify-end pt-2">
+                <div className="flex justify-end px-6 py-4 border-t border-border flex-shrink-0">
                   <button
                     type="button"
                     onClick={cerrarModal}
@@ -498,68 +620,126 @@ export default function FacturacionPage() {
                   </button>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
-          {/* ── EDITAR ──────────────────────────────────────────────────── */}
+          {/* ── EDITAR ─────────────────────────────────────────────────── */}
           {modalType === "editar" && selectedFactura && (
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-4 bg-[var(--yuriana-base-orange)] text-white">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="flex items-center justify-between px-6 py-4 bg-[var(--yuriana-base-orange)] text-white flex-shrink-0">
                 <h2 className="font-black text-sm uppercase tracking-wider">Editar Factura</h2>
                 <button type="button" onClick={cerrarModal} className="hover:opacity-70 transition-opacity">
                   <X size={16} />
                 </button>
               </div>
-              <form onSubmit={handleEditar} className="p-6 space-y-4">
-                <div className="flex flex-col gap-1">
-                  <label className={LABEL_CLASS}>ID Viaje</label>
-                  <p className="text-xs font-bold text-[var(--yuriana-base-gray-dark)]">
-                    {selectedFactura.servicio?.codigo_servicio ?? "-"}
-                  </p>
+
+              <form onSubmit={handleEditar} className="overflow-y-auto flex flex-col flex-1">
+                <div className="p-6 space-y-5">
+                  {/* Fields */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1">
+                      <label className={LABEL_CLASS}>ID Viaje</label>
+                      <p className="text-xs font-bold text-[var(--yuriana-base-gray-dark)]">
+                        {selectedFactura.servicio?.codigo_servicio ?? "-"}
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className={LABEL_CLASS}>Fecha Emisión</label>
+                      <p className="text-xs font-semibold text-[var(--yuriana-input-text)]">
+                        {fmtFecha(selectedFactura.fecha_emision)}
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-1 col-span-2 md:col-span-1">
+                      <label className={LABEL_CLASS}>N° Factura de Transporte *</label>
+                      <input
+                        type="text"
+                        value={editFacturaTransporte}
+                        onChange={(e) => setEditFacturaTransporte(e.target.value)}
+                        className={INPUT_FIELD}
+                        placeholder="Ej. 0001"
+                        disabled={saving}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1 col-span-2 md:col-span-1">
+                      <label className={LABEL_CLASS}>Monto Facturado (Bs) *</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={editMonto}
+                        onChange={(e) => setEditMonto(e.target.value)}
+                        className={INPUT_FIELD}
+                        placeholder="0.00"
+                        disabled={saving}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Gallery edit */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3 border-b border-border pb-3">
+                      <div className="flex items-center gap-2">
+                        <ImageIcon size={15} className="text-[var(--yuriana-base-orange)]" />
+                        <p className={LABEL_CLASS}>Archivos adjuntos ({totalFotos}/10)</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                      {/* Foto principal */}
+                      {selectedFactura.foto_factura && !eliminarFotoPrincipal && (
+                        <FotoCard
+                          url={selectedFactura.foto_factura}
+                          label="Principal"
+                          onClick={() => abrirFoto(selectedFactura.foto_factura!)}
+                          onRemove={() => setEliminarFotoPrincipal(true)}
+                          badge={<span className="text-[8px] text-amber-300 font-black uppercase">⭐ Principal</span>}
+                        />
+                      )}
+
+                      {/* Fotos adicionales existentes */}
+                      {fotosExistentesVisibles.map((foto) => (
+                        <FotoCard
+                          key={foto.id_foto_factura}
+                          url={foto.url_foto}
+                          label={esPdf(foto.url_foto) ? "PDF" : "Foto"}
+                          onClick={() => abrirFoto(foto.url_foto)}
+                          onRemove={() => setFotosEliminadas((prev) => [...prev, foto.id_foto_factura])}
+                        />
+                      ))}
+
+                      {/* Nuevas en cola */}
+                      {archivosNuevos.map((archivo, i) => (
+                        <FotoCard
+                          key={`new-${i}`}
+                          url={previewsNuevos[i] || ""}
+                          label={archivo.name}
+                          isNew
+                          onClick={() => previewsNuevos[i] ? setFotoExpandidaUrl(previewsNuevos[i]) : undefined}
+                          onRemove={() => handleQuitarNuevo(i)}
+                        />
+                      ))}
+
+                      {/* Botón agregar */}
+                      {totalFotos < 10 && (
+                        <label className="border-2 border-dashed border-[var(--yuriana-base-orange)] rounded-2xl flex flex-col items-center justify-center aspect-square cursor-pointer hover:bg-orange-50/50 transition-all gap-1.5 text-center text-[var(--yuriana-input-placeholder)]">
+                          <Plus size={22} className="text-[var(--yuriana-base-orange)]" />
+                          <span className="text-[9px] font-bold uppercase tracking-tight text-[var(--yuriana-base-orange)]">Agregar</span>
+                          <span className="text-[8px]">({totalFotos}/10)</span>
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*,application/pdf"
+                            className="hidden"
+                            onChange={handleAgregarArchivos}
+                            disabled={saving}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex flex-col gap-1">
-                  <label className={LABEL_CLASS}>N° Factura de Transporte *</label>
-                  <input
-                    type="text"
-                    value={editFacturaTransporte}
-                    onChange={(e) => setEditFacturaTransporte(e.target.value)}
-                    className={INPUT_FIELD}
-                    placeholder="Ej. 0001"
-                    disabled={saving}
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className={LABEL_CLASS}>Monto Facturado (Bs) *</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={editMonto}
-                    onChange={(e) => setEditMonto(e.target.value)}
-                    className={INPUT_FIELD}
-                    placeholder="0.00"
-                    disabled={saving}
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className={LABEL_CLASS}>Reemplazar foto de factura (opcional)</label>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*,application/pdf"
-                    onChange={(e) => setEditFile(e.target.files?.[0] ?? null)}
-                    className="text-xs text-[var(--yuriana-input-text)] file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:bg-[var(--yuriana-base-orange)] file:text-white hover:file:opacity-90"
-                    disabled={saving}
-                  />
-                  {editFile && (
-                    <p className="text-[10px] text-[var(--yuriana-input-placeholder)]">{editFile.name}</p>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-2">
+                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border flex-shrink-0">
                   <button
                     type="button"
                     onClick={cerrarModal}
@@ -581,7 +761,7 @@ export default function FacturacionPage() {
             </div>
           )}
 
-          {/* ── ELIMINAR ────────────────────────────────────────────────── */}
+          {/* ── ELIMINAR ───────────────────────────────────────────────── */}
           {modalType === "eliminar" && selectedFactura && (
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
               <div className="flex items-center justify-between px-6 py-4 bg-rose-500 text-white">
@@ -637,6 +817,32 @@ export default function FacturacionPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── LIGHTBOX ──────────────────────────────────────────────────────────── */}
+      {fotoExpandidaUrl && (
+        <div
+          onClick={() => setFotoExpandidaUrl(null)}
+          className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[100] animate-in fade-in duration-200 cursor-zoom-out"
+        >
+          <div className="relative max-w-4xl max-h-[85vh] w-full mx-4 p-2 animate-in zoom-in-95 duration-200">
+            <button
+              type="button"
+              onClick={() => setFotoExpandidaUrl(null)}
+              className="absolute -top-12 right-2 bg-white/10 hover:bg-white/20 text-white rounded-xl p-2 transition-colors border border-white/20"
+            >
+              <X size={20} />
+            </button>
+            <div className="bg-white rounded-3xl overflow-hidden shadow-2xl flex items-center justify-center">
+              <img
+                src={fotoExpandidaUrl}
+                alt="Vista detallada"
+                onClick={(e) => e.stopPropagation()}
+                className="max-w-full max-h-[80vh] object-contain select-none cursor-default"
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -1,5 +1,6 @@
 "use client";
-import { Eye, Pencil, Trash2, ShieldAlert } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
+import { TableActions } from "@/components/atoms/TableActions";
 import { Unidad, EstadoUnidad } from "@/types/unidad.types";
 import { toast } from "sonner";
 
@@ -107,29 +108,20 @@ export const UnidadTable = ({ data, onDelete, onEdit, onView }: Props) => {
 
                 {/* BOTONES ACCIONES */}
                 <td className="px-4 py-2.5">
-                  <div className="flex items-center justify-center gap-4">
-                    <button type="button" onClick={() => onView(item)} className="text-[var(--yuriana-base-orange)] hover:scale-110 transition-transform">
-                      <Eye size={18} />
-                    </button>
-                    <button type="button" onClick={() => onEdit(item)} className="text-[var(--yuriana-input-placeholder)] hover:text-slate-600 hover:scale-110 transition-transform">
-                      <Pencil size={18} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (item.estado_unidad === EstadoUnidad.ASIGNADO || item.estado_unidad === EstadoUnidad.EN_VIAJE) {
-                          toast.error("No se puede eliminar", {
-                            description: `La unidad "${item.placa}" está en estado ${item.estado_unidad === EstadoUnidad.ASIGNADO ? "Asignado" : "En Viaje"} y no puede eliminarse.`,
-                          });
-                          return;
-                        }
-                        onDelete(item.placa);
-                      }}
-                      className="text-[var(--yuriana-input-error)] hover:scale-110 transition-transform"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
+                  <TableActions
+                    onView={() => onView(item)}
+                    onEdit={() => onEdit(item)}
+                    onDelete={() => {
+                      if (item.estado_unidad === EstadoUnidad.ASIGNADO || item.estado_unidad === EstadoUnidad.EN_VIAJE) {
+                        toast.error("No se puede eliminar", {
+                          description: `La unidad "${item.placa}" está en estado ${item.estado_unidad === EstadoUnidad.ASIGNADO ? "Asignado" : "En Viaje"} y no puede eliminarse.`,
+                        });
+                        return;
+                      }
+                      onDelete(item.placa);
+                    }}
+                    size={18}
+                  />
                 </td>
               </tr>
             ))

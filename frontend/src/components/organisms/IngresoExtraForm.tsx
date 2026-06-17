@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { PlusCircle, Trash2, Info, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import { FormActions } from "../atoms/FormActions";
 import { IngresoExtra, ItemIngresoForm } from "@/types/ingreso-extra.types";
 import { crearIngreso, editarIngreso } from "@/lib/api/ingreso-extra.api";
 
@@ -235,26 +236,7 @@ export const IngresoExtraForm = ({ initialData, isReadOnly = false, onCancel, on
         </div>
       </div>
 
-      {/* Botones */}
-      <div className="flex justify-end gap-4 pt-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-8 py-3 rounded-2xl font-bold text-sm bg-[var(--yuriana-btn-cancel-bg)] text-[var(--yuriana-btn-cancel-text)] hover:opacity-90 transition-all active:scale-95"
-        >
-          Cancelar
-        </button>
-        {!isReadOnly && (
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={saving}
-            className="px-8 py-3 rounded-2xl font-black text-sm bg-[var(--yuriana-btn-save-bg)] text-[var(--yuriana-btn-save-text)] hover:opacity-90 transition-all active:scale-95 shadow-md disabled:opacity-50"
-          >
-            {saving ? "Guardando..." : "Guardar"}
-          </button>
-        )}
-      </div>
+      <FormActions onCancel={onCancel} isReadOnly={isReadOnly} isSubmitting={saving} onSubmit={handleSubmit} />
     </div>
   );
 };

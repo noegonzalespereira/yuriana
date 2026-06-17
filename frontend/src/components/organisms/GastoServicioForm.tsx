@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { PlusCircle, Trash2, Info, Users, Wallet, ClipboardList } from "lucide-react";
 import { SearchableCombobox } from "@/components/molecules/SearchableCombobox";
+import { FormActions } from "@/components/atoms/FormActions";
 import { toast } from "sonner";
 import { TipoGastoServicio, ItemGastoForm, ServicioResumen, GastosServicio } from "@/types/gasto.types";
 import { guardarGastoServicio } from "@/lib/api/gasto.api";
@@ -453,26 +454,7 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
         </div>
       </div>
 
-      {/* Action buttons */}
-      <div className="flex justify-end gap-4 pt-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-8 py-3 rounded-2xl font-bold text-sm bg-[var(--yuriana-btn-cancel-bg)] text-[var(--yuriana-btn-cancel-text)] hover:opacity-90 transition-all active:scale-95"
-        >
-          Cancelar
-        </button>
-        {!isReadOnly && (
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={saving}
-            className="px-8 py-3 rounded-2xl font-black text-sm bg-[var(--yuriana-btn-save-bg)] text-[var(--yuriana-btn-save-text)] hover:opacity-90 transition-all active:scale-95 shadow-md disabled:opacity-50"
-          >
-            {saving ? "Guardando..." : "Guardar"}
-          </button>
-        )}
-      </div>
+      <FormActions onCancel={onCancel} isReadOnly={isReadOnly} isSubmitting={saving} onSubmit={handleSubmit} />
     </div>
   );
 };

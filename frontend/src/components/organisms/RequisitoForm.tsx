@@ -2,6 +2,7 @@
 import { useForm, Controller } from "react-hook-form";
 import { RequisitoDocumento } from "@/types/documento.types";
 import { ModuleField } from "../molecules/ModuleField";
+import { FormActions } from "../atoms/FormActions";
 import { useEffect } from "react";
 
 interface Props {
@@ -101,17 +102,7 @@ export const RequisitoForm = ({ initialData, idCategoriaActiva, onSubmit, onCanc
         </div>
       </div>
 
-      {/* BOTONERÍA EN LA PARTE INFERIOR DERECHA */}
-      <div className="flex justify-end gap-4 pt-4 border-t border-gray-100">
-        <button type="button" onClick={onCancel} className="px-8 py-3 bg-slate-600 text-white rounded-xl font-bold shadow-md hover:bg-slate-700 transition-all text-sm">
-          {isReadOnly ? "Cerrar" : "Cancelar"}
-        </button>
-        {!isReadOnly && (
-          <button type="submit" className="px-8 py-3 bg-yuriana-yellow text-black rounded-xl font-bold shadow-md hover:shadow-lg transition-all text-sm">
-            Guardar Documento
-          </button>
-        )}
-      </div>
+      <FormActions onCancel={onCancel} isReadOnly={isReadOnly} entityLabel="Documento" />
     </form>
   );
 };

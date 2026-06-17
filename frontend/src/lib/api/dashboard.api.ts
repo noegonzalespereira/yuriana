@@ -49,6 +49,9 @@ export interface ViajeReciente {
 
 const qs = (mes: string, anio: number) => `mes=${mes}&anio=${anio}`;
 
+export const getAniosDisponibles = (): Promise<number[]> =>
+  apiFetch("/gastos/anios-disponibles");
+
 export const getTotalesIngresos = (mes: string, anio: number): Promise<TotalesIngresos> =>
   apiFetch(`/ingreso-extra/totales?${qs(mes, anio)}`);
 

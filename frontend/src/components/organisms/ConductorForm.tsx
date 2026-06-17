@@ -8,6 +8,7 @@ import { getDocumentosDeEntidad } from "@/lib/api/conductor.api";
 import { Info, FileText, Upload, Loader2, RefreshCw, Eye } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ModuleField } from "../molecules/ModuleField";
+import { FormActions } from "../atoms/FormActions";
 import { toast } from "sonner";
 
 interface Props {
@@ -210,11 +211,11 @@ export const ConductorForm = ({ initialData, onSubmit, onCancel, isReadOnly }: P
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6">
-          <ModuleField label="CI *" name="ci" type="number" register={register} disabled={isReadOnly || !!initialData} error={errors.ci} rules={{ required: "El CI es obligatorio" }} />
+          <ModuleField label="CI *" name="ci" type="number" register={register} disabled={isReadOnly || !!initialData} error={errors.ci} rules={{ required: "El CI es obligatorio", min: { value: 10000, message: "El CI debe tener al menos 5 dígitos" }, max: { value: 99999999, message: "El CI no puede tener más de 8 dígitos" } }} />
           <ModuleField label="Nombre" name="nombre" register={register} disabled={isReadOnly} error={errors.nombre} rules={{ required: "El nombre es obligatorio" }} />
           <ModuleField label="Correo *" name="correo" type="email" register={register} disabled={isReadOnly} error={errors.correo} rules={{ required: "El correo es obligatorio" }} />
           <ModuleField label="Ciudad" name="ciudad" register={register} disabled={isReadOnly} />
-          <ModuleField label="Teléfono" name="telefono" type="number" register={register} disabled={isReadOnly} />
+          <ModuleField label="Teléfono" name="telefono" type="number" register={register} disabled={isReadOnly} error={errors.telefono} rules={{ min: { value: 10000000, message: "El teléfono debe tener exactamente 8 dígitos (ej: 68626895)" }, max: { value: 99999999, message: "El teléfono debe tener exactamente 8 dígitos (ej: 68626895)" } }} />
           <ModuleField label="Sueldo (Bs)" name="sueldo" type="number" register={register} disabled={isReadOnly} error={errors.sueldo} rules={{ min: { value: 0, message: "El sueldo no puede ser negativo" } }} />
 
           <div className="flex flex-col gap-1">
@@ -326,17 +327,13 @@ export const ConductorForm = ({ initialData, onSubmit, onCancel, isReadOnly }: P
       </div>
 
       {/* ACCIONES */}
-      <div className="flex justify-end gap-4 pt-2">
-        <button type="button" disabled={isSubmitting} onClick={onCancel} className="px-10 py-4 bg-slate-600 text-white rounded-xl font-bold hover:bg-slate-700 text-sm uppercase">
-          {isReadOnly ? "Cerrar" : "Cancelar"}
-        </button>
-        {!isReadOnly && (
-          <button type="submit" disabled={isSubmitting} className="px-10 py-4 bg-[var(--yuriana-base-yellow)] text-black rounded-xl font-black text-sm uppercase flex items-center gap-2 shadow-lg">
-            {isSubmitting && <Loader2 size={16} className="animate-spin" />}
-            <span>{initialData ? "Actualizar Datos" : "Guardar Conductor"}</span>
-          </button>
-        )}
-      </div>
+      <FormActions
+        onCancel={onCancel}
+        isReadOnly={isReadOnly}
+        isSubmitting={isSubmitting}
+        isEditing={!!initialData}
+        entityLabel="Conductor"
+      />
     </form>
   );
 };

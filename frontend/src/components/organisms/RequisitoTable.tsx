@@ -1,5 +1,6 @@
 "use client";
-import { Eye, Pencil, Trash2, FileText, ShieldAlert, Calendar } from "lucide-react";
+import { FileText, ShieldAlert, Calendar } from "lucide-react";
+import { TableActions } from "@/components/atoms/TableActions";
 import { RequisitoDocumento } from "@/types/documento.types";
 
 interface Props {
@@ -51,12 +52,8 @@ export const RequisitoTable = ({ data, onDelete, onEdit, onView }: Props) => {
                     </span>
                   </div>
                 </td>
-                <td className="px-4 py-2.5 text-right">
-                  <div className="flex justify-end gap-4">
-                    <button onClick={() => onView(item)} className="text-gray-400 hover:text-yuriana-orange transition-colors"><Eye size={18} /></button>
-                    <button onClick={() => onEdit(item)} className="text-gray-400 hover:text-gray-600 transition-colors"><Pencil size={18} /></button>
-                    <button onClick={() => onDelete(item.id_requisito_documento)} className="text-red-400 hover:text-red-600 transition-colors"><Trash2 size={18} /></button>
-                  </div>
+                <td className="px-4 py-2.5">
+                  <TableActions onView={() => onView(item)} onEdit={() => onEdit(item)} onDelete={() => onDelete(item.id_requisito_documento)} size={18} />
                 </td>
               </tr>
             ))

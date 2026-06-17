@@ -20,6 +20,11 @@ export class GastoController {
     return this.gastosService.procesarGastoPantalla(dto, req.user.id);
   }
 
+  @Get('anios-disponibles')
+  async obtenerAniosDisponibles() {
+    return this.gastosService.obtenerAniosDisponibles();
+  }
+
   @Get('totales-paneles')
   async obtenerTotalesPaneles(
     @Query('mes') mes?: string,

@@ -11,6 +11,7 @@ import { getClientes } from "@/lib/api/cliente.api";
 import { getColaboradores } from "@/lib/api/colaborador.api";
 import { apiFetch } from "@/lib/api";
 import { SearchableCombobox } from "@/components/molecules/SearchableCombobox";
+import { FormActions } from "@/components/atoms/FormActions";
 import type { Cliente } from "@/types/cliente.types";
 import type { Colaborador } from "@/types/colaborador.types";
 import type { Asignacion } from "@/types/asignacion.types";
@@ -156,6 +157,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
 
   // ── Cliente ──────────────────────────────────────────────────────────────
   const [ciCliente, setCiCliente] = useState("");
+  const [codigoCliente, setCodigoCliente] = useState("");
   const [idCliente, setIdCliente] = useState<number | null>(null);
   const [nitCliente, setNitCliente] = useState("");
   const [razonSocial, setRazonSocial] = useState("");
@@ -259,6 +261,8 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
 
     // Cliente
     setIdCliente(initialData.id_cliente);
+    setCiCliente(String(initialData.cliente?.persona?.ci ?? ""));
+    setCodigoCliente((initialData.cliente as any)?.codigo_cliente ?? "");
     setNombreCliente(initialData.cliente?.persona?.nombre ?? "");
     setNitCliente(initialData.cliente?.nit ?? "");
     setRazonSocial(initialData.cliente?.razon_social ?? "");
@@ -273,6 +277,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     // Colaborador
     if (initialData.colaborador) {
       setIdColaborador(initialData.id_colaborador ?? null);
+      setCiColaborador(String((initialData.colaborador?.persona as any)?.ci ?? ""));
       setNombreColaborador(initialData.colaborador?.persona?.nombre ?? "");
       setAgenciaColaborador(initialData.colaborador?.agencia ?? "");
       setMontoColaborador(Number((initialData.colaborador as any)?.monto ?? 0));
@@ -285,13 +290,14 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     try {
       const data = await apiFetch(`/cliente/${ciCliente.trim()}`);
       setIdCliente(data.id_cliente);
+      setCodigoCliente(data.codigo_cliente ?? "");
       setNitCliente(data.nit ?? "");
       setRazonSocial(data.razon_social ?? "");
       setNombreCliente(data.persona?.nombre ?? "");
       toast.success("Cliente encontrado");
     } catch {
       toast.error("Cliente no encontrado");
-      setIdCliente(null); setNitCliente(""); setRazonSocial(""); setNombreCliente("");
+      setIdCliente(null); setCodigoCliente(""); setNitCliente(""); setRazonSocial(""); setNombreCliente("");
     }
   };
 
@@ -510,7 +516,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
                 <input className={INPUT_CLASS} value={facturaTransporte} onChange={(e) => setFacturaTransporte(e.target.value)} disabled={isReadOnly} placeholder="N° de factura" />
               </Field>
               <Field label="Monto Factura Bs" optional>
-                <input type="number" className={INPUT_CLASS} value={montoFactura || ""} onChange={(e) => setMontoFactura(Number(e.target.value))} disabled={isReadOnly} placeholder="0" />
+                <input type="number" min={0.01} step="any" className={INPUT_CLASS} value={montoFactura || ""} onChange={(e) => setMontoFactura(Number(e.target.value))} disabled={isReadOnly} placeholder="0" />
               </Field>
               {/* Multi-foto factura */}
               <div className="flex flex-col gap-1 col-span-2 md:col-span-2">
@@ -608,14 +614,15 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
       <div className="bg-[var(--yuriana-card-bg)] rounded-3xl border border-border shadow-xl p-8 space-y-5">
         <SectionHeader icon={<Users size={16} />} title="Datos del Cliente" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-          <Field label="Cliente" required>
+          <Field label="Codigo_cliente" required>
             <SearchableCombobox
               options={listaClientes.map((c) => ({
                 value: c.id_cliente,
                 label: c.persona.nombre,
                 sublabel: `CI: ${c.persona.ci} · ${c.razon_social ?? ""}`,
               }))}
-              value={nombreCliente}
+              value={codigoCliente}
+              selectedOptionValue={idCliente ?? undefined}
               placeholder="Seleccionar cliente..."
               loading={loadingListas}
               disabled={isReadOnly}
@@ -624,6 +631,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
                 if (c) {
                   setIdCliente(c.id_cliente);
                   setCiCliente(String(c.persona.ci));
+                  setCodigoCliente((c as any).codigo_cliente ?? "");
                   setNombreCliente(c.persona.nombre);
                   setNitCliente(String(c.nit ?? ""));
                   setRazonSocial(c.razon_social ?? "");
@@ -647,14 +655,15 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
       <div className="bg-[var(--yuriana-card-bg)] rounded-3xl border border-border shadow-xl p-8 space-y-5">
         <SectionHeader icon={<Truck size={16} />} title="Datos del Conductor y la Unidad" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-          <Field label="Conductor" required>
+          <Field label="Ci Conductor" required>
             <SearchableCombobox
               options={listaAsignaciones.map((a) => ({
                 value: a.id_asignacion,
                 label: a.conductor?.persona?.nombre ?? "",
                 sublabel: `CI: ${a.conductor?.persona?.ci ?? ""} · ${a.tracto?.placa ?? ""}`,
               }))}
-              value={nombreConductor}
+              value={ciConductor}
+              selectedOptionValue={idAsignacion ?? undefined}
               placeholder="Seleccionar conductor..."
               loading={loadingListas}
               disabled={isReadOnly}
@@ -686,14 +695,15 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
       <div className="bg-[var(--yuriana-card-bg)] rounded-3xl border border-border shadow-xl p-8 space-y-5">
         <SectionHeader icon={<UserCheck size={16} />} title="Datos del Colaborador" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-          <Field label="Colaborador" required>
+          <Field label="Ci Colaborador" required>
             <SearchableCombobox
               options={listaColaboradores.map((c) => ({
                 value: c.id_colaborador,
                 label: c.persona.nombre,
                 sublabel: `CI: ${c.persona.ci} · ${c.agencia ?? ""}`,
               }))}
-              value={nombreColaborador}
+              value={ciColaborador}
+              selectedOptionValue={idColaborador ?? undefined}
               placeholder="Seleccionar colaborador..."
               loading={loadingListas}
               disabled={isReadOnly}
@@ -715,7 +725,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
             <input className={INPUT_CLASS} value={agenciaColaborador} disabled readOnly placeholder="-" />
           </Field>
           <Field label="Monto" optional>
-            <input type="number" className={INPUT_CLASS} value={montoColaborador || ""} onChange={(e) => setMontoColaborador(Number(e.target.value))} disabled={isReadOnly} placeholder="0" />
+            <input type="number" min={0} step="any" className={INPUT_CLASS} value={montoColaborador || ""} onChange={(e) => setMontoColaborador(Number(e.target.value))} disabled={isReadOnly} placeholder="0" />
           </Field>
         </div>
       </div>
@@ -732,7 +742,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
           </Field>
           {moneda === Moneda.DOLAR && (
             <Field label="Tipo de Cambio Bs" required>
-              <input type="number" className={INPUT_CLASS} value={tipoCambio || ""} onChange={(e) => setTipoCambio(Number(e.target.value))} disabled={isReadOnly} placeholder="0" />
+              <input type="number" min={0.01} step="any" className={INPUT_CLASS} value={tipoCambio || ""} onChange={(e) => setTipoCambio(Number(e.target.value))} disabled={isReadOnly} placeholder="0" />
             </Field>
           )}
         </div>
@@ -743,10 +753,10 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
         <SectionHeader icon={<Truck size={16} />} title="Datos del Flete" />
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 items-end">
           <Field label={`Monto Flete (${moneda === Moneda.DOLAR ? "Dólar" : "Bs"})`} required>
-            <input type="number" className={INPUT_CLASS} value={flete || ""} onChange={(e) => setFlete(Number(e.target.value))} disabled={isReadOnly} placeholder="0" />
+            <input type="number" min={0.01} step="any" className={INPUT_CLASS} value={flete || ""} onChange={(e) => setFlete(Number(e.target.value))} disabled={isReadOnly} placeholder="0" />
           </Field>
           <Field label={`Flete Adicional (${moneda === Moneda.DOLAR ? "Dólar" : "Bs"})`} optional>
-            <input type="number" className={INPUT_CLASS} value={fleteAdicional || ""} onChange={(e) => setFleteAdicional(Number(e.target.value))} disabled={isReadOnly} placeholder="0" />
+            <input type="number" min={0} step="any" className={INPUT_CLASS} value={fleteAdicional || ""} onChange={(e) => setFleteAdicional(Number(e.target.value))} disabled={isReadOnly} placeholder="0" />
           </Field>
           <Field label="Total Flete Bs">
             <div className="flex items-center">
@@ -769,7 +779,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
             <input type="date" className={INPUT_CLASS} value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} disabled={isReadOnly} />
           </Field>
           <Field label="Período de Liquidación (días)" required={tieneFechaFin} optional={!tieneFechaFin}>
-            <input type="number" className={INPUT_CLASS} value={periodoLiquidacion || ""} onChange={(e) => setPeriodoLiquidacion(Number(e.target.value))} disabled={isReadOnly} placeholder="0" />
+            <input type="number" min={1} step={1} className={INPUT_CLASS} value={periodoLiquidacion || ""} onChange={(e) => setPeriodoLiquidacion(Number(e.target.value))} disabled={isReadOnly} placeholder="0" />
           </Field>
           <Field label="Fecha Límite Pago">
             <input type="date" className={INPUT_CLASS} disabled readOnly
@@ -803,19 +813,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
         </div>
       </div>
 
-      {/* Botones */}
-      <div className="flex justify-end gap-4 pt-2">
-        <button type="button" onClick={onCancel}
-          className="px-8 py-3 rounded-2xl font-bold text-sm bg-[var(--yuriana-btn-cancel-bg)] text-[var(--yuriana-btn-cancel-text)] hover:opacity-90 transition-all active:scale-95">
-          Cancelar
-        </button>
-        {!isReadOnly && (
-          <button type="button" onClick={handleSubmit} disabled={saving}
-            className="px-8 py-3 rounded-2xl font-black text-sm bg-[var(--yuriana-btn-save-bg)] text-[var(--yuriana-btn-save-text)] hover:opacity-90 transition-all active:scale-95 shadow-md disabled:opacity-50">
-            {saving ? "Guardando..." : isEdit ? "Actualizar Viaje" : "Guardar Viaje"}
-          </button>
-        )}
-      </div>
+      <FormActions onCancel={onCancel} isReadOnly={isReadOnly} isSubmitting={saving} isEditing={isEdit} onSubmit={handleSubmit} entityLabel="Viaje" />
     </div>
   );
 };

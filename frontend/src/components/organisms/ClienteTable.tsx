@@ -1,5 +1,5 @@
 // src/components/organisms/ClienteTable.tsx
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { TableActions } from "@/components/atoms/TableActions";
 import { Cliente } from "@/types/cliente.types";
 
 interface Props {
@@ -42,11 +42,7 @@ export const ClienteTable = ({ data, onDelete, onEdit, onView }: Props) => {
               </td>
               
               <td className="px-4 py-2.5">
-                <div className="flex justify-center gap-4">
-                  <button onClick={() => onView(item)} className="text-[var(--yuriana-base-orange)] hover:scale-110 transition-transform"><Eye size={16} /></button>
-                  <button onClick={() => onEdit(item)} className="text-[var(--yuriana-base-gray-light)] hover:text-slate-600 hover:scale-110 transition-transform"><Pencil size={16} /></button>
-                  <button onClick={() => onDelete(item.codigo_cliente)} className="text-[var(--yuriana-base-error)] hover:scale-110 transition-transform"><Trash2 size={16} /></button>
-                </div>
+                <TableActions onView={() => onView(item)} onEdit={() => onEdit(item)} onDelete={() => onDelete(item.codigo_cliente)} size={16} />
               </td>
             </tr>
           ))}

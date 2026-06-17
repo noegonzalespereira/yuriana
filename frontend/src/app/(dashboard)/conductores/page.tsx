@@ -43,8 +43,38 @@ export default function ConductoresPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [ciParaEliminar, setCiParaEliminar] = useState<number | null>(null);
 
-  // SINCRONIZACIÓN DE ALERTAS DOCUMENTALES LOCALES EXACTAS
-  const loadPageData = useCallback(async () => {
+  const cargarAlertas = useCallback(async () => {
+    try {
+      const todos = await getConductores({});
+      setVencidos(
+        todos
+          .filter((c: Conductor) => c.estado === 'vencido')
+          .map((c: Conductor) => ({
+            id_documento: c.id_conductor,
+            nombre_documento: c.documento_critico || "Licencia de Conducir / Categoría",
+            entityId: c.persona.ci?.toString() || '0',
+            entityName: c.persona.nombre.trim(),
+            entityType: 'conductor'
+          }))
+      );
+      setPorVencer(
+        todos
+          .filter((c: Conductor) => c.estado === 'por_vencer')
+          .map((c: Conductor) => ({
+            id_documento: c.id_conductor,
+            nombre_documento: c.documento_critico || "Vigencia de Categoría",
+            entityId: c.persona.ci?.toString() || '0',
+            entityName: c.persona.nombre.trim(),
+            entityType: 'conductor',
+            dias_restantes: c.dias_restantes ?? null
+          }))
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  const cargarTabla = useCallback(async () => {
     try {
       setLoading(true);
       const [listConductores, totalCounters] = await Promise.all([
@@ -53,34 +83,6 @@ export default function ConductoresPage() {
       ]);
       setConductores(listConductores);
       setStats(totalCounters);
-
-      // Mapeo de vencidos utilizando únicamente c.persona.nombre
-      setVencidos(
-        listConductores
-          .filter((c: Conductor) => c.estado === 'vencido')
-          .map((c: Conductor) => ({
-            id_documento: c.id_conductor,
-            nombre_documento: c.documento_critico || "Licencia de Conducir / Categoría",
-            entityId: c.persona.ci?.toString() || '0',
-            entityName: c.persona.nombre.trim(), // ◄ CORREGIDO: Solo nombre unificado
-            entityType: 'conductor'
-          }))
-      );
-
-      // Mapeo de por vencer utilizando únicamente c.persona.nombre
-      setPorVencer(
-        listConductores
-          .filter((c: Conductor) => c.estado === 'por_vencer')
-          .map((c: Conductor) => ({
-            id_documento: c.id_conductor,
-            nombre_documento: c.documento_critico || "Vigencia de Categoría",
-            entityId: c.persona.ci?.toString() || '0',
-            entityName: c.persona.nombre.trim(), // ◄ CORREGIDO: Solo nombre unificado
-            entityType: 'conductor',
-            dias_restantes: c.dias_restantes ?? null
-          }))
-      );
-
     } catch (err) {
       console.error("ERROR AL CARGAR FLUJO OPERATIVO DE CONDUCTORES:", err);
       toast.error("Error al cargar", {
@@ -91,9 +93,20 @@ export default function ConductoresPage() {
     }
   }, [filters]);
 
+  const loadPageData = useCallback(async () => {
+    await Promise.all([cargarTabla(), cargarAlertas()]);
+  }, [cargarTabla, cargarAlertas]);
+
+  // Carga inicial: tabla + alertas
   useEffect(() => {
-    loadPageData();
-  }, [loadPageData]);
+    cargarAlertas();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Recarga solo la tabla cuando cambian los filtros
+  useEffect(() => {
+    cargarTabla();
+  }, [cargarTabla]);
 
   const handleFormSubmitUnificado = async (
     payloadConductor: any,

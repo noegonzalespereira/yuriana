@@ -8,7 +8,7 @@ import { ModuleHeader } from "@/components/organisms/ModuleHeader";
 import { StatCard } from "@/components/atoms/StatCard";
 import {
   getTotalesIngresos, getTotalesGastos, getTotalesPagos,
-  getAlertasDashboard, getViajesRecientes,
+  getAlertasDashboard, getViajesRecientes, getAniosDisponibles,
   TotalesIngresos, TotalesGastos, TotalesPagos, DocumentoAlerta, ViajeReciente,
 } from "@/lib/api/dashboard.api";
 
@@ -44,7 +44,8 @@ export default function DashboardPage() {
   const [mesSeleccionado, setMesSeleccionado] = useState(
     (now.getMonth() + 1).toString().padStart(2, "0")
   );
-  const anio = now.getFullYear();
+  const [anioSeleccionado, setAnioSeleccionado] = useState(now.getFullYear());
+  const [aniosDisponibles, setAniosDisponibles] = useState<number[]>([now.getFullYear()]);
 
   const [ingresos, setIngresos] = useState<TotalesIngresos>({ totalFletes: 0, totalIngresoExtras: 0, totalIngresos: 0 });
   const [gastos, setGastos] = useState<TotalesGastos>({ totalGastosViaje: 0, totalGastosOperativos: 0, totalGastosAdministrativos: 0, totalGastosGenerales: 0, totalGastos: 0 });
@@ -56,18 +57,31 @@ export default function DashboardPage() {
   const [loadingAlertas, setLoadingAlertas] = useState(true);
   const [loadingViajes, setLoadingViajes] = useState(true);
 
-  // Cards: recargan al cambiar mes
+  // Años disponibles: carga una sola vez al montar
+  useEffect(() => {
+    getAniosDisponibles()
+      .then((anios) => {
+        if (anios.length > 0) {
+          setAniosDisponibles(anios);
+          if (!anios.includes(anioSeleccionado)) setAnioSeleccionado(anios[0]);
+        }
+      })
+      .catch(() => {/* mantiene el año actual como fallback */});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Cards: recargan al cambiar mes o año
   useEffect(() => {
     setLoadingCards(true);
     Promise.all([
-      getTotalesIngresos(mesSeleccionado, anio),
-      getTotalesGastos(mesSeleccionado, anio),
-      getTotalesPagos(mesSeleccionado, anio),
+      getTotalesIngresos(mesSeleccionado, anioSeleccionado),
+      getTotalesGastos(mesSeleccionado, anioSeleccionado),
+      getTotalesPagos(mesSeleccionado, anioSeleccionado),
     ])
       .then(([ing, gst, pag]) => { setIngresos(ing); setGastos(gst); setPagos(pag); })
       .catch(() => toast.error("Error al cargar los totales"))
       .finally(() => setLoadingCards(false));
-  }, [mesSeleccionado, anio]);
+  }, [mesSeleccionado, anioSeleccionado]);
 
   // Alertas y viajes: cargan una sola vez
   useEffect(() => {
@@ -84,7 +98,6 @@ export default function DashboardPage() {
 
   // Estado de resultados calculado desde los datos ya cargados
   const utilidadNeta = ingresos.totalIngresos - gastos.totalGastos;
-  const mesLabel = MESES.find((m) => m.value === mesSeleccionado)?.label ?? mesSeleccionado;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
@@ -133,13 +146,22 @@ export default function DashboardPage() {
             <h2 className="font-black text-sm uppercase tracking-tight text-[var(--yuriana-base-gray-dark)]">
               Estado de Resultados
             </h2>
-            <select
-              value={mesSeleccionado}
-              onChange={(e) => setMesSeleccionado(e.target.value)}
-              className="text-xs font-bold bg-[var(--yuriana-base-orange)] text-white rounded-xl px-3 py-1.5 outline-none cursor-pointer"
-            >
-              {MESES.map((m) => <option key={m.value} value={m.value}>{m.label} {anio}</option>)}
-            </select>
+            <div className="flex items-center gap-2">
+              <select
+                value={anioSeleccionado}
+                onChange={(e) => setAnioSeleccionado(Number(e.target.value))}
+                className="text-xs font-bold bg-[var(--yuriana-base-orange)] text-white rounded-xl px-3 py-1.5 outline-none cursor-pointer"
+              >
+                {aniosDisponibles.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+              <select
+                value={mesSeleccionado}
+                onChange={(e) => setMesSeleccionado(e.target.value)}
+                className="text-xs font-bold bg-[var(--yuriana-base-orange)] text-white rounded-xl px-3 py-1.5 outline-none cursor-pointer"
+              >
+                {MESES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+              </select>
+            </div>
           </div>
           {loadingCards ? (
             <div className="py-16 text-center text-xs text-slate-400 italic">Cargando...</div>
