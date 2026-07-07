@@ -21,8 +21,10 @@ export class ColaboradorService {
     } = createColaboradorDto;
 
     const nuevaPersona = await this.personaService.create({
-      nombre, ci, correo, telefono, telefono2, ciudad
-    }, userId);
+      nombre, correo, telefono, ciudad,
+      ...(ci && { ci }),
+      ...(telefono2 && { telefono2 }),
+    } as any, userId);
 
     const nuevoColaborador = this.colaboradorRepository.create({
       ...datosColaborador,
@@ -46,6 +48,9 @@ export class ColaboradorService {
     if(filters.ci){
       query.andWhere('CAST(persona.ci AS TEXT) LIKE :ci', { ci: `${filters.ci}%` });
     }
+    if(filters.nombre){
+      query.andWhere('persona.nombre ILIKE :nombre', { nombre: `%${filters.nombre}%` });
+    }
     if(filters.ciudad){
       query.andWhere('persona.ciudad ILIKE :ciudad', { ciudad: `%${filters.ciudad}%` });
 
@@ -53,12 +58,12 @@ export class ColaboradorService {
     return query.orderBy('colaborador.createdAt', 'DESC').getMany();
   }
 
-  async findOne(ci: number): Promise<Colaborador> {
+  async findOne(id: number): Promise<Colaborador> {
     const colaborador = await this.colaboradorRepository.findOne({
-      where:{ 
-        persona: { ci: ci, status: true},
-      status: true
-    },
+      where:{
+        id_colaborador: id,
+        status: true
+      },
       relations: ['persona']
     });
 
@@ -68,8 +73,8 @@ export class ColaboradorService {
     return colaborador;
   }
 
-  async update(ci: number, updateColaboradorDto: UpdateColaboradorDto, userId: number) {
-    const colaborador = await this.findOne(ci);
+  async update(id: number, updateColaboradorDto: UpdateColaboradorDto, userId: number) {
+    const colaborador = await this.findOne(id);
 
     const {
       nombre, correo, telefono, telefono2, ciudad,
@@ -89,8 +94,8 @@ export class ColaboradorService {
   }
 
 
-  async remove(ci: number, userId: number): Promise<Colaborador> {
-    const colaborador = await this.findOne(ci);
+  async remove(id: number, userId: number): Promise<Colaborador> {
+    const colaborador = await this.findOne(id);
     colaborador.status = false;
     colaborador.UpdatedId = userId;
     return this.colaboradorRepository.save(colaborador);

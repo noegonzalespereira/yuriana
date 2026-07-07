@@ -23,20 +23,20 @@ export class ColaboradorController {
     return this.colaboradorService.findAll(filters);
   }
 
-  @Get(':ci')
-  findOne(@Param('ci', ParseIntPipe) ci: number) {
-    return this.colaboradorService.findOne(ci);
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.colaboradorService.findOne(id);
   }
 
-  @Patch(':ci')
+  @Patch(':id')
   @Roles('ADMIN')
-  update(@Param('ci', ParseIntPipe) ci: number, @Body() updateColaboradorDto: UpdateColaboradorDto, @Request() req){
-    return this.colaboradorService.update(ci, updateColaboradorDto, req.user.id);
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateColaboradorDto: UpdateColaboradorDto, @Request() req){
+    return this.colaboradorService.update(id, updateColaboradorDto, req.user.id);
   }
 
-  @Delete(':ci')
+  @Delete(':id')
   @Roles('ADMIN')
-  remove(@Param('ci', ParseIntPipe) ci: number, @Request() req){
-    return this.colaboradorService.remove(ci, req.user.id);
+  remove(@Param('id', ParseIntPipe) id: number, @Request() req){
+    return this.colaboradorService.remove(id, req.user.id);
   }
 }

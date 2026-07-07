@@ -1,5 +1,5 @@
 
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, ConflictException } from '@nestjs/common';
 import { CreateConductorDto } from './dto/create-conductor.dto';
 import { UpdateConductorDto } from './dto/update-conductor.dto';
 import { DataSource, Repository } from 'typeorm';
@@ -91,12 +91,16 @@ export class ConductorService {
       await queryRunner.commitTransaction();
       return conductorGuardado;
 
-    } catch (error) {
+    } catch (error: any) {
       await queryRunner.rollbackTransaction();
       // Rollback defensivo en la nube
       await Promise.allSettled(
         archivosSubidos.map(a => this.cloudinaryService.eliminarArchivo(a.url))
       );
+      // Convierte el error de constraint único de PostgreSQL en un mensaje amigable
+      if (error?.code === '23505') {
+        throw new ConflictException('El CI ingresado ya está registrado en el sistema');
+      }
       throw error;
     } finally {
       await queryRunner.release();

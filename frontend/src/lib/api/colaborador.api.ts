@@ -2,7 +2,7 @@ import { apiFetch } from "../api";
 import { Colaborador, TipoColaborador } from "@/types/colaborador.types";
 
 export interface ColaboradorFilters {
-  ci?: string;
+  nombre?: string;
   ciudad?: string;
   tipo_colaborador?: TipoColaborador;
 }
@@ -10,9 +10,9 @@ export interface ColaboradorFilters {
 export const getColaboradores = async (filters: ColaboradorFilters = {}): Promise<Colaborador[]> => {
   const queryParams = new URLSearchParams();
 
-  if (filters.ci?.trim()) queryParams.append("ci", filters.ci.trim());
+  if (filters.nombre?.trim()) queryParams.append("nombre", filters.nombre.trim());
   if (filters.ciudad?.trim()) queryParams.append("ciudad", filters.ciudad.trim());
-  
+
   if (filters.tipo_colaborador === "ATA" || filters.tipo_colaborador === "DESPACHANTE") {
     queryParams.append("tipo_colaborador", filters.tipo_colaborador);
   }
@@ -25,13 +25,13 @@ export const createColaborador = async (data: any) => {
   return apiFetch("/colaborador", { method: "POST", body: JSON.stringify(data) });
 };
 
-export const updateColaborador = async (ci: number, data: any) => {
-  return apiFetch(`/colaborador/${ci}`, { 
-    method: "PATCH", 
-    body: JSON.stringify(data) 
+export const updateColaborador = async (id: number, data: any) => {
+  return apiFetch(`/colaborador/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data)
   });
 };
 
-export const deleteColaborador = async (ci: number) => {
-  return apiFetch(`/colaborador/${ci}`, { method: "DELETE" });
+export const deleteColaborador = async (id: number) => {
+  return apiFetch(`/colaborador/${id}`, { method: "DELETE" });
 };

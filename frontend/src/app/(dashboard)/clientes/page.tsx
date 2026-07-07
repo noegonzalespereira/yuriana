@@ -15,7 +15,7 @@ const PAGE_SIZE = 10;
 export default function ClientesPage() {
   const [view, setView] = useState<'list' | 'form'>('list');
   const [data, setData] = useState<Cliente[]>([]);
-  const INITIAL_FILTERS = { nombre: "", codigo_cliente: "" };
+  const INITIAL_FILTERS = { buscar: "" };
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const handleResetFilters = () => setFilters(INITIAL_FILTERS);
   const [pagina, setPagina] = useState(1);
@@ -101,9 +101,9 @@ export default function ClientesPage() {
       <ModuleHeader
         title={view === 'list' ? "Gestión de Clientes" : selectedCliente ? (isReadOnly ? "Datos de la Empresa" : "Editar Datos de Cliente") : "Registrar Nuevo Cliente"}
         subtitle={view === 'list' ? "Gestione los clientes de la empresa" : undefined}
-        searchPlaceholder="Escriba código de cliente"
-        onSearch={view === 'list' ? (val) => setFilters({ nombre: val, codigo_cliente: val }) : undefined}
-        searchValue={view === 'list' ? filters.nombre : undefined}
+        searchPlaceholder="Buscar por cliente y código"
+        onSearch={view === 'list' ? (val) => setFilters({ buscar: val }) : undefined}
+        searchValue={view === 'list' ? filters.buscar : undefined}
         buttonLabel={view === 'list' ? "Nuevo Cliente" : undefined}
         onButtonClick={() => { setSelectedCliente(null); setIsReadOnly(false); setView('form'); }}
       />

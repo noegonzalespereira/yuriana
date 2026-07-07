@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateClienteDto } from './dto/create-cliente.dto';
 import { UpdateClienteDto } from './dto/update-cliente.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 import { Cliente } from './entities/cliente.entity';
 import { PersonaService } from '../persona/persona.service';
 import { FilterClienteDto } from './dto/filter-cliente.dto';
@@ -15,14 +15,24 @@ export class ClienteService {
   ) {}
 
   async create(createClienteDto: CreateClienteDto, userId: number): Promise<Cliente> {
-    const { 
+    if (createClienteDto.nit) {
+      const existeNit = await this.clienteRepository.findOneBy({ nit: createClienteDto.nit, status: true });
+      if (existeNit) throw new ConflictException('El NIT ingresado ya está registrado en el sistema');
+    }
+
+    const {
       nombre, ci, correo, telefono, telefono2, ciudad,
       ...datosCliente
      } = createClienteDto;
 
     const nuevaPersona = await this.personaService.create({
-      nombre, ci, correo, telefono, telefono2, ciudad
-    }, userId);
+      nombre,
+      telefono,
+      ...(ci       && { ci }),
+      ...(correo   && { correo }),
+      ...(telefono2 && { telefono2 }),
+      ...(ciudad   && { ciudad }),
+    } as any, userId);
 
     const nuevoCliente = this.clienteRepository.create({
       ...datosCliente,
@@ -41,20 +51,26 @@ export class ClienteService {
       .createQueryBuilder('cliente')
       .leftJoinAndSelect('cliente.persona', 'persona')
       .where('cliente.status = :status', { status: true });
-    if (filters.codigo_cliente){
-      const codigo = filters.codigo_cliente.trim().toUpperCase();
-      query.andWhere('cliente.codigo_cliente ILIKE :codigo_cliente', { codigo_cliente: `%${codigo}%` });
+
+    if (filters.buscar) {
+      const b = `%${filters.buscar.trim().toUpperCase()}%`;
+      query.andWhere(new Brackets(qb => {
+        qb.where('cliente.codigo_cliente ILIKE :b', { b })
+          .orWhere('persona.nombre ILIKE :b', { b });
+      }));
     }
-    if (filters.ci){
-      query.andWhere('persona.ci = :ci', { ci: filters.ci });
+
+    if (filters.codigo_cliente) {
+      query.andWhere('cliente.codigo_cliente ILIKE :codigo', {
+        codigo: `%${filters.codigo_cliente.trim().toUpperCase()}%`,
+      });
     }
-    if (filters.nombre){
+    if (filters.nombre) {
       query.andWhere('persona.nombre ILIKE :nombre', { nombre: `%${filters.nombre}%` });
     }
+
     query.orderBy('cliente.id_cliente', 'DESC');
     return query.getMany();
-  
-    
   }
 
   async findOne(codigo_cliente: string): Promise<Cliente> {
@@ -71,7 +87,14 @@ export class ClienteService {
   async update(codigo_cliente: string, updateClienteDto: UpdateClienteDto, userId: number) {
     const cliente = await this.findOne(codigo_cliente);
 
-    const { 
+    if (updateClienteDto.nit !== undefined && updateClienteDto.nit !== cliente.nit) {
+      const existeNit = await this.clienteRepository.findOneBy({ nit: updateClienteDto.nit, status: true });
+      if (existeNit && existeNit.id_cliente !== cliente.id_cliente) {
+        throw new ConflictException('El NIT ingresado ya está registrado en el sistema');
+      }
+    }
+
+    const {
       nombre, ci, correo, telefono, telefono2, ciudad,
       ...datosCliente
      } = updateClienteDto;

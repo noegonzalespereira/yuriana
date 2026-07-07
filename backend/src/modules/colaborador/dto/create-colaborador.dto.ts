@@ -1,13 +1,51 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsNumber, Min} from "class-validator";
+import { IsEnum, IsNotEmpty, IsOptional, IsString, IsNumber, Min, Max, IsEmail } from "class-validator";
 import { Transform } from "class-transformer";
-import { CreatePersonaDto } from "../../persona/dto/create-persona.dto";
 import { TipoColaborador } from "../entities/colaborador.entity";
 
-export class CreateColaboradorDto extends CreatePersonaDto{
-    @IsNotEmpty({ message: 'La agencia es obligatoria'})
+const TELEFONO_MIN = 10000000; // 8 dígitos
+const TELEFONO_MAX = 999999999999999; // 15 dígitos
+const TELEFONO_MSG = 'El teléfono debe tener entre 8 y 15 dígitos (ej: 68626895)';
+
+const toUpperTrim = ({ value }: { value: any }) =>
+    typeof value === 'string' ? value.toUpperCase().trim() : value;
+
+export class CreateColaboradorDto {
+    @IsNotEmpty({ message: 'El nombre es obligatorio' })
     @IsString()
-    @Transform(({ value }) => typeof value === 'string' ? value.toUpperCase().trim() : value)
-    agencia!: string
+    @Transform(toUpperTrim)
+    nombre!: string;
+
+    @IsNotEmpty({ message: 'El correo es obligatorio' })
+    @IsEmail({}, { message: 'El correo electrónico no es válido' })
+    correo!: string;
+
+    @IsNotEmpty({ message: 'El teléfono es obligatorio' })
+    @IsNumber({}, { message: 'El teléfono debe ser un número' })
+    @Min(TELEFONO_MIN, { message: TELEFONO_MSG })
+    @Max(TELEFONO_MAX, { message: TELEFONO_MSG })
+    telefono!: number;
+
+    @IsOptional()
+    @IsNumber({}, { message: 'El CI debe ser un número' })
+    @Min(10000, { message: 'El CI debe tener al menos 5 dígitos' })
+    @Max(99999999, { message: 'El CI no puede tener más de 8 dígitos' })
+    ci?: number;
+
+    @IsOptional()
+    @IsNumber({}, { message: 'El teléfono debe ser un número' })
+    @Min(TELEFONO_MIN, { message: TELEFONO_MSG })
+    @Max(TELEFONO_MAX, { message: TELEFONO_MSG })
+    telefono2?: number;
+
+    @IsOptional()
+    @IsString()
+    @Transform(toUpperTrim)
+    ciudad?: string;
+
+    @IsOptional()
+    @IsString()
+    @Transform(toUpperTrim)
+    agencia?: string
 
     @IsNotEmpty({ message: 'El tipo de colaborador es obligatorio'})
     @IsEnum(TipoColaborador, { message: 'El tipo de colaborador debe ser ata o despachante' })

@@ -17,7 +17,7 @@ import { Colaborador, TipoColaborador } from "@/types/colaborador.types";
 import { TablePagination } from "@/components/molecules/TablePagination";
 
 const PAGE_SIZE = 10;
-const INITIAL_FILTERS = { ci: "", ciudad: "", tipo_colaborador: "" };
+const INITIAL_FILTERS = { nombre: "", ciudad: "", tipo_colaborador: "" };
 
 export default function ColaboradoresPage() {
   // --- ESTADOS ---
@@ -63,9 +63,9 @@ export default function ColaboradoresPage() {
   }, [loadData]);
 
   // --- MANEJADORES ---
-  const handleDelete = async (ci: number) => {
+  const handleDelete = async (id: number) => {
     try {
-      await deleteColaborador(ci);
+      await deleteColaborador(id);
       toast.success("Colaborador eliminado correctamente");
       loadData();
     } catch (error: any) {
@@ -76,7 +76,7 @@ export default function ColaboradoresPage() {
   const handleFormSubmit = async (formData: any) => {
     try {
       if (selectedColab) {
-        await updateColaborador(selectedColab.persona.ci, formData);
+        await updateColaborador(selectedColab.id_colaborador, formData);
         toast.success("Colaborador actualizado", { description: "Los datos se guardaron correctamente." });
       } else {
         await createColaborador(formData);
@@ -116,9 +116,9 @@ export default function ColaboradoresPage() {
       <ModuleHeader
         title={view === 'list' ? "Gestión de Colaboradores" : selectedColab ? (isReadOnly ? "Datos del Colaborador" : "Editar Colaborador") : "Registrar Nuevo Colaborador"}
         subtitle={view === 'list' ? "Gestione a los colaboradores de la empresa" : undefined}
-        onSearch={view === 'list' ? (v) => setFilters(prev => ({ ...prev, ci: v })) : undefined}
-        searchValue={view === 'list' ? filters.ci : undefined}
-        searchPlaceholder="Buscar por CI"
+        onSearch={view === 'list' ? (v) => setFilters(prev => ({ ...prev, nombre: v })) : undefined}
+        searchValue={view === 'list' ? filters.nombre : undefined}
+        searchPlaceholder="Buscar por nombre"
         buttonLabel={view === 'list' ? "Nuevo Colaborador" : undefined}
         onButtonClick={handleOpenCreate}
       />

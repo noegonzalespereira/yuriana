@@ -12,7 +12,8 @@ import {
 } from 'typeorm';
 import { Persona } from "../../persona/entities/persona.entity";
 @Entity('cliente')
-@Index(['codigo_cliente'], {unique: true , where: '"status" = true'})
+@Index(['codigo_cliente'], { unique: true, where: '"status" = true' })
+@Index(['nit'], { unique: true, where: '"status" = true AND nit IS NOT NULL' })
 
 export class Cliente {
     @PrimaryGeneratedColumn()
@@ -21,11 +22,18 @@ export class Cliente {
     @Column({nullable: true})
     codigo_cliente!: string;
 
-    @Column()
-    nit!: number
+    @Column({
+        type: 'bigint',
+        nullable: true,
+        transformer: {
+            to: (value: number) => value,
+            from: (value: string) => value === null || value === undefined ? value : parseInt(value, 10),
+        },
+    })
+    nit?: number
 
-    @Column()
-    razon_social!: string;
+    @Column({nullable: true})
+    razon_social?: string;
 
     @OneToOne(() => Persona, {onDelete: 'RESTRICT'})
     @JoinColumn({ name: 'id_persona' })

@@ -215,7 +215,7 @@ export const ConductorForm = ({ initialData, onSubmit, onCancel, isReadOnly }: P
           <ModuleField label="Nombre" name="nombre" register={register} disabled={isReadOnly} error={errors.nombre} rules={{ required: "El nombre es obligatorio" }} />
           <ModuleField label="Correo *" name="correo" type="email" register={register} disabled={isReadOnly} error={errors.correo} rules={{ required: "El correo es obligatorio" }} />
           <ModuleField label="Ciudad" name="ciudad" register={register} disabled={isReadOnly} />
-          <ModuleField label="Teléfono" name="telefono" type="number" register={register} disabled={isReadOnly} error={errors.telefono} rules={{ min: { value: 10000000, message: "El teléfono debe tener exactamente 8 dígitos (ej: 68626895)" }, max: { value: 99999999, message: "El teléfono debe tener exactamente 8 dígitos (ej: 68626895)" } }} />
+          <ModuleField label="Teléfono" name="telefono" type="number" register={register} disabled={isReadOnly} error={errors.telefono} rules={{ required: "El teléfono es obligatorio", validate: (v: string) => !v || /^\d{8,15}$/.test(v) || "El teléfono debe tener entre 8 y 15 dígitos " }} />
           <ModuleField label="Sueldo (Bs)" name="sueldo" type="number" register={register} disabled={isReadOnly} error={errors.sueldo} rules={{ min: { value: 0, message: "El sueldo no puede ser negativo" } }} />
 
           <div className="flex flex-col gap-1">

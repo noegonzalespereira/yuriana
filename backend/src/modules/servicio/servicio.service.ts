@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, Brackets } from 'typeorm';
 import { Servicio, EstadoPago, EstadoServicio, Moneda } from './entities/servicio.entity';
@@ -13,6 +13,7 @@ import { Unidad, EstadoUnidad } from '../unidad/entities/unidad.entity';
 import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 import { FilterServicioDto } from './dto/filter-servicio.dto';
 import { AsignacionService } from '../asignacion/asignacion.service';
+import { Asignacion, EstadoAsignacion } from '../asignacion/entities/asignacion.entity';
 
 @Injectable()
 export class ServicioService {
@@ -24,20 +25,40 @@ export class ServicioService {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
+  private async ocuparEquipo(id_asignacion: number, userId: number) {
+    const asignacion = await this.dataSource.getRepository(Asignacion).findOneBy({ id_asignacion, status: true });
+    if (!asignacion) return;
+    if (asignacion.estado_asignacion === EstadoAsignacion.ASIGNADO) {
+      throw new ConflictException('La asignación ya está en uso por otro servicio activo');
+    }
+    await this.dataSource.getRepository(Asignacion).update(id_asignacion, { estado_asignacion: EstadoAsignacion.ASIGNADO, UpdatedId: userId });
+    await this.dataSource.getRepository(Conductor).update(asignacion.id_conductor, { estado_operativo: EstadoOperativo.VIAJE, UpdatedId: userId });
+    await this.dataSource.getRepository(Unidad).update(
+      [asignacion.id_tracto, asignacion.id_remolque],
+      { estado_unidad: EstadoUnidad.EN_VIAJE, UpdatedId: userId },
+    );
+  }
+
   private async liberarEquipo(id_asignacion: number, userId: number) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
-      const asignacion = await this.asignacionService.findOne(id_asignacion);
+      const asignacion = await this.dataSource.getRepository(Asignacion).findOne({
+        where: { id_asignacion, status: true },
+      });
       if (asignacion) {
-        await queryRunner.manager.update(Conductor, asignacion.id_conductor, {
-          estado_operativo: EstadoOperativo.ASIGNADO,
+        await queryRunner.manager.update(Asignacion, id_asignacion, {
+          estado_asignacion: EstadoAsignacion.ACTIVA,
           UpdatedId: userId,
         });
-        await queryRunner.manager.update(Unidad, 
-          [asignacion.id_tracto, asignacion.id_remolque], 
-          { estado_unidad: EstadoUnidad.ASIGNADO, UpdatedId: userId }
+        await queryRunner.manager.update(Conductor, asignacion.id_conductor, {
+          estado_operativo: EstadoOperativo.DISPONIBLE,
+          UpdatedId: userId,
+        });
+        await queryRunner.manager.update(Unidad,
+          [asignacion.id_tracto, asignacion.id_remolque],
+          { estado_unidad: EstadoUnidad.DISPONIBLE, UpdatedId: userId }
         );
       }
       await queryRunner.commitTransaction();
@@ -58,6 +79,9 @@ export class ServicioService {
       // 1. VALIDACIONES INICIALES
       const asig = await this.asignacionService.findOne(dto.id_asignacion);
       if (!asig) throw new NotFoundException('La asignación solicitada no existe');
+      if (asig.estado_asignacion === EstadoAsignacion.ASIGNADO) {
+        throw new ConflictException('Esta asignación ya está en uso por otro servicio activo');
+      }
 
       // 1b. VALIDACIONES CONTEXTUALES
       const categoria = await queryRunner.manager.findOne(CategoriaEntidad, { where: { id_categoria: dto.id_categoria } });
@@ -172,6 +196,10 @@ export class ServicioService {
       }
 
       // 7. EFECTO DOMINÓ
+      await queryRunner.manager.update(Asignacion, dto.id_asignacion, {
+        estado_asignacion: EstadoAsignacion.ASIGNADO,
+        UpdatedId: userId,
+      });
       if (estadoServicio === EstadoServicio.EN_CURSO) {
         await queryRunner.manager.update(Conductor, asig.id_conductor, { estado_operativo: EstadoOperativo.VIAJE });
         await queryRunner.manager.update(Unidad, [asig.id_tracto, asig.id_remolque], { estado_unidad: EstadoUnidad.EN_VIAJE });
@@ -261,7 +289,13 @@ export class ServicioService {
 
   async update(id: number, dto: UpdateServicioDto, fileVoucher: Express.Multer.File, userId: number) {
     const servicio = await this.findOne(id);
+    const { borrar_fecha_fin, ...datosActualizar } = dto;
+    const debeBorrarFechaFin = String(borrar_fecha_fin) === 'true';
+    const estadoAnterior = servicio.estado_servicio;
 
+    if (debeBorrarFechaFin && dto.fecha_fin) {
+      throw new BadRequestException('No se puede borrar y establecer la fecha de fin al mismo tiempo');
+    }
 
     // Validaciones cuando se está finalizando el viaje (se envía fecha_fin por primera vez)
     if (dto.fecha_fin && !servicio.fecha_fin) {
@@ -284,18 +318,31 @@ export class ServicioService {
       servicio.estado_pago = EstadoPago.PAGADO;
     }
 
-    // Si se provee fecha_fin (o ya la tenía), finalizar el viaje
-    if (dto.fecha_fin) {
+    if (debeBorrarFechaFin) {
+      // Revertir un viaje finalizado por error de vuelta a EN_CURSO
+      servicio.fecha_fin = null;
+      servicio.fecha_limite_pago = null;
+      servicio.estado_servicio = EstadoServicio.EN_CURSO;
+    } else if (dto.fecha_fin) {
+      // Si se provee fecha_fin (o ya la tenía), finalizar el viaje
       servicio.fecha_fin = new Date(dto.fecha_fin);
       servicio.estado_servicio = EstadoServicio.FINALIZADO;
       const fLimite = new Date(servicio.fecha_fin);
       fLimite.setDate(fLimite.getDate() + (dto.periodo_liquidacion ?? servicio.periodo_liquidacion ?? 0));
       servicio.fecha_limite_pago = fLimite;
-      if (!servicio.fecha_fin) await this.liberarEquipo(servicio.id_asignacion, userId);
     }
 
-    Object.assign(servicio, { ...dto, UpdatedId: userId });
-    return await this.servicioRepo.save(servicio);
+    Object.assign(servicio, { ...datosActualizar, UpdatedId: userId });
+    const guardado = await this.servicioRepo.save(servicio);
+
+    // Sincronizar conductor y unidades según la transición de estado
+    if (estadoAnterior === EstadoServicio.EN_CURSO && guardado.estado_servicio === EstadoServicio.FINALIZADO) {
+      await this.liberarEquipo(servicio.id_asignacion, userId);
+    } else if (estadoAnterior === EstadoServicio.FINALIZADO && guardado.estado_servicio === EstadoServicio.EN_CURSO) {
+      await this.ocuparEquipo(servicio.id_asignacion, userId);
+    }
+
+    return guardado;
   }
 
   async remove(id: number, userId: number) {

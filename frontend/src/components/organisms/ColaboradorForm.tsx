@@ -34,24 +34,24 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
     }
   }, [initialData, reset]);
 
-  const MAX_INT = 2_147_483_647;
+  const MAX_TELEFONO = 999_999_999_999_999; // 15 dígitos
 
   const handleLocalSubmit = (data: any) => {
     const tel = data.telefono ? parseInt(data.telefono) : 0;
     const tel2 = data.telefono2 ? parseInt(data.telefono2) : undefined;
 
-    if (tel > MAX_INT)
-      return toast.error("El teléfono supera el límite permitido (máx. 10 números)");
-    if (tel2 !== undefined && tel2 > MAX_INT)
-      return toast.error("El teléfono 2 supera el límite permitido (máx. 10 números)");
+    if (tel > MAX_TELEFONO)
+      return toast.error("El teléfono supera el límite permitido (máx. 15 dígitos)");
+    if (tel2 !== undefined && tel2 > MAX_TELEFONO)
+      return toast.error("El teléfono 2 supera el límite permitido (máx. 15 dígitos)");
 
     const payload: Record<string, any> = {
-      ci: data.ci ? parseInt(data.ci) : 0,
+      ci: data.ci ? parseInt(data.ci) : undefined,
       nombre: data.nombre?.trim().toUpperCase(),
       correo: data.correo,
       telefono: tel,
       ciudad: data.ciudad?.trim().toUpperCase() || "",
-      agencia: data.agencia?.trim().toUpperCase() || "",
+      agencia: data.agencia?.trim() ? data.agencia.trim().toUpperCase() : undefined,
       monto: data.monto ? parseFloat(data.monto) : 0,
       notas: data.notas?.trim().toUpperCase() || "",
       tipo_colaborador: tipo,
@@ -86,9 +86,15 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
           {/* Sección: Tipo */}
           <div className="space-y-3">
             <p className="text-[10px] font-black uppercase tracking-widest text-[var(--yuriana-input-label)]">
-              Tipo de Colaborador <span className="text-red-500">*</span>
+              Tipo de Colaborador {!isReadOnly && <span className="text-red-500">*</span>}
             </p>
-            <TypeSelector selected={tipo} onChange={setTipo} disabled={isReadOnly} />
+            {isReadOnly ? (
+              <span className="inline-block px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider bg-[var(--yuriana-base-yellow)] text-white shadow-sm">
+                {tipo === "ATA" ? "ATA" : "Agencia Despachante"}
+              </span>
+            ) : (
+              <TypeSelector selected={tipo} onChange={setTipo} />
+            )}
           </div>
 
           <div className="border-t border-dashed border-[var(--yuriana-card-border)]" />
@@ -100,15 +106,6 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-5">
               <ModuleField
-                label="CI / NIT"
-                name="ci"
-                type="number"
-                register={register}
-                disabled={isReadOnly || !!initialData}
-                error={errors.ci}
-                rules={{ required: "El CI / NIT es obligatorio" }}
-              />
-              <ModuleField
                 label="Nombre"
                 name="nombre"
                 register={register}
@@ -116,6 +113,16 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
                 error={errors.nombre}
                 rules={{ required: "El nombre es obligatorio" }}
               />
+              
+              <ModuleField
+                label="CI / NIT"
+                name="ci"
+                type="number"
+                register={register}
+                disabled={isReadOnly || !!initialData}
+                error={errors.ci}
+              />
+              
               <ModuleField
                 label="Correo"
                 name="correo"
@@ -146,7 +153,7 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
                 register={register}
                 disabled={isReadOnly}
                 error={errors.telefono}
-                rules={{ required: "El teléfono es obligatorio", min: { value: 10000000, message: "El teléfono debe tener exactamente 8 dígitos (ej: 68626895)" }, max: { value: 99999999, message: "El teléfono debe tener exactamente 8 dígitos (ej: 68626895)" } }}
+                rules={{ required: "El teléfono es obligatorio", validate: (v: string) => !v || /^\d{8,15}$/.test(v) || "El teléfono debe tener entre 8 y 15 dígitos " }}
               />
               <ModuleField
                 label="Teléfono 2"
@@ -155,7 +162,7 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
                 register={register}
                 disabled={isReadOnly}
                 error={errors.telefono2}
-                rules={{ min: { value: 10000000, message: "El teléfono debe tener exactamente 8 dígitos (ej: 68626895)" }, max: { value: 99999999, message: "El teléfono debe tener exactamente 8 dígitos (ej: 68626895)" } }}
+                rules={{ validate: (v: string) => !v || /^\d{8,15}$/.test(v) || "El teléfono debe tener entre 8 y 15 dígitos " }}
               />
               <ModuleField
                 label="Ciudad"
@@ -182,7 +189,6 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
                 register={register}
                 disabled={isReadOnly}
                 error={errors.agencia}
-                rules={{ required: "La agencia es obligatoria" }}
               />
               <ModuleField
                 label="Monto"

@@ -22,7 +22,7 @@ export const SearchInput = ({ placeholder = "Buscar...", onChange, value: extern
       <input
         type="text"
         value={val}
-        className="block w-full pl-9 pr-3 py-1.5 bg-[var(--yuriana-input-bg)] border border-[var(--yuriana-input-border)] rounded-xl text-xs placeholder-[var(--yuriana-input-placeholder)] focus:outline-none focus:ring-2 focus:ring-[var(--yuriana-input-border-focus)] shadow-sm text-[var(--yuriana-input-text)] font-medium uppercase placeholder:uppercase"
+        className="block w-full pl-9 pr-3 py-1.5 bg-[var(--yuriana-input-bg)] border border-[var(--yuriana-input-border)] rounded-xl text-[10px] placeholder-[var(--yuriana-input-placeholder)] focus:outline-none focus:ring-2 focus:ring-[var(--yuriana-input-border-focus)] shadow-sm text-[var(--yuriana-input-text)] font-medium uppercase placeholder:uppercase"
         placeholder={placeholder}
         onChange={(e) => { setVal(e.target.value); onChange?.(e.target.value); }}
       />

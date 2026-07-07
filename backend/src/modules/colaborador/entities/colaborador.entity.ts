@@ -30,8 +30,8 @@ export class Colaborador {
     @Column()
     id_persona!: number;
 
-    @Column()
-    agencia!: string;
+    @Column({ nullable: true })
+    agencia?: string;
 
     @Column({
         type: 'enum',

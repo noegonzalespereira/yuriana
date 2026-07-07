@@ -1,10 +1,15 @@
 import { IsOptional, IsString } from "class-validator";
-import { FilterPersonaDto } from "../../persona/dto/filter-persona.dto";
-export class FilterClienteDto extends FilterPersonaDto{
+
+export class FilterClienteDto {
+    @IsOptional()
+    @IsString()
+    buscar?: string;
+
     @IsOptional()
     @IsString()
     codigo_cliente?: string;
 
-    
-
+    @IsOptional()
+    @IsString()
+    nombre?: string;
 }

@@ -95,7 +95,7 @@ export class Servicio {
     fecha_inicio!: Date;
 
     @Column({ type: 'date', nullable: true })
-    fecha_fin!: Date;
+    fecha_fin!: Date | null;
 
     @Column()
     mes!: string; 
@@ -107,7 +107,7 @@ export class Servicio {
     periodo_liquidacion?: number;
 
     @Column({ type: 'date', nullable: true })
-    fecha_limite_pago!: Date;
+    fecha_limite_pago!: Date | null;
 
     @Column({ type: 'text', nullable: true })
     descripcion_carga?: string;

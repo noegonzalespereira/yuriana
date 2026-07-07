@@ -1,25 +1,38 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity('persona')
-@Index(['ci'], {unique: true , where: '"status" = true'})
+@Index(['ci'], {unique: true , where: '"status" = true AND ci IS NOT NULL'})
 
 export class Persona {
     @PrimaryGeneratedColumn()
     id_persona!: number;
 
-    @Column()
-    ci!: number;
-    
+    @Column({ nullable: true })
+    ci?: number;
+
     @Column()
     nombre!: string;
 
-    @Column()
-    correo!: string;
+    @Column({ nullable: true })
+    correo?: string;
 
-    @Column()
+    @Column({
+        type: 'bigint',
+        transformer: {
+            to: (value: number) => value,
+            from: (value: string) => value === null || value === undefined ? value : parseInt(value, 10),
+        },
+    })
     telefono!: number;
 
-    @Column({nullable: true})
+    @Column({
+        type: 'bigint',
+        nullable: true,
+        transformer: {
+            to: (value: number) => value,
+            from: (value: string) => value === null || value === undefined ? value : parseInt(value, 10),
+        },
+    })
     telefono2?: number;
 
     @Column({nullable: true})

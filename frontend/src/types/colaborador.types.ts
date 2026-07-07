@@ -15,9 +15,9 @@ export interface Persona {
 
 export interface Colaborador {
   id_colaborador: number;
-  persona: Persona;
+  persona: Omit<Persona, 'ci'> & { ci?: number };
   id_persona: number;
-  agencia: string;
+  agencia?: string;
   tipo_colaborador: TipoColaborador;
   monto: number;
   notas?: string;

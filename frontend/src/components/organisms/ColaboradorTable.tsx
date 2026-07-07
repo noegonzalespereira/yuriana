@@ -5,7 +5,7 @@ import { ColaboradorTypeBadge } from "../atoms/ColaboradorTypeBadge";
 
 interface Props {
   data: Colaborador[];
-  onDelete: (ci: number) => void;
+  onDelete: (id: number) => void;
   onEdit: (colab: Colaborador) => void;
   onView: (colab: Colaborador) => void;
 }
@@ -30,7 +30,9 @@ export const ColaboradorTable = ({ data, onDelete, onEdit, onView }: Props) => {
               <td className="px-4 py-2.5">
                 <div className="flex flex-col">
                   <span className="font-bold text-[var(--yuriana-base-gray-dark)] text-xs">{item.persona.nombre}</span>
-                  <span className="text-[10px] text-[var(--yuriana-base-gray-light)] font-black mt-0.5">CI: {item.persona.ci}</span>
+                  {item.persona.ci && (
+                    <span className="text-[10px] text-[var(--yuriana-base-gray-light)] font-black mt-0.5">CI: {item.persona.ci}</span>
+                  )}
                 </div>
               </td>
               <td className="px-4 py-2.5"><ColaboradorTypeBadge type={item.tipo_colaborador} /></td>
@@ -43,7 +45,7 @@ export const ColaboradorTable = ({ data, onDelete, onEdit, onView }: Props) => {
               <td className="px-4 py-2.5 text-xs text-gray-600 font-medium">{item.persona.telefono}</td>
               <td className="px-4 py-2.5 font-black text-xs text-[var(--yuriana-base-gray-dark)]">{item.monto.toLocaleString()} Bs</td>
               <td className="px-4 py-2.5">
-                <TableActions onView={() => onView(item)} onEdit={() => onEdit(item)} onDelete={() => onDelete(item.persona.ci)} size={18} />
+                <TableActions onView={() => onView(item)} onEdit={() => onEdit(item)} onDelete={() => onDelete(item.id_colaborador)} size={18} />
               </td>
             </tr>
           ))}

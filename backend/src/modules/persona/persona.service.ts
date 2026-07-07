@@ -14,11 +14,10 @@ export class PersonaService {
   ) {}
   
   async create(createPersonaDto: CreatePersonaDto, userId: number): Promise<Persona> {
-    const existe_persona = await this.personaRepository.findOneBy({
-      ci: createPersonaDto.ci, status: true});
-    
-    if(existe_persona){
-      throw new ConflictException('ci ya registrado')
+    if (createPersonaDto.ci) {
+      const existe_persona = await this.personaRepository.findOneBy({
+        ci: createPersonaDto.ci, status: true });
+      if (existe_persona) throw new ConflictException('El CI ingresado ya está registrado en el sistema');
     }
     const nuevaPersona = this.personaRepository.create({
       ...createPersonaDto,
@@ -52,6 +51,14 @@ export class PersonaService {
 
   async update(id: number, updatePersonaDto: UpdatePersonaDto, userId: number) {
     const persona = await this.findOne(id);
+
+    if (updatePersonaDto.ci !== undefined && updatePersonaDto.ci !== persona.ci) {
+      const existeOtra = await this.personaRepository.findOneBy({ ci: updatePersonaDto.ci, status: true });
+      if (existeOtra && existeOtra.id_persona !== persona.id_persona) {
+        throw new ConflictException('El CI ingresado ya está registrado en el sistema');
+      }
+    }
+
     Object.assign(persona, {
       ...updatePersonaDto, UpdatedId: userId
     });

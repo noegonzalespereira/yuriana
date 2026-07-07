@@ -342,7 +342,6 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     if (esInternacional && !crt.trim()) return toast.error("El CRT es obligatorio para viajes internacionales");
     if (!idCliente) return toast.error("Busca y selecciona un cliente");
     if (!idAsignacion) return toast.error("Busca y selecciona un conductor/unidad");
-    if (!idColaborador) return toast.error("Busca y selecciona un colaborador");
     if (!fechaInicio) return toast.error("La fecha de inicio es obligatoria");
     if (flete <= 0) return toast.error("El flete debe ser mayor a 0");
     if (fleteAdicional < 0) return toast.error("El flete adicional no puede ser negativo");
@@ -391,13 +390,18 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     }
     fd.append("id_cliente",     String(idCliente));
     fd.append("id_asignacion",  String(idAsignacion));
-    fd.append("id_colaborador", String(idColaborador));
+    if (idColaborador) fd.append("id_colaborador", String(idColaborador));
     fd.append("moneda",         moneda);
     if (moneda === Moneda.DOLAR && tipoCambio > 0) fd.append("tipo_cambio", String(tipoCambio));
     fd.append("flete",          String(flete));
     if (fleteAdicional > 0) fd.append("flete_adicional", String(fleteAdicional));
     fd.append("fecha_inicio",   fechaInicio);
-    if (fechaFin) fd.append("fecha_fin", fechaFin);
+    if (fechaFin) {
+      fd.append("fecha_fin", fechaFin);
+    } else if (isEdit && initialData?.fecha_fin) {
+      // El usuario borró una fecha_fin ya guardada: pide revertir el viaje a EN_CURSO
+      fd.append("borrar_fecha_fin", "true");
+    }
     if (periodoLiquidacion > 0) fd.append("periodo_liquidacion", String(periodoLiquidacion));
     if (descripcionCarga) fd.append("descripcion_carga", descripcionCarga.trim());
     if (voucher) fd.append("vaucher", voucher);
@@ -700,7 +704,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
               options={listaColaboradores.map((c) => ({
                 value: c.id_colaborador,
                 label: c.persona.nombre,
-                sublabel: `CI: ${c.persona.ci} · ${c.agencia ?? ""}`,
+                sublabel: `${c.persona.ci ? `CI: ${c.persona.ci} · ` : ""}${c.agencia ?? ""}`,
               }))}
               value={ciColaborador}
               selectedOptionValue={idColaborador ?? undefined}
@@ -711,7 +715,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
                 const c = listaColaboradores.find((x) => x.id_colaborador === opt.value);
                 if (c) {
                   setIdColaborador(c.id_colaborador);
-                  setCiColaborador(String(c.persona.ci));
+                  setCiColaborador(c.persona.ci ? String(c.persona.ci) : c.persona.nombre);
                   setNombreColaborador(c.persona.nombre);
                   setAgenciaColaborador(c.agencia ?? "");
                 }
@@ -808,7 +812,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
           </Field>
           <Field label="Estado de Viaje">
             <input className={`${INPUT_CLASS} uppercase`} disabled readOnly
-              value={initialData?.estado_servicio ?? "EN_CURSO"} />
+              value={tieneFechaFin ? "FINALIZADO" : "EN_CURSO"} />
           </Field>
         </div>
       </div>

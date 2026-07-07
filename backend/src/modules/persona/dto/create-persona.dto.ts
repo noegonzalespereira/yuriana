@@ -1,9 +1,9 @@
 import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min } from "class-validator";
 import { Transform } from "class-transformer";
 
-const TELEFONO_MIN = 10000000;
-const TELEFONO_MAX = 99999999;
-const TELEFONO_MSG = 'El teléfono debe tener exactamente 8 dígitos (ej: 68626895)';
+const TELEFONO_MIN = 10000000; // 8 dígitos
+const TELEFONO_MAX = 999999999999999; // 15 dígitos
+const TELEFONO_MSG = 'El teléfono debe tener entre 8 y 15 dígitos (ej: 68626895)';
 
 export class CreatePersonaDto {
     @IsNotEmpty({ message: 'La cédula es obligatoria' })
