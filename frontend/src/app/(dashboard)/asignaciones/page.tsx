@@ -17,7 +17,7 @@ export default function AsignacionesPage() {
   const [view, setView] = useState<'list' | 'form'>('list');
   const [loading, setLoading] = useState(true);
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
-  const INITIAL_FILTERS = { estado_asignacion: "ACTIVA", ci_conductor: "", placa_tracto: "", placa_remolque: "" };
+  const INITIAL_FILTERS = { estado_asignacion: "", ci_conductor: "", placa_tracto: "", placa_remolque: "" };
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const handleResetFilters = () => setFilters(INITIAL_FILTERS);
   const [pagina, setPagina] = useState(1);

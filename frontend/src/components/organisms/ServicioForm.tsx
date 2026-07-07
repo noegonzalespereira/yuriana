@@ -699,7 +699,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
       <div className="bg-[var(--yuriana-card-bg)] rounded-3xl border border-border shadow-xl p-8 space-y-5">
         <SectionHeader icon={<UserCheck size={16} />} title="Datos del Colaborador" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-          <Field label="Ci Colaborador" required>
+          <Field label="Ci Colaborador" optional>
             <SearchableCombobox
               options={listaColaboradores.map((c) => ({
                 value: c.id_colaborador,
@@ -721,6 +721,13 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
                 }
               }}
             />
+            {idColaborador && !isReadOnly && (
+              <button type="button"
+                onClick={() => { setIdColaborador(null); setCiColaborador(""); setNombreColaborador(""); setAgenciaColaborador(""); setMontoColaborador(0); }}
+                className="text-[9px] text-rose-400 hover:text-rose-600 font-bold self-start ml-1 transition-colors">
+                ✕ Quitar colaborador
+              </button>
+            )}
           </Field>
           <Field label="Nombre Colaborador">
             <input className={INPUT_CLASS} value={nombreColaborador} disabled readOnly placeholder="-" />

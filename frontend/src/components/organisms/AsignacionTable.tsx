@@ -77,7 +77,7 @@ export const AsignacionTable = ({ data, onDelete, onEdit, onView }: Props) => {
                     ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
                     : "bg-blue-50 text-blue-700 border border-blue-100"
                 }`}>
-                  {item.estado_asignacion === EstadoAsignacion.ACTIVA ? "Activo" : "Finalizado"}
+                  {item.estado_asignacion === EstadoAsignacion.ACTIVA ? "Activo" : "Asignado"}
                 </span>
               </td>
 

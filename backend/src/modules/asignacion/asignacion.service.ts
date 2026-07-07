@@ -229,12 +229,8 @@ async findAll(filters: FilterAsignacionDto) {
     .where('asignacion.status = :status', { status: true });
 
   if (filters.estado_asignacion) {
-    query.andWhere('asignacion.estado_asignacion = :estado', 
+    query.andWhere('asignacion.estado_asignacion = :estado',
       { estado: filters.estado_asignacion }
-    );
-  } else {
-    query.andWhere('asignacion.estado_asignacion = :estado', 
-      { estado: EstadoAsignacion.ACTIVA }
     );
   }
 

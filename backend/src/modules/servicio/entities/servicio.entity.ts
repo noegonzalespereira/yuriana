@@ -68,12 +68,12 @@ export class Servicio {
     @Column()
     id_asignacion!: number;
 
-    @ManyToOne(() => Colaborador, {onDelete: 'RESTRICT'})
+    @ManyToOne(() => Colaborador, { nullable: true, onDelete: 'RESTRICT' })
     @JoinColumn({ name: 'id_colaborador' })
-    colaborador!: Colaborador;
-    
-    @Column()
-    id_colaborador!: number;
+    colaborador?: Colaborador | null;
+
+    @Column({ nullable: true })
+    id_colaborador?: number | null;
 
     @Column({ type: 'enum', enum: Moneda, default: Moneda.BOLIVIANOS})
     moneda!: Moneda;

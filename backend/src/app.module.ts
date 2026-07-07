@@ -44,7 +44,8 @@ import { RequisitoDocumentoModule } from './modules/requisito-documento/requisit
           password: configService.get<string>('DATABASE_PASSWORD'),
           database: configService.get<string>('DATABASE_NAME'),
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          synchronize: true,
+          migrations: [__dirname + '/migrations/*{.ts,.js}'],
+          synchronize: configService.get('NODE_ENV') !== 'production',
           logging: false,
           // --- CONFIGURACIÓN DINÁMICA DE SSL ---
           ssl: esLocal ? false : { rejectUnauthorized: false }
