@@ -47,7 +47,7 @@ const DeleteModal = ({
       <div className="space-y-2">
         <h3 className="font-black text-slate-800 uppercase tracking-tight text-lg">¿Eliminar este viaje?</h3>
         <p className="text-xs text-slate-500 leading-relaxed max-w-[320px] mx-auto">
-          Este viaje será desactivado del sistema. Esta acción no puede deshacerse.
+          Esta seguro? Esta acción no puede deshacerse.
         </p>
       </div>
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
@@ -139,7 +139,9 @@ export default function ServiciosPage() {
       await eliminarServicio(deleteId);
       toast.success("Viaje eliminado correctamente");
       loadData();
-    } catch { toast.error("No se pudo eliminar el viaje"); }
+    } catch (err: any) {
+      toast.error(err.message || "No se puede eliminar un viaje con el pago retrasado");
+    }
     finally { setDeleteId(null); }
   };
 

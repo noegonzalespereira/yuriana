@@ -464,7 +464,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
           </Field>
           <Field label="Tipo de Viaje" required>
             <div className="flex gap-2">
-              {categorias.map((cat) => {
+              {(isReadOnly ? categorias.filter((cat) => cat.id_categoria === idCategoriaSeleccionada) : categorias).map((cat) => {
                 const esInt = cat.tipo_categoria.includes("INTERNACIONAL");
                 const label = esInt ? "Internacional" : "Nacional";
                 const seleccionado = idCategoriaSeleccionada === cat.id_categoria;
@@ -474,7 +474,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
                     onClick={() => setIdCategoriaSeleccionada(cat.id_categoria)}
                     className={`flex-1 py-2 rounded-xl text-xs font-black uppercase transition-all ${
                       seleccionado
-                        ? "bg-[var(--yuriana-base-orange)] text-white shadow"
+                        ? "bg-[var(--yuriana-base-yellow)] text-white shadow"
                         : "bg-[var(--yuriana-input-bg)] border border-[var(--yuriana-input-border)] text-[var(--yuriana-input-placeholder)] hover:border-[var(--yuriana-base-orange)]"
                     }`}>
                     {label}

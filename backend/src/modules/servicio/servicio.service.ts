@@ -77,7 +77,9 @@ export class ServicioService {
 
     try {
       // 1. VALIDACIONES INICIALES
-      const asig = await this.asignacionService.findOne(dto.id_asignacion);
+      const asig = await this.dataSource.getRepository(Asignacion).findOne({
+        where: { id_asignacion: dto.id_asignacion, status: true },
+      });
       if (!asig) throw new NotFoundException('La asignación solicitada no existe');
       if (asig.estado_asignacion === EstadoAsignacion.ASIGNADO) {
         throw new ConflictException('Esta asignación ya está en uso por otro servicio activo');
@@ -85,10 +87,13 @@ export class ServicioService {
 
       // 1b. VALIDACIONES CONTEXTUALES
       const categoria = await queryRunner.manager.findOne(CategoriaEntidad, { where: { id_categoria: dto.id_categoria } });
-      const esInternacional = categoria?.tipo_categoria?.toUpperCase().includes('internacional') ?? false;
+      const esInternacional = categoria?.tipo_categoria?.toUpperCase().includes('INTERNACIONAL') ?? false;
 
       if (esInternacional && !dto.crt?.trim()) {
         throw new BadRequestException('El CRT es obligatorio para viajes internacionales');
+      }
+      if (dto.fecha_fin && new Date(dto.fecha_fin) < new Date(dto.fecha_inicio)) {
+        throw new BadRequestException('La fecha fin no puede ser menor a la fecha inicio');
       }
 
       if (dto.fecha_fin) {
@@ -99,7 +104,7 @@ export class ServicioService {
           throw new BadRequestException('Si el viaje está facturado, debes subir al menos una foto de factura');
         }
       }
-
+      
       // 2. CÁLCULO DE FECHAS Y ESTADOS
       const fInicio = new Date(dto.fecha_inicio!);
       const mesNombre = (fInicio.getMonth() + 1).toString().padStart(2, '0');
@@ -297,6 +302,13 @@ export class ServicioService {
       throw new BadRequestException('No se puede borrar y establecer la fecha de fin al mismo tiempo');
     }
 
+    // Compara contra los valores finales (dto si viene, si no el que ya tenía guardado)
+    const fechaInicioFinal = dto.fecha_inicio ? new Date(dto.fecha_inicio) : servicio.fecha_inicio;
+    const fechaFinFinal = debeBorrarFechaFin ? null : (dto.fecha_fin ? new Date(dto.fecha_fin) : servicio.fecha_fin);
+    if (fechaFinFinal && fechaFinFinal < fechaInicioFinal) {
+      throw new BadRequestException('La fecha fin no puede ser menor a la fecha inicio');
+    }
+
     // Validaciones cuando se está finalizando el viaje (se envía fecha_fin por primera vez)
     if (dto.fecha_fin && !servicio.fecha_fin) {
       const periodoFinal = dto.periodo_liquidacion ?? servicio.periodo_liquidacion;
@@ -347,8 +359,8 @@ export class ServicioService {
 
   async remove(id: number, userId: number) {
     const servicio = await this.findOne(id);
-    if (servicio.estado_pago === EstadoPago.PENDIENTE || servicio.estado_pago === EstadoPago.RETRASADO) {
-      throw new BadRequestException('No se puede eliminar un viaje con estado de pago pendiente o retrasado');
+    if (servicio.estado_pago === EstadoPago.RETRASADO) {
+      throw new BadRequestException('No se puede eliminar un viaje con el pago retrasado');
     }
     await this.liberarEquipo(servicio.id_asignacion, userId);
     servicio.status = false;
