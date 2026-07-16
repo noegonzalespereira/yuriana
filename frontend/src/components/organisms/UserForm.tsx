@@ -32,10 +32,25 @@ export const UserForm = ({ onSubmit, onCancel, roles, initialData, isReadOnly = 
   }, [initialData, reset, roles]);
 
   const handleLocalSubmit = (data: any) => {
-    onSubmit({
-      ...data,
+    const payload: Record<string, any> = {
       nombre: data.nombre?.trim().toUpperCase(),
-    });
+      correo: data.correo,
+      id_rol: parseInt(data.id_rol, 10), 
+    };
+
+    if (initialData) {
+      // Si estamos editando, incluimos el estado.
+      payload.estado = data.estado;
+      // Solo enviamos la contraseña si el usuario ha escrito algo.
+      if (data.password && data.password.trim() !== "") {
+        payload.password = data.password;
+      }
+    } else {
+      // Si estamos creando, incluimos la contraseña.
+      payload.password = data.password;
+    }
+
+    onSubmit(payload);
   };
 
   return (
@@ -73,17 +88,7 @@ export const UserForm = ({ onSubmit, onCancel, roles, initialData, isReadOnly = 
             placeholder="correo@ejemplo.com"
           />
           
-          {!initialData && !isReadOnly && (
-            <ModuleField 
-              label="Contraseña Temporal" 
-              name="password" 
-              type="password"
-              register={register} 
-              error={errors.password}
-              rules={{ required: "Requerido", minLength: { value: 6, message: "Mínimo 6 caracteres" } }}
-              placeholder="••••••••"
-            />
-          )}
+           
 
           <div className="flex flex-col gap-1 w-full text-left">
             <label className="text-[10px] font-black text-[var(--yuriana-input-label)] uppercase tracking-widest ml-1">
@@ -107,9 +112,25 @@ export const UserForm = ({ onSubmit, onCancel, roles, initialData, isReadOnly = 
               </span>
             )}
           </div>
+          <ModuleField 
+              label="Contraseña Temporal" 
+              name="password" 
+              type="password"
+              register={register} 
+              disabled={isReadOnly}
+
+              rules={{ 
+                // La contraseña solo es obligatoria si estamos creando un nuevo usuario.
+                required: !initialData ? "La contraseña es requerida" : false,
+                // La validación de longitud se aplica solo si se escribe algo.
+                minLength: { value: 6, message: "Mínimo 6 caracteres" } 
+              }}
+              error={errors.password}
+              placeholder="••••••••"
+            />
 
           {initialData && (
-            <div className="flex flex-col gap-1 w-full text-left">
+            <div className="flex flex-col gap-2 w-full text-left">
               <label className="text-[10px] font-black text-[var(--yuriana-input-label)] uppercase tracking-widest ml-1">
                 Estado del Operario
               </label>
@@ -121,7 +142,14 @@ export const UserForm = ({ onSubmit, onCancel, roles, initialData, isReadOnly = 
                 <option value={EstadoUsuario.ACTIVO}>Activo</option>
                 <option value={EstadoUsuario.INACTIVO}>Inactivo</option>
               </select>
+
+              
+            
+          
             </div>
+            
+          
+
           )}
         </div>
       </div>
