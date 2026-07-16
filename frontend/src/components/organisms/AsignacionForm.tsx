@@ -40,18 +40,18 @@ export const AsignacionForm = ({ initialData, isReadOnly = false, onSubmit, onCa
           const res = await getConductoresDisponibles();
           // En edición: incluir el conductor actual aunque no esté disponible
           if (initialData?.conductor && !res.find(c => c.id_conductor === initialData.conductor.id_conductor)) {
-            setConductores([initialData.conductor, ...res]);
+            setConductores([initialData.conductor, ...res.filter(c => c.estado_operativo === 'DISPONIBLE')]);
           } else {
-            setConductores(res);
+            setConductores(res.filter(c => c.estado_operativo === 'DISPONIBLE'));
           }
-        } else if (step === 2) {
+        } else if (step === 2) { // Tractos
           const res = await getUnidadesDisponibles(2);
           let lista = res.filter(u => u.estado_unidad === "DISPONIBLE");
           if (initialData?.tracto && !lista.find(u => u.id_unidad === initialData.tracto.id_unidad)) {
             lista = [initialData.tracto, ...lista];
           }
           setUnidades(lista);
-        } else if (step === 3) {
+        } else if (step === 3) { // Remolques
           const res = await getUnidadesDisponibles();
           let lista = res.filter(u => u.estado_unidad === "DISPONIBLE");
           if (initialData?.remolque && !lista.find(u => u.id_unidad === initialData.remolque.id_unidad)) {

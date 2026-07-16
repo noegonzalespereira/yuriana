@@ -12,6 +12,7 @@ import {
   getFactura, updateFactura, deleteFactura,
 } from "@/lib/api/facturacion.api";
 import { getCategorias } from "@/lib/api/requisito.api";
+import { DateRangeFilter } from "@/components/molecules/DateRangeFilter";
 import { FacturaItem, TotalesFacturacion, FacturacionFilters } from "@/types/facturacion.types";
 
 const fmt = (n: number) =>
@@ -230,7 +231,7 @@ export default function FacturacionPage() {
       cerrarModal();
       cargarDatos();
     } catch (err: any) {
-      toast.error(err.message || "Error al eliminar la factura");
+      toast.error("Acción denegada", { description: err.message || "Error al eliminar la factura." });
     } finally {
       setSaving(false);
     }
@@ -356,28 +357,18 @@ export default function FacturacionPage() {
 
         {/* Toolbar */}
         <div className="flex flex-wrap items-end gap-3 px-6 py-5 border-b border-border">
-          <div className="flex flex-col gap-1">
-            <span className={LABEL_CLASS}>Fecha Inicio</span>
-            <input
-              type="date"
-              value={filters.fecha_inicio ?? ""}
-              onChange={(e) => setFilters((f) => ({ ...f, fecha_inicio: e.target.value }))}
-              className={INPUT_DATE}
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className={LABEL_CLASS}>Fecha Fin</span>
-            <input
-              type="date"
-              value={filters.fecha_fin ?? ""}
-              onChange={(e) => setFilters((f) => ({ ...f, fecha_fin: e.target.value }))}
-              className={INPUT_DATE}
-            />
-          </div>
+          <DateRangeFilter
+            fechaInicio={filters.fecha_inicio ?? ""}
+            fechaFin={filters.fecha_fin ?? ""}
+            onFechaInicioChange={(val) => setFilters((f) => ({ ...f, fecha_inicio: val }))}
+            onFechaFinChange={(val) => setFilters((f) => ({ ...f, fecha_fin: val }))}
+            labelClass={LABEL_CLASS}
+            inputClass={INPUT_DATE}
+          />
           <div className="flex flex-col gap-1">
             <span className={LABEL_CLASS}>Tipo de Viaje</span>
             <FilterSelect
-              placeholder="Todos"
+              placeholder="Tipo de Viaje"
               value={filters.id_categoria ?? ""}
               options={categorias.map((c) => ({
                 value: String(c.id_categoria),

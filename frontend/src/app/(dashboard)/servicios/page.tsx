@@ -5,7 +5,7 @@ import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
 import { FilterSelect } from "@/components/atoms/FilterSelect";
 import { TablePagination } from "@/components/molecules/TablePagination";
 import { toast } from "sonner";
-
+import { DateRangeFilter } from "@/components/molecules/DateRangeFilter";
 const PAGE_SIZE = 10;
 import { ModuleHeader } from "@/components/organisms/ModuleHeader";
 import { StatCard } from "@/components/atoms/StatCard";
@@ -28,6 +28,10 @@ import {
 } from "@/types/servicio.types";
 
 type Vista = "list" | "form";
+
+const hoy = new Date();
+const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().slice(0, 10);
+const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).toISOString().slice(0, 10);
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("es-BO", { maximumFractionDigits: 2 }).format(n);
@@ -78,7 +82,7 @@ export default function ServiciosPage() {
 
   const INITIAL_FILTERS: FiltersServicio = {
     buscar: "", operador: "", estado_pago: "", estado_servicio: "",
-    fecha_inicio: "", fecha_fin: "", id_categoria: undefined, facturado: "",
+    fecha_inicio: primerDiaMes, fecha_fin: ultimoDiaMes, id_categoria: undefined, facturado: "",
   };
   const [filters, setFilters] = useState<FiltersServicio>(INITIAL_FILTERS);
   const handleResetFilters = () => setFilters(INITIAL_FILTERS);
@@ -90,7 +94,7 @@ export default function ServiciosPage() {
     try {
       setLoading(true);
       const [counts, list] = await Promise.all([
-        getContadoresServicio(),
+        getContadoresServicio({ fecha_inicio: filters.fecha_inicio, fecha_fin: filters.fecha_fin }),
         getServicios(filters),
       ]);
       setContadores(counts);
@@ -100,7 +104,7 @@ export default function ServiciosPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters.buscar, filters.operador, filters.estado_pago, filters.estado_servicio, filters.fecha_inicio, filters.fecha_fin, filters.id_categoria, filters.facturado]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -140,7 +144,7 @@ export default function ServiciosPage() {
       toast.success("Viaje eliminado correctamente");
       loadData();
     } catch (err: any) {
-      toast.error(err.message || "No se puede eliminar un viaje con el pago retrasado");
+      toast.error("Acción denegada", { description: err.message || "No se pudo eliminar el viaje." });
     }
     finally { setDeleteId(null); }
   };
@@ -203,17 +207,13 @@ export default function ServiciosPage() {
             <div className="p-6 space-y-4">
 
               {/* Fila 1: rango de fechas + botón nuevo */}
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="flex items-center gap-2 border border-[var(--yuriana-input-border)] rounded-xl px-4 py-2 bg-[var(--yuriana-input-bg)]">
-                  <input type="date" value={filters.fecha_inicio ?? ""}
-                    onChange={(e) => setFilter("fecha_inicio", e.target.value)}
-                    className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
-                  <span className="text-[var(--yuriana-input-placeholder)] text-xs">-</span>
-                  <input type="date" value={filters.fecha_fin ?? ""}
-                    onChange={(e) => setFilter("fecha_fin", e.target.value)}
-                    className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
-                </div>
-                
+              <div className="flex items-end gap-3 flex-wrap">
+                <DateRangeFilter
+                  fechaInicio={filters.fecha_inicio ?? ""}
+                  fechaFin={filters.fecha_fin ?? ""}
+                  onFechaInicioChange={(val) => setFilter("fecha_inicio", val)}
+                  onFechaFinChange={(val) => setFilter("fecha_fin", val)}
+                />
               </div>
 
               {/* Fila 2: filtros de select */}

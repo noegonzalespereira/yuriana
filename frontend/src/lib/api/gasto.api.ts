@@ -8,8 +8,12 @@ export interface GastoFilters {
   tipo_gasto?: string;
 }
 
-export const getTotalesPaneles = async (): Promise<TotalesPaneles> => {
-  return apiFetch("/gastos/totales-paneles");
+export const getTotalesPaneles = async (filters: GastoFilters = {}): Promise<TotalesPaneles> => {
+  const params = new URLSearchParams();
+  if (filters.fecha_inicio) params.append("fecha_inicio", filters.fecha_inicio);
+  if (filters.fecha_fin) params.append("fecha_fin", filters.fecha_fin);
+  const q = params.toString();
+  return apiFetch(`/gastos/totales-paneles${q ? `?${q}` : ""}`);
 };
 
 export const getGastosServicio = async (filters: GastoFilters = {}): Promise<GastosServicio[]> => {

@@ -5,6 +5,7 @@ import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
 import { FilterSelect } from "@/components/atoms/FilterSelect";
 import { TablePagination } from "@/components/molecules/TablePagination";
 import { toast } from "sonner";
+import { DateRangeFilter } from "@/components/molecules/DateRangeFilter";
 
 const PAGE_SIZE = 10;
 import { ModuleHeader } from "@/components/organisms/ModuleHeader";
@@ -62,9 +63,9 @@ const DeleteModal = ({
         <XCircle size={32} className="animate-pulse" />
       </div>
       <div className="space-y-2">
-        <h3 className="font-black text-slate-800 uppercase tracking-tight text-lg">¿Eliminar este registro?</h3>
+        <h3 className="font-black text-slate-800 uppercase tracking-tight text-lg">¿Eliminar este gasto?</h3>
         <p className="text-xs text-slate-500 leading-relaxed max-w-[320px] mx-auto">
-          Este gasto será desactivado del sistema. Esta acción no puede deshacerse.
+          Este gasto sera eliminado, esta seguro?
         </p>
       </div>
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
@@ -87,6 +88,10 @@ const DeleteModal = ({
   </div>
 );
 
+const hoy = new Date();
+const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().slice(0, 10);
+const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).toISOString().slice(0, 10);
+
 export default function GastosPage() {
   const [vista, setVista] = useState<Vista>("list");
   const [tabActiva, setTabActiva] = useState<TabActiva>(TipoPestana.SERVICIO);
@@ -101,10 +106,10 @@ export default function GastosPage() {
   });
 
   // ── Servicio ──
-  const INIT_SERVICIO: GastoFilters = { buscar: "", fecha_inicio: "", fecha_fin: "" };
-  const INIT_OPERATIVO: GastoFilters = { buscar: "", fecha_inicio: "", fecha_fin: "", tipo_gasto: "" };
-  const INIT_ADMIN: GastoFilters    = { fecha_inicio: "", fecha_fin: "", tipo_gasto: "" };
-  const INIT_GENERAL: GastoFilters  = { fecha_inicio: "", fecha_fin: "", tipo_gasto: "" };
+  const INIT_SERVICIO: GastoFilters = { buscar: "", fecha_inicio: primerDiaMes, fecha_fin: ultimoDiaMes };
+  const INIT_OPERATIVO: GastoFilters = { buscar: "", fecha_inicio: primerDiaMes, fecha_fin: ultimoDiaMes, tipo_gasto: "" };
+  const INIT_ADMIN: GastoFilters    = { fecha_inicio: primerDiaMes, fecha_fin: ultimoDiaMes, tipo_gasto: "" };
+  const INIT_GENERAL: GastoFilters  = { fecha_inicio: primerDiaMes, fecha_fin: ultimoDiaMes, tipo_gasto: "" };
 
   const [gastosServicio, setGastosServicio] = useState<GastosServicio[]>([]);
   const [selectedServicio, setSelectedServicio] = useState<GastosServicio | null>(null);
@@ -147,7 +152,7 @@ export default function GastosPage() {
   const loadServicioData = useCallback(async () => {
     try {
       setLoading(true);
-      const [tots, list] = await Promise.all([getTotalesPaneles(), getGastosServicio(filtersServicio)]);
+      const [tots, list] = await Promise.all([getTotalesPaneles(filtersServicio), getGastosServicio(filtersServicio)]);
       setTotales(tots);
       setGastosServicio(list);
     } catch {
@@ -155,12 +160,12 @@ export default function GastosPage() {
     } finally {
       setLoading(false);
     }
-  }, [filtersServicio]);
+  }, [filtersServicio.buscar, filtersServicio.fecha_inicio, filtersServicio.fecha_fin]);
 
   const loadOperativoData = useCallback(async () => {
     try {
       setLoading(true);
-      const [tots, list] = await Promise.all([getTotalesPaneles(), getGastosOperativos(filtersOperativo)]);
+      const [tots, list] = await Promise.all([getTotalesPaneles(filtersOperativo), getGastosOperativos(filtersOperativo)]);
       setTotales(tots);
       setGastosOperativos(list);
     } catch {
@@ -168,12 +173,12 @@ export default function GastosPage() {
     } finally {
       setLoading(false);
     }
-  }, [filtersOperativo]);
+  }, [filtersOperativo.buscar, filtersOperativo.fecha_inicio, filtersOperativo.fecha_fin, filtersOperativo.tipo_gasto]);
 
   const loadAdminData = useCallback(async () => {
     try {
       setLoading(true);
-      const [tots, list] = await Promise.all([getTotalesPaneles(), getGastosAdministrativos(filtersAdmin)]);
+      const [tots, list] = await Promise.all([getTotalesPaneles(filtersAdmin), getGastosAdministrativos(filtersAdmin)]);
       setTotales(tots);
       setGastosAdmin(list);
     } catch {
@@ -181,12 +186,12 @@ export default function GastosPage() {
     } finally {
       setLoading(false);
     }
-  }, [filtersAdmin]);
+  }, [filtersAdmin.fecha_inicio, filtersAdmin.fecha_fin, filtersAdmin.tipo_gasto]);
 
   const loadGeneralData = useCallback(async () => {
     try {
       setLoading(true);
-      const [tots, list] = await Promise.all([getTotalesPaneles(), getGastosGenerales(filtersGeneral)]);
+      const [tots, list] = await Promise.all([getTotalesPaneles(filtersGeneral), getGastosGenerales(filtersGeneral)]);
       setTotales(tots);
       setGastosGenerales(list);
     } catch {
@@ -194,7 +199,7 @@ export default function GastosPage() {
     } finally {
       setLoading(false);
     }
-  }, [filtersGeneral]);
+  }, [filtersGeneral.fecha_inicio, filtersGeneral.fecha_fin, filtersGeneral.tipo_gasto]);
 
   useEffect(() => {
     if (tabActiva === TipoPestana.SERVICIO) loadServicioData();
@@ -246,7 +251,10 @@ export default function GastosPage() {
       await eliminarGastoServicio(deleteServicioId);
       toast.success("Registro eliminado correctamente");
       loadServicioData();
-    } catch { toast.error("No se pudo eliminar el registro"); }
+    } catch (error: any) {
+      // Corregido: Muestra el mensaje de error del backend en la descripción del toast.
+      toast.error("Acción denegada", { description: error.message || "No se pudo eliminar el registro." });
+    }
     finally { setDeleteServicioId(null); }
   };
 
@@ -275,7 +283,9 @@ export default function GastosPage() {
       await eliminarGastoOperativo(deleteOperativoId);
       toast.success("Gasto operativo eliminado correctamente");
       loadOperativoData();
-    } catch { toast.error("No se pudo eliminar el registro"); }
+    } catch (err: any) {
+      toast.error("Acción denegada", { description: err.message || "No se pudo eliminar el registro." });
+    }
     finally { setDeleteOperativoId(null); }
   };
 
@@ -304,7 +314,9 @@ export default function GastosPage() {
       await eliminarGastoAdministrativo(deleteAdminId);
       toast.success("Gasto administrativo eliminado correctamente");
       loadAdminData();
-    } catch { toast.error("No se pudo eliminar el registro"); }
+    } catch (err: any) {
+      toast.error("Acción denegada", { description: err.message || "No se pudo eliminar el registro." });
+    }
     finally { setDeleteAdminId(null); }
   };
 
@@ -333,7 +345,9 @@ export default function GastosPage() {
       await eliminarGastoGeneral(deleteGeneralId);
       toast.success("Gasto general eliminado correctamente");
       loadGeneralData();
-    } catch { toast.error("No se pudo eliminar el registro"); }
+    } catch (err: any) {
+      toast.error("Acción denegada", { description: err.message || "No se pudo eliminar el registro." });
+    }
     finally { setDeleteGeneralId(null); }
   };
 
@@ -450,12 +464,13 @@ export default function GastosPage() {
               {/* ── Costos del Servicio ── */}
               {tabActiva === TipoPestana.SERVICIO && (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <div className="flex items-center gap-2 border border-[var(--yuriana-input-border)] rounded-xl px-4 py-2 bg-[var(--yuriana-input-bg)]">
-                      <input type="date" value={filtersServicio.fecha_inicio ?? ""} onChange={(e) => setFiltersServicio((f) => ({ ...f, fecha_inicio: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
-                      <span className="text-[var(--yuriana-input-placeholder)] text-xs">-</span>
-                      <input type="date" value={filtersServicio.fecha_fin ?? ""} onChange={(e) => setFiltersServicio((f) => ({ ...f, fecha_fin: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
-                    </div>
+                  <div className="flex items-end gap-4 flex-wrap">
+                    <DateRangeFilter
+                      fechaInicio={filtersServicio.fecha_inicio ?? ""}
+                      fechaFin={filtersServicio.fecha_fin ?? ""}
+                      onFechaInicioChange={(val) => setFiltersServicio((f) => ({ ...f, fecha_inicio: val }))}
+                      onFechaFinChange={(val) => setFiltersServicio((f) => ({ ...f, fecha_fin: val }))}
+                    />
                     <ResetFiltersButton onClick={handleResetFilters} />
                     <div className="ml-auto">
                       <button type="button" onClick={handleNuevoGasto} className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black py-2 px-5 rounded-xl shadow text-xs transition-all active:scale-95">
@@ -477,12 +492,13 @@ export default function GastosPage() {
               {/* ── Gastos Operativos ── */}
               {tabActiva === TipoPestana.OPERATIVO && (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex items-center gap-2 border border-[var(--yuriana-input-border)] rounded-xl px-4 py-2 bg-[var(--yuriana-input-bg)]">
-                      <input type="date" value={filtersOperativo.fecha_inicio ?? ""} onChange={(e) => setFiltersOperativo((f) => ({ ...f, fecha_inicio: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
-                      <span className="text-[var(--yuriana-input-placeholder)] text-xs">-</span>
-                      <input type="date" value={filtersOperativo.fecha_fin ?? ""} onChange={(e) => setFiltersOperativo((f) => ({ ...f, fecha_fin: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
-                    </div>
+                  <div className="flex items-end gap-3 flex-wrap">
+                     <DateRangeFilter
+                      fechaInicio={filtersOperativo.fecha_inicio ?? ""}
+                      fechaFin={filtersOperativo.fecha_fin ?? ""}
+                      onFechaInicioChange={(val) => setFiltersOperativo((f) => ({ ...f, fecha_inicio: val }))}
+                      onFechaFinChange={(val) => setFiltersOperativo((f) => ({ ...f, fecha_fin: val }))}
+                    />
                     <FilterSelect
                       placeholder="Tipo de Gasto"
                       value={filtersOperativo.tipo_gasto ?? ""}
@@ -514,12 +530,13 @@ export default function GastosPage() {
               {/* ── Gastos Administrativos ── */}
               {tabActiva === TipoPestana.ADMINISTRATIVO && (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex items-center gap-2 border border-[var(--yuriana-input-border)] rounded-xl px-4 py-2 bg-[var(--yuriana-input-bg)]">
-                      <input type="date" value={filtersAdmin.fecha_inicio ?? ""} onChange={(e) => setFiltersAdmin((f) => ({ ...f, fecha_inicio: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
-                      <span className="text-[var(--yuriana-input-placeholder)] text-xs">-</span>
-                      <input type="date" value={filtersAdmin.fecha_fin ?? ""} onChange={(e) => setFiltersAdmin((f) => ({ ...f, fecha_fin: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
-                    </div>
+                  <div className="flex items-end gap-3 flex-wrap">
+                    <DateRangeFilter
+                      fechaInicio={filtersAdmin.fecha_inicio ?? ""}
+                      fechaFin={filtersAdmin.fecha_fin ?? ""}
+                      onFechaInicioChange={(val) => setFiltersAdmin((f) => ({ ...f, fecha_inicio: val }))}
+                      onFechaFinChange={(val) => setFiltersAdmin((f) => ({ ...f, fecha_fin: val }))}
+                    />
                     <FilterSelect
                       placeholder="Tipo de Gasto"
                       value={filtersAdmin.tipo_gasto ?? ""}
@@ -553,12 +570,13 @@ export default function GastosPage() {
               {/* ── Gastos Generales ── */}
               {tabActiva === TipoPestana.GENERAL && (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex items-center gap-2 border border-[var(--yuriana-input-border)] rounded-xl px-4 py-2 bg-[var(--yuriana-input-bg)]">
-                      <input type="date" value={filtersGeneral.fecha_inicio ?? ""} onChange={(e) => setFiltersGeneral((f) => ({ ...f, fecha_inicio: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
-                      <span className="text-[var(--yuriana-input-placeholder)] text-xs">-</span>
-                      <input type="date" value={filtersGeneral.fecha_fin ?? ""} onChange={(e) => setFiltersGeneral((f) => ({ ...f, fecha_fin: e.target.value }))} className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]" />
-                    </div>
+                  <div className="flex items-end gap-3 flex-wrap">
+                    <DateRangeFilter
+                      fechaInicio={filtersGeneral.fecha_inicio ?? ""}
+                      fechaFin={filtersGeneral.fecha_fin ?? ""}
+                      onFechaInicioChange={(val) => setFiltersGeneral((f) => ({ ...f, fecha_inicio: val }))}
+                      onFechaFinChange={(val) => setFiltersGeneral((f) => ({ ...f, fecha_fin: val }))}
+                    />
                     <FilterSelect
                       placeholder="Tipo de Gasto"
                       value={filtersGeneral.tipo_gasto ?? ""}

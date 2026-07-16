@@ -35,8 +35,11 @@ export class ServicioController {
   }
 
   @Get('contadores')
-  getContadores() {
-    return this.servicioService.contador();
+  getContadores(
+    @Query('fecha_inicio') fecha_inicio?: string,
+    @Query('fecha_fin') fecha_fin?: string,
+  ) {
+    return this.servicioService.contador({ fecha_inicio, fecha_fin });
   }
 
   @Get('totales-pagos')

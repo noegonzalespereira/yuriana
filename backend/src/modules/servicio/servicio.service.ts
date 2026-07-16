@@ -25,50 +25,44 @@ export class ServicioService {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  private async ocuparEquipo(id_asignacion: number, userId: number) {
-    const asignacion = await this.dataSource.getRepository(Asignacion).findOneBy({ id_asignacion, status: true });
-    if (!asignacion) return;
+ 
+  private async validateAsignacion(id_asignacion: number, queryRunner: any): Promise<Asignacion> {
+    const asignacion = await queryRunner.manager.findOne(Asignacion, { where: { id_asignacion, status: true } });
+    if (!asignacion) {
+      throw new NotFoundException('Asignación no encontrada');
+    }
     if (asignacion.estado_asignacion === EstadoAsignacion.ASIGNADO) {
       throw new ConflictException('La asignación ya está en uso por otro servicio activo');
     }
-    await this.dataSource.getRepository(Asignacion).update(id_asignacion, { estado_asignacion: EstadoAsignacion.ASIGNADO, UpdatedId: userId });
-    await this.dataSource.getRepository(Conductor).update(asignacion.id_conductor, { estado_operativo: EstadoOperativo.VIAJE, UpdatedId: userId });
-    await this.dataSource.getRepository(Unidad).update(
+    return asignacion;
+  }
+  
+  
+  private async ocuparEquipo(asignacion: Asignacion, userId: number, queryRunner: any) {
+    await queryRunner.manager.update(Asignacion, asignacion.id_asignacion, { estado_asignacion: EstadoAsignacion.ASIGNADO, UpdatedId: userId });
+    await queryRunner.manager.update(Conductor, asignacion.id_conductor, { estado_operativo: EstadoOperativo.VIAJE, UpdatedId: userId });
+    await queryRunner.manager.update(Unidad,
       [asignacion.id_tracto, asignacion.id_remolque],
       { estado_unidad: EstadoUnidad.EN_VIAJE, UpdatedId: userId },
     );
   }
 
-  private async liberarEquipo(id_asignacion: number, userId: number) {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-    try {
-      const asignacion = await this.dataSource.getRepository(Asignacion).findOne({
-        where: { id_asignacion, status: true },
-      });
-      if (asignacion) {
-        await queryRunner.manager.update(Asignacion, id_asignacion, {
-          estado_asignacion: EstadoAsignacion.ACTIVA,
-          UpdatedId: userId,
-        });
-        await queryRunner.manager.update(Conductor, asignacion.id_conductor, {
-          estado_operativo: EstadoOperativo.DISPONIBLE,
-          UpdatedId: userId,
-        });
-        await queryRunner.manager.update(Unidad,
-          [asignacion.id_tracto, asignacion.id_remolque],
-          { estado_unidad: EstadoUnidad.DISPONIBLE, UpdatedId: userId }
-        );
-      }
-      await queryRunner.commitTransaction();
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      throw error;
-    } finally {
-      await queryRunner.release();
-    }
+  
+  private async liberarEquipo(asignacion: Asignacion, userId: number, queryRunner: any) {
+    await queryRunner.manager.update(Asignacion, asignacion.id_asignacion, {
+      estado_asignacion: EstadoAsignacion.ACTIVA,
+      UpdatedId: userId,
+    });
+    await queryRunner.manager.update(Conductor, asignacion.id_conductor, {
+      estado_operativo: EstadoOperativo.ASIGNADO, 
+      UpdatedId: userId,
+    });
+    await queryRunner.manager.update(Unidad, [asignacion.id_tracto, asignacion.id_remolque], {
+      estado_unidad: EstadoUnidad.ASIGNADO, 
+      UpdatedId: userId,
+    });
   }
+ 
 
   async create(dto: CreateServicioDto, files: any, userId: number) {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -76,63 +70,47 @@ export class ServicioService {
     await queryRunner.startTransaction();
 
     try {
-      // 1. VALIDACIONES INICIALES
-      const asig = await this.dataSource.getRepository(Asignacion).findOne({
-        where: { id_asignacion: dto.id_asignacion, status: true },
-      });
-      if (!asig) throw new NotFoundException('La asignación solicitada no existe');
-      if (asig.estado_asignacion === EstadoAsignacion.ASIGNADO) {
-        throw new ConflictException('Esta asignación ya está en uso por otro servicio activo');
-      }
+      // 1. VALIDACIONES DE ENTRADA
+      const asignacion = await this.validateAsignacion(dto.id_asignacion, queryRunner);
 
-      // 1b. VALIDACIONES CONTEXTUALES
       const categoria = await queryRunner.manager.findOne(CategoriaEntidad, { where: { id_categoria: dto.id_categoria } });
       const esInternacional = categoria?.tipo_categoria?.toUpperCase().includes('INTERNACIONAL') ?? false;
 
       if (esInternacional && !dto.crt?.trim()) {
         throw new BadRequestException('El CRT es obligatorio para viajes internacionales');
       }
+      if (dto.es_facturado === 'si' && !files?.foto_factura?.length) {
+        throw new BadRequestException('Si el viaje está facturado, debes subir al menos una foto de factura');
+      }
       if (dto.fecha_fin && new Date(dto.fecha_fin) < new Date(dto.fecha_inicio)) {
         throw new BadRequestException('La fecha fin no puede ser menor a la fecha inicio');
       }
-
-      if (dto.fecha_fin) {
-        if (!dto.periodo_liquidacion || Number(dto.periodo_liquidacion) <= 0) {
-          throw new BadRequestException('El período de liquidación es obligatorio cuando el viaje tiene fecha de finalización');
-        }
-        if (dto.es_facturado === 'si' && !files?.foto_factura?.length) {
-          throw new BadRequestException('Si el viaje está facturado, debes subir al menos una foto de factura');
-        }
+      if (dto.fecha_fin && (!dto.periodo_liquidacion || Number(dto.periodo_liquidacion) <= 0)) {
+        throw new BadRequestException('El período de liquidación es obligatorio cuando el viaje tiene fecha de finalización');
       }
-      
-      // 2. CÁLCULO DE FECHAS Y ESTADOS
+
+      // 2. PREPARACIÓN DE DATOS Y ESTADOS
       const fInicio = new Date(dto.fecha_inicio!);
-      const mesNombre = (fInicio.getMonth() + 1).toString().padStart(2, '0');
-      const anioVal = fInicio.getFullYear();
-
-      let fLimitePago: Date | undefined = undefined;
-      let estadoServicio = EstadoServicio.EN_CURSO;
-
+      const estadoServicio = dto.fecha_fin ? EstadoServicio.FINALIZADO : EstadoServicio.EN_CURSO;
+      let fLimitePago: Date | null = null;
       if (dto.fecha_fin) {
         const fFin = new Date(dto.fecha_fin);
-        estadoServicio = EstadoServicio.FINALIZADO;
         fLimitePago = new Date(fFin);
         fLimitePago.setDate(fFin.getDate() + (dto.periodo_liquidacion || 0));
       }
 
-      // 3. CÁLCULO FINANCIERO
       const montoBase = Number(dto.flete);
       const montoExtra = Number(dto.flete_adicional || 0);
       const tCambio = dto.moneda === Moneda.DOLAR ? Number(dto.tipo_cambio || 1) : 1;
       const fleteTotalBs = (montoBase + montoExtra) * tCambio;
 
-      // 4. CREAR EL SERVICIO
       let urlVoucher: string | undefined = undefined;
       if (files?.vaucher?.[0]) {
         const { url } = await this.cloudinaryService.subirArchivo(files.vaucher[0], 'yuriana/vouchers');
         urlVoucher = url;
       }
 
+      // 3. CREACIÓN DE ENTIDADES
       const servicio = queryRunner.manager.create(Servicio, {
         ...dto,
 
@@ -143,8 +121,8 @@ export class ServicioService {
         estado_servicio: estadoServicio,
         estado_pago: urlVoucher ? EstadoPago.PAGADO : EstadoPago.PENDIENTE,
         comprobante_pago: urlVoucher,
-        mes: mesNombre,
-        anio: anioVal,
+        mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
+        anio: fInicio.getFullYear(),
         fecha_registro: new Date(),
         CreatedId: userId,
         codigo_servicio: `TEMP-${Date.now()}`,
@@ -154,15 +132,14 @@ export class ServicioService {
       guardado.codigo_servicio = `YUR-${guardado.id_servicio}`;
       await queryRunner.manager.save(guardado);
 
-      // 5. FACTURACIÓN
       if (dto.es_facturado === 'si') {
         const factura = queryRunner.manager.create(Factura, {
           id_servicio: guardado.id_servicio,
           factura_transporte: String(dto.factura_transporte ?? ''),
           monto_factura: dto.monto_factura || fleteTotalBs,
           fecha_emision: fInicio,
-          mes: mesNombre,
-          anio: anioVal,
+          mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
+          anio: fInicio.getFullYear(),
           CreatedId: userId,
         });
         const facturaGuardada = await queryRunner.manager.save(factura);
@@ -179,7 +156,6 @@ export class ServicioService {
         }
       }
 
-      // 6. GESTIÓN DE DOCUMENTOS dentro de la misma transacción
       if (files?.documentacion_aduanera && dto.ids_requisitos_aduaneros) {
         const idsRequisitos = dto.ids_requisitos_aduaneros ?? [];
 
@@ -200,18 +176,10 @@ export class ServicioService {
         }
       }
 
-      // 7. EFECTO DOMINÓ
-      await queryRunner.manager.update(Asignacion, dto.id_asignacion, {
-        estado_asignacion: EstadoAsignacion.ASIGNADO,
-        UpdatedId: userId,
-      });
+      // 4. EFECTO DOMINÓ: Actualización de estados de equipo
       if (estadoServicio === EstadoServicio.EN_CURSO) {
-        await queryRunner.manager.update(Conductor, asig.id_conductor, { estado_operativo: EstadoOperativo.VIAJE });
-        await queryRunner.manager.update(Unidad, [asig.id_tracto, asig.id_remolque], { estado_unidad: EstadoUnidad.EN_VIAJE });
-      } else {
-        await queryRunner.manager.update(Conductor, asig.id_conductor, { estado_operativo: EstadoOperativo.ASIGNADO });
-        await queryRunner.manager.update(Unidad, [asig.id_tracto, asig.id_remolque], { estado_unidad: EstadoUnidad.ASIGNADO });
-      }
+        await this.ocuparEquipo(asignacion, userId, queryRunner);
+      } 
 
       await queryRunner.commitTransaction();
       return guardado;
@@ -293,86 +261,135 @@ export class ServicioService {
   }
 
   async update(id: number, dto: UpdateServicioDto, fileVoucher: Express.Multer.File, userId: number) {
-    const servicio = await this.findOne(id);
-    const { borrar_fecha_fin, ...datosActualizar } = dto;
-    const debeBorrarFechaFin = String(borrar_fecha_fin) === 'true';
-    const estadoAnterior = servicio.estado_servicio;
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (debeBorrarFechaFin && dto.fecha_fin) {
-      throw new BadRequestException('No se puede borrar y establecer la fecha de fin al mismo tiempo');
-    }
+    try {
+      const servicio = await queryRunner.manager.findOne(Servicio, {
+        where: { id_servicio: id, status: true },
+        relations: ['asignacion'],
+      });
+      if (!servicio) throw new NotFoundException('Servicio no encontrado');
 
-    // Compara contra los valores finales (dto si viene, si no el que ya tenía guardado)
-    const fechaInicioFinal = dto.fecha_inicio ? new Date(dto.fecha_inicio) : servicio.fecha_inicio;
-    const fechaFinFinal = debeBorrarFechaFin ? null : (dto.fecha_fin ? new Date(dto.fecha_fin) : servicio.fecha_fin);
-    if (fechaFinFinal && fechaFinFinal < fechaInicioFinal) {
-      throw new BadRequestException('La fecha fin no puede ser menor a la fecha inicio');
-    }
+      const { borrar_fecha_fin, ...datosActualizar } = dto;
+      const debeBorrarFechaFin = String(borrar_fecha_fin) === 'true';
+      const estadoAnterior = servicio.estado_servicio;
 
-    // Validaciones cuando se está finalizando el viaje (se envía fecha_fin por primera vez)
-    if (dto.fecha_fin && !servicio.fecha_fin) {
-      const periodoFinal = dto.periodo_liquidacion ?? servicio.periodo_liquidacion;
-      if (!periodoFinal || Number(periodoFinal) <= 0) {
-        throw new BadRequestException('El período de liquidación es obligatorio al finalizar un viaje');
+      if (debeBorrarFechaFin && dto.fecha_fin) {
+        throw new BadRequestException('No se puede borrar y establecer la fecha de fin al mismo tiempo');
       }
+
+      const fechaInicioFinal = dto.fecha_inicio ? new Date(dto.fecha_inicio) : servicio.fecha_inicio;
+      const fechaFinFinal = debeBorrarFechaFin ? null : (dto.fecha_fin ? new Date(dto.fecha_fin) : servicio.fecha_fin);
+      if (fechaFinFinal && fechaFinFinal < fechaInicioFinal) {
+        throw new BadRequestException('La fecha fin no puede ser menor a la fecha inicio');
+      }
+
+      if (dto.fecha_fin && !servicio.fecha_fin) {
+        const periodoFinal = dto.periodo_liquidacion ?? servicio.periodo_liquidacion;
+        if (!periodoFinal || Number(periodoFinal) <= 0) {
+          throw new BadRequestException('El período de liquidación es obligatorio al finalizar un viaje');
+        }
+      }
+
+      if (dto.ids_fotos_eliminar) {
+        const ids = String(dto.ids_fotos_eliminar).split(',').map(Number).filter(n => !isNaN(n));
+        if (ids.length > 0) await queryRunner.manager.delete(FotoFactura, ids);
+      }
+
+      if (fileVoucher) {
+        const { url } = await this.cloudinaryService.subirArchivo(fileVoucher, 'yuriana/vouchers');
+        servicio.comprobante_pago = url;
+        servicio.estado_pago = EstadoPago.PAGADO;
+      }
+
+      if (debeBorrarFechaFin) {
+        servicio.fecha_fin = null;
+        servicio.fecha_limite_pago = null;
+        servicio.estado_servicio = EstadoServicio.EN_CURSO;
+      } else if (dto.fecha_fin) {
+        servicio.fecha_fin = new Date(dto.fecha_fin);
+        servicio.estado_servicio = EstadoServicio.FINALIZADO;
+        const fLimite = new Date(servicio.fecha_fin);
+        fLimite.setDate(fLimite.getDate() + (dto.periodo_liquidacion ?? servicio.periodo_liquidacion ?? 0));
+        servicio.fecha_limite_pago = fLimite;
+      }
+
+      Object.assign(servicio, { ...datosActualizar, UpdatedId: userId });
+      const guardado = await queryRunner.manager.save(servicio);
+
+      // Lógica de transición de estados
+      if (estadoAnterior === EstadoServicio.EN_CURSO && guardado.estado_servicio === EstadoServicio.FINALIZADO) {
+        await this.liberarEquipo(servicio.asignacion, userId, queryRunner);
+      } else if (estadoAnterior === EstadoServicio.FINALIZADO && guardado.estado_servicio === EstadoServicio.EN_CURSO) {
+        await this.ocuparEquipo(servicio.asignacion, userId, queryRunner);
+      } else if (guardado.estado_servicio === EstadoServicio.FINALIZADO && servicio.asignacion.estado_asignacion !== EstadoAsignacion.ACTIVA) {
+       
+        console.log(`Saneando asignación #${servicio.id_asignacion} para servicio finalizado #${guardado.id_servicio}`);
+        await this.liberarEquipo(servicio.asignacion, userId, queryRunner);
+      }
+
+      await queryRunner.commitTransaction();
+      return guardado;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    // Eliminar fotos de factura si se solicita
-    if (dto.ids_fotos_eliminar) {
-      const ids = String(dto.ids_fotos_eliminar).split(',').map(Number).filter(n => !isNaN(n));
-      if (ids.length > 0) await this.fotoFacturaRepo.delete(ids);
-    }
-
-    // Subir voucher si viene
-    if (fileVoucher) {
-      const { url } = await this.cloudinaryService.subirArchivo(fileVoucher, 'yuriana/vouchers');
-      servicio.comprobante_pago = url;
-      servicio.estado_pago = EstadoPago.PAGADO;
-    }
-
-    if (debeBorrarFechaFin) {
-      // Revertir un viaje finalizado por error de vuelta a EN_CURSO
-      servicio.fecha_fin = null;
-      servicio.fecha_limite_pago = null;
-      servicio.estado_servicio = EstadoServicio.EN_CURSO;
-    } else if (dto.fecha_fin) {
-      // Si se provee fecha_fin (o ya la tenía), finalizar el viaje
-      servicio.fecha_fin = new Date(dto.fecha_fin);
-      servicio.estado_servicio = EstadoServicio.FINALIZADO;
-      const fLimite = new Date(servicio.fecha_fin);
-      fLimite.setDate(fLimite.getDate() + (dto.periodo_liquidacion ?? servicio.periodo_liquidacion ?? 0));
-      servicio.fecha_limite_pago = fLimite;
-    }
-
-    Object.assign(servicio, { ...datosActualizar, UpdatedId: userId });
-    const guardado = await this.servicioRepo.save(servicio);
-
-    // Sincronizar conductor y unidades según la transición de estado
-    if (estadoAnterior === EstadoServicio.EN_CURSO && guardado.estado_servicio === EstadoServicio.FINALIZADO) {
-      await this.liberarEquipo(servicio.id_asignacion, userId);
-    } else if (estadoAnterior === EstadoServicio.FINALIZADO && guardado.estado_servicio === EstadoServicio.EN_CURSO) {
-      await this.ocuparEquipo(servicio.id_asignacion, userId);
-    }
-
-    return guardado;
   }
 
   async remove(id: number, userId: number) {
-    const servicio = await this.findOne(id);
-    if (servicio.estado_pago === EstadoPago.RETRASADO) {
-      throw new BadRequestException('No se puede eliminar un viaje con el pago retrasado');
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const servicio = await queryRunner.manager.findOne(Servicio, {
+        where: { id_servicio: id, status: true },
+        relations: ['asignacion'],
+      });
+      if (!servicio) throw new NotFoundException('Servicio no encontrado');
+
+      if (servicio.estado_pago === EstadoPago.RETRASADO) {
+        throw new BadRequestException('No se puede eliminar un viaje con el pago retrasado');
+      }
+      if (servicio.estado_servicio === EstadoServicio.EN_CURSO) {
+        await this.liberarEquipo(servicio.asignacion, userId, queryRunner);
+      }
+
+      servicio.status = false;
+      servicio.UpdatedId = userId;
+      const guardado = await queryRunner.manager.save(servicio);
+
+      await queryRunner.commitTransaction();
+      return guardado;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-    await this.liberarEquipo(servicio.id_asignacion, userId);
-    servicio.status = false;
-    servicio.UpdatedId = userId;
-    return await this.servicioRepo.save(servicio);
   }
 
-  async contador() {
+  async contador(filters?: { fecha_inicio?: string, fecha_fin?: string }) {
     await this.marcarRetrasados();
-    const en_curso = await this.servicioRepo.count({ where: { status: true, estado_servicio: EstadoServicio.EN_CURSO } });
-    const pendientes = await this.servicioRepo.count({ where: { status: true, estado_pago: EstadoPago.PENDIENTE } });
-    const retrasados = await this.servicioRepo.count({ where: { status: true, estado_pago: EstadoPago.RETRASADO } });
+    
+    const buildQuery = (estado_servicio?: EstadoServicio, estado_pago?: EstadoPago) => {
+      const qb = this.servicioRepo.createQueryBuilder('servicio').where('servicio.status = true');
+      if (estado_servicio) qb.andWhere('servicio.estado_servicio = :es', { es: estado_servicio });
+      if (estado_pago) qb.andWhere('servicio.estado_pago = :ep', { ep: estado_pago });
+      if (filters?.fecha_inicio && filters?.fecha_fin) {
+        qb.andWhere('servicio.fecha_inicio BETWEEN :f1 AND :f2', { f1: filters.fecha_inicio, f2: filters.fecha_fin });
+      }
+      return qb;
+    };
+
+    const en_curso = await buildQuery(EstadoServicio.EN_CURSO).getCount();
+    const pendientes = await buildQuery(undefined, EstadoPago.PENDIENTE).getCount();
+    const retrasados = await buildQuery(undefined, EstadoPago.RETRASADO).getCount();
+
     return { en_curso, pendientes, retrasados };
   }
 

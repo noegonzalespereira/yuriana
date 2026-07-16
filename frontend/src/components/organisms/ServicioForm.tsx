@@ -208,7 +208,11 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
   useEffect(() => {
     if (isReadOnly) return;
     setLoadingListas(true);
-    Promise.all([getClientes(), getAsignaciones(), getColaboradores()])
+    Promise.all([
+      getClientes(), 
+      getAsignaciones({ estado_asignacion: 'ACTIVA' }),
+      getColaboradores()
+    ])
       .then(([clientes, asignaciones, colaboradores]) => {
         setListaClientes(clientes);
         setListaAsignaciones(asignaciones);

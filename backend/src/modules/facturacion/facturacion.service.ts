@@ -126,6 +126,9 @@ export class FacturacionService {
 
   async remove(id: number, userId: number): Promise<Factura> {
     const factura = await this.findOne(id);
+    // if(factura.servicio.estado_servicio == "EN_CURSO") {
+    //   throw new Error("No se puede eliminar la factura porque el servicio asociado aún está en curso.");
+    // }
     
     // Aplicamos borrado lógico para mantener integridad histórica
     factura.status = false;
