@@ -1,17 +1,19 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateColaboradorDto } from './dto/create-colaborador.dto';
 import { UpdateColaboradorDto } from './dto/update-colaborador.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Colaborador } from './entities/colaborador.entity';
 import { PersonaService } from '../persona/persona.service';
 import { FilterColaboradorDto } from './dto/filter-colaborador.dto';
+import { Servicio } from '../servicio/entities/servicio.entity';
 
 @Injectable()
 export class ColaboradorService {
   constructor(
     @InjectRepository(Colaborador)
     private readonly colaboradorRepository: Repository<Colaborador>,
+    private readonly dataSource: DataSource,
     private readonly personaService: PersonaService,
   ) {}
   async create(createColaboradorDto: CreateColaboradorDto, userId: number): Promise<Colaborador> {
@@ -96,6 +98,13 @@ export class ColaboradorService {
 
   async remove(id: number, userId: number): Promise<Colaborador> {
     const colaborador = await this.findOne(id);
+    const servicioAsociado = await this.dataSource.getRepository(Servicio).findOne({
+      where: { id_colaborador: colaborador.id_colaborador, status: true }
+    });
+
+    if (servicioAsociado) {
+      throw new ConflictException(`No se puede eliminar. El colaborador está asociado al servicio #${servicioAsociado.codigo_servicio}.`);
+    }
     colaborador.status = false;
     colaborador.UpdatedId = userId;
     return this.colaboradorRepository.save(colaborador);

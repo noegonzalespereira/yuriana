@@ -169,6 +169,7 @@ export class ConductorService {
     if (conductor.estado_operativo === EstadoOperativo.ASIGNADO || conductor.estado_operativo === EstadoOperativo.VIAJE) {
       throw new ForbiddenException(`No se puede eliminar al conductor "${conductor.persona?.nombre}" porque está en estado ${conductor.estado_operativo}`);
     }
+    
     conductor.status = false;
     conductor.UpdatedId = userId;
     return this.conductorRepository.save(conductor);
