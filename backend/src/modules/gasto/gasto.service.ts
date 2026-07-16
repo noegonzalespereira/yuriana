@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 
@@ -259,7 +259,10 @@ export class GastosService {
   async findOne(pestana: TipoPestaña, id: number) {
     let registro;
     if (pestana === TipoPestaña.SERVICIO) {
-      registro = await this.gastosServicioRepo.findOne({ where: { id_gasto_servicio: id, status: true }, relations: ['servicio'] });
+      registro = await this.gastosServicioRepo.findOne({ 
+        where: { id_gasto_servicio: id, status: true }, 
+        relations: ['servicio', 'servicio.categoria'] 
+      });
       if (registro) {
         (registro as any).detalles = await this.detalleGastoRepo.find({ where: { id_gasto_servicio: id, status: true }, relations: ['gasto'] });
       }
@@ -313,15 +316,30 @@ export class GastosService {
    */
   async remove(pestana: TipoPestaña, id: number, userId: number) {
     if (pestana === TipoPestaña.SERVICIO) {
-      const detalle = await this.detalleGastoRepo.findOne({ where: { id_detalle_servicio: id, status: true } });
-      if (!detalle) throw new NotFoundException('Detalle no encontrado');
-      
-      detalle.status = false;
-      detalle.UpdatedId = userId;
-      await this.detalleGastoRepo.save(detalle);
+      // Aquí 'id' es el id_gasto_servicio (la cabecera de la rendición)
+      const cabecera = await this.gastosServicioRepo.findOne({
+        where: { id_gasto_servicio: id, status: true },
+        relations: ['servicio'],
+      });
+      if (!cabecera) throw new NotFoundException('Rendición de gastos no encontrada.');
 
-      await this.recalcularCabeceraServicio(detalle.id_gasto_servicio, userId);
-      return { success: true, message: 'Ítem de viaje removido' };
+      // Validación: No permitir eliminar si el servicio ya está pagado o retrasado.
+      const estadoPagoServicio = cabecera.servicio?.estado_pago;
+      if (estadoPagoServicio === 'PAGADO' || estadoPagoServicio === 'RETRASADO') {
+        throw new ConflictException(
+          `No se puede eliminar el gasto. El viaje esta en estado "${estadoPagoServicio}".`
+        );
+      }
+
+      
+      cabecera.status = false;
+      cabecera.UpdatedId = userId;
+      await this.gastosServicioRepo.save(cabecera);
+
+      // Opcional pero recomendado: Borrar lógicamente los detalles asociados
+      await this.detalleGastoRepo.update({ id_gasto_servicio: id }, { status: false, UpdatedId: userId });
+
+      return { success: true, message: 'Rendición de gastos eliminada' };
     }
 
     const registroExtenso = await this.findOne(pestana, id);
@@ -378,28 +396,41 @@ export class GastosService {
   /**
    * SUMATORIAS CONSOLIDADAS: Calcula en Bs. el dinero total para las 4 tarjetas informativas de arriba
    */
-  async obtenerTotalesInformativos(mes?: string, anio?: number) {
+  async obtenerTotalesInformativos(filters: { fecha_inicio?: string, fecha_fin?: string }) {
     const now = new Date();
-    const mesParam = mes || (now.getMonth() + 1).toString().padStart(2, '0');
-    const anioParam = anio || now.getFullYear();
-    const mesNum = parseInt(mesParam, 10);
+    const primerDiaMes = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    const ultimoDiaMes = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+
+    const fecha_inicio = filters.fecha_inicio || primerDiaMes;
+    const fecha_fin = filters.fecha_fin || ultimoDiaMes;
 
     const [totalServiciosResult, totalOps, totalAdmin, totalGral] = await Promise.all([
+      // Total Gastos de Viaje (se basa en la fecha de registro de la rendición)
       this.gastosServicioRepo.createQueryBuilder('gs')
         .select('SUM(gs.total_gastos_bs)', 'total')
-        .where('gs.status = true AND EXTRACT(MONTH FROM gs.fecha_registro) = :mes AND EXTRACT(YEAR FROM gs.fecha_registro) = :anio', { mes: mesNum, anio: anioParam })
+        .where('gs.status = true')
+        .andWhere('gs.fecha_registro BETWEEN :f1 AND :f2', { f1: fecha_inicio, f2: fecha_fin })
         .getRawOne(),
+
+      // Total Gastos Operativos (se basa en la fecha del gasto individual)
       this.gastoOperativoRepo.createQueryBuilder('go')
         .leftJoin('go.gasto', 'g').select('SUM(g.monto)', 'total')
-        .where('go.status = true AND g.status = true AND g.mes = :mes AND g.anio = :anio', { mes: mesParam, anio: anioParam })
+        .where('go.status = true AND g.status = true')
+        .andWhere('g.fecha BETWEEN :f1 AND :f2', { f1: fecha_inicio, f2: fecha_fin })
         .getRawOne(),
+
+      // Total Gastos Administrativos (se basa en la fecha del gasto individual)
       this.gastoAdminRepo.createQueryBuilder('ga')
         .leftJoin('ga.gasto', 'g').select('SUM(g.monto)', 'total')
-        .where('ga.status = true AND g.status = true AND g.mes = :mes AND g.anio = :anio', { mes: mesParam, anio: anioParam })
+        .where('ga.status = true AND g.status = true')
+        .andWhere('g.fecha BETWEEN :f1 AND :f2', { f1: fecha_inicio, f2: fecha_fin })
         .getRawOne(),
+
+      // Total Gastos Generales (se basa en la fecha del gasto individual)
       this.gastoGeneralRepo.createQueryBuilder('gg')
         .leftJoin('gg.gasto', 'g').select('SUM(g.monto)', 'total')
-        .where('gg.status = true AND g.status = true AND g.mes = :mes AND g.anio = :anio', { mes: mesParam, anio: anioParam })
+        .where('gg.status = true AND g.status = true')
+        .andWhere('g.fecha BETWEEN :f1 AND :f2', { f1: fecha_inicio, f2: fecha_fin })
         .getRawOne(),
     ]);
 
