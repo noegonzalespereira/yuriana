@@ -90,11 +90,12 @@ export class ServicioService {
       }
 
       // 2. PREPARACIÓN DE DATOS Y ESTADOS
-      const fInicio = new Date(dto.fecha_inicio!);
+      // FIX: Interpretar la fecha como local para evitar el desfase de zona horaria.
+      const fInicio = new Date(`${dto.fecha_inicio}T00:00:00`);
       const estadoServicio = dto.fecha_fin ? EstadoServicio.FINALIZADO : EstadoServicio.EN_CURSO;
       let fLimitePago: Date | null = null;
       if (dto.fecha_fin) {
-        const fFin = new Date(dto.fecha_fin);
+        const fFin = new Date(`${dto.fecha_fin}T00:00:00`);
         fLimitePago = new Date(fFin);
         fLimitePago.setDate(fFin.getDate() + (dto.periodo_liquidacion || 0));
       }
@@ -254,7 +255,7 @@ export class ServicioService {
   async findOne(id: number): Promise<Servicio> {
     const servicio = await this.servicioRepo.findOne({
       where: { id_servicio: id, status: true },
-      relations: ['categoria', 'cliente', 'cliente.persona', 'asignacion', 'asignacion.conductor.persona', 'asignacion.tracto', 'asignacion.tracto.categoria', 'asignacion.remolque', 'colaborador', 'colaborador.persona', 'factura', 'factura.fotos', 'documentos','documentos.requisito_documento','documentos.requisito_documento.categoria']
+      relations: ['categoria', 'cliente', 'cliente.persona', 'asignacion', 'asignacion.conductor.persona', 'asignacion.tracto', 'asignacion.tracto.categoria', 'asignacion.tracto.documentos', 'asignacion.tracto.documentos.requisito_documento', 'asignacion.remolque', 'colaborador', 'colaborador.persona', 'factura', 'factura.fotos', 'documentos','documentos.requisito_documento','documentos.requisito_documento.categoria']
     });
     if (!servicio) throw new NotFoundException('Servicio no encontrado');
     return servicio;
@@ -280,8 +281,10 @@ export class ServicioService {
         throw new BadRequestException('No se puede borrar y establecer la fecha de fin al mismo tiempo');
       }
 
-      const fechaInicioFinal = dto.fecha_inicio ? new Date(dto.fecha_inicio) : servicio.fecha_inicio;
-      const fechaFinFinal = debeBorrarFechaFin ? null : (dto.fecha_fin ? new Date(dto.fecha_fin) : servicio.fecha_fin);
+      // FIX: Interpretar la fecha como local para evitar el desfase de zona horaria.
+      const fechaInicioFinal = dto.fecha_inicio ? new Date(`${dto.fecha_inicio}T00:00:00`) : servicio.fecha_inicio;
+      const fechaFinFinal = debeBorrarFechaFin ? null : (dto.fecha_fin ? new Date(`${dto.fecha_fin}T00:00:00`) : servicio.fecha_fin);
+
       if (fechaFinFinal && fechaFinFinal < fechaInicioFinal) {
         throw new BadRequestException('La fecha fin no puede ser menor a la fecha inicio');
       }
@@ -309,7 +312,7 @@ export class ServicioService {
         servicio.fecha_limite_pago = null;
         servicio.estado_servicio = EstadoServicio.EN_CURSO;
       } else if (dto.fecha_fin) {
-        servicio.fecha_fin = new Date(dto.fecha_fin);
+        servicio.fecha_fin = new Date(`${dto.fecha_fin}T00:00:00`);
         servicio.estado_servicio = EstadoServicio.FINALIZADO;
         const fLimite = new Date(servicio.fecha_fin);
         fLimite.setDate(fLimite.getDate() + (dto.periodo_liquidacion ?? servicio.periodo_liquidacion ?? 0));

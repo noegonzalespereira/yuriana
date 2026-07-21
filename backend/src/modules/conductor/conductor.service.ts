@@ -73,8 +73,9 @@ export class ConductorService {
           where: { id_requisito_documento: archivoInfo.idRequisito },
         });
         const fechaStr = fechas[archivoInfo.idRequisito];
+        // FIX: Interpretar la fecha como local para evitar el desfase de zona horaria.
         const fecha_vencimiento = requisito?.requiere_vencimiento && fechaStr
-          ? new Date(fechaStr)
+          ? new Date(`${fechaStr}T00:00:00`)
           : undefined;
 
         const documento = queryRunner.manager.create(Documento, {

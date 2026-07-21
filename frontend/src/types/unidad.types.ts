@@ -33,9 +33,17 @@ export interface Unidad {
   createdAt: string;
   updatedAt: string;
   status: boolean;
+  num_poliza?: string; 
   
   // Relación con fotos (cargada opcionalmente por el backend)
   fotos?: FotoUnidad[];
+
+  // Relación con documentos (cargada opcionalmente por el backend, ej: en reportes)
+  documentos?: {
+    id_documento: number;
+    fecha_vencimiento?: string;
+    requisito_documento?: { nombre_documento: string };
+  }[];
 
   // Atributos dinámicos enriquecidos por el DocumentoService proxy
   estado?: 'vigente' | 'por_vencer' | 'vencido' | 'sin_documentos';

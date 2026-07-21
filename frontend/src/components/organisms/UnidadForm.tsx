@@ -27,6 +27,10 @@ export const UnidadForm = ({ initialData, categoriasValidadas, onSubmit, onCance
   // Observamos la categoría seleccionada dinámicamente
   const categoriaSeleccionadaId = watch("id_categoria");
 
+  // Determinar si la categoría es TRACTO para mostrar campos condicionales
+  const categoriaSeleccionada = categoriasValidadas.find(c => c.id_categoria.toString() === categoriaSeleccionadaId);
+  const esTracto = categoriaSeleccionada?.tipo_categoria === 'TRACTO';
+
   const [requisitos, setRequisitos] = useState<RequisitoDocumento[]>([]);
   const [documentosGuardados, setDocumentosGuardados] = useState<any[]>([]);
   const [loadingReqs, setLoadingReqs] = useState(false);
@@ -90,10 +94,11 @@ export const UnidadForm = ({ initialData, categoriasValidadas, onSubmit, onCance
         anio: initialData.anio,
         modelo: initialData.modelo,
         estado_unidad: initialData.estado_unidad,
+        num_poliza: initialData.num_poliza || "",
       });
       setFotosExistentes(initialData?.fotos?.filter(f => f.status !== false) || []);
     } else {
-      reset({ placa: "", id_categoria: "", num_chasis: "", marca: "", color: "", anio: "", modelo: "", estado_unidad: EstadoUnidad.DISPONIBLE });
+      reset({ placa: "", id_categoria: "", num_chasis: "", marca: "", color: "", anio: "", modelo: "", estado_unidad: EstadoUnidad.DISPONIBLE, num_poliza: "" });
       setFotosExistentes([]);
     }
     setFotosLocales([]);
@@ -228,6 +233,7 @@ export const UnidadForm = ({ initialData, categoriasValidadas, onSubmit, onCance
       anio: parseInt(data.anio),
       modelo: data.modelo.trim().toUpperCase(),
       estado_unidad: data.estado_unidad,
+      num_poliza: data.num_poliza,
     };
 
     try {
@@ -318,6 +324,18 @@ export const UnidadForm = ({ initialData, categoriasValidadas, onSubmit, onCance
           <ModuleField label="Color" name="color" register={register} disabled={isReadOnly} error={errors.color} rules={{ required: "El color es obligatorio" }} />
           <ModuleField label="Año" name="anio" type="number" register={register} disabled={isReadOnly} error={errors.anio} rules={{ required: "El año es obligatorio", min: { value: 1990, message: "El año mínimo es 1990" }, max: { value: new Date().getFullYear(), message: `El año no puede ser mayor a ${new Date().getFullYear()}` }, validate: (v: any) => parseInt(v) >= 1990 || "El año mínimo es 1990" }} />
           
+          {esTracto && (
+            <ModuleField
+              label="Nº Póliza Seguro (CTI)"
+              name="num_poliza"
+              register={register}
+              disabled={isReadOnly}
+              error={errors.num_poliza}
+              rules={{ required: "La póliza es obligatoria para Tracto" }}
+              placeholder="Ej: 987654-SC"
+            />
+          )}
+
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-black text-[var(--yuriana-input-label)] uppercase tracking-widest ml-1">Estado</label>
             {initialData && (initialData.estado_unidad === EstadoUnidad.ASIGNADO || initialData.estado_unidad === EstadoUnidad.EN_VIAJE) ? (

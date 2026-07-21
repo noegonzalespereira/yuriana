@@ -48,6 +48,7 @@ export class UnidadController {
       anio: anioRegistrar,
       modelo: body.modelo,
       estado_unidad: body.estado_unidad,
+      num_poliza: body.num_poliza,
     };
 
     return this.unidadService.registrarConDocumentos(createUnidadDto, fotosFiles, docFiles, fechas, req.user.id);
@@ -101,6 +102,7 @@ export class UnidadController {
       ...(body.modelo !== undefined && { modelo: body.modelo }),
       ...(body.estado_unidad !== undefined && { estado_unidad: body.estado_unidad }),
       ...(body.id_categoria !== undefined && { id_categoria: parseInt(body.id_categoria) }),
+      ...(body.num_poliza !== undefined && { num_poliza: body.num_poliza }),
     };
 
     return this.unidadService.update(placa, updateUnidadDto, fotosFiles, req.user.id, fotosEliminarIds);

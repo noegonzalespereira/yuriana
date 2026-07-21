@@ -47,4 +47,7 @@ export class CreateUnidadDto {
     @IsEnum(EstadoUnidad,{message: 'El estado de la unidad debe ser DISPONIBLE, EN VIAJE o MANTENIMIENTO'})
     estado_unidad?: EstadoUnidad
 
+    @IsString()
+    @IsOptional()
+    num_poliza?: string;
 }

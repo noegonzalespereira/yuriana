@@ -50,6 +50,11 @@ async registrarConDocumentos(
     throw new BadRequestException('La categoría debe ser Tracto, Semiremolque o Remolque');
   }
 
+  // Validación de Póliza para Tractos
+  if (categoria.tipo_categoria === TipoCategoria.TRACTO && (!createUnidadDto.num_poliza || !createUnidadDto.num_poliza.trim())) {
+    throw new BadRequestException('El número de póliza (seguro CTI) es obligatorio para la categoría Tracto.');
+  }
+
   // 1. Subida simultánea en paralelo de fotografías operativas (RAM -> Cloudinary)
   const promesasFotos = fotosFiles.map(file => this.cloudinaryService.subirArchivo(file, 'yuriana/unidades/fotos'));
   const fotosResultados = await Promise.all(promesasFotos);
@@ -103,8 +108,9 @@ async registrarConDocumentos(
       });
       
       const fechaStr = fechas[docInfo.idRequisito];
+      // FIX: Interpretar la fecha como local para evitar el desfase de zona horaria.
       const fecha_vencimiento = requisito?.requiere_vencimiento && fechaStr
-        ? new Date(fechaStr)
+        ? new Date(`${fechaStr}T00:00:00`)
         : undefined;
 
       const documento = queryRunner.manager.create(Documento, {
@@ -143,6 +149,11 @@ async registrarConDocumentos(
     const categoria = await this.categoriaEntidadService.findOne(createUnidadDto.id_categoria);
     if (![TipoCategoria.TRACTO, TipoCategoria.SEMIREMOLQUE, TipoCategoria.REMOLQUE].includes(categoria.tipo_categoria)) {
       throw new BadRequestException('La categoría debe ser Tracto, Semiremolque o Remolque');
+    }
+
+    // Validación de Póliza para Tractos
+    if (categoria.tipo_categoria === TipoCategoria.TRACTO && (!createUnidadDto.num_poliza || !createUnidadDto.num_poliza.trim())) {
+      throw new BadRequestException('El número de póliza (seguro CTI) es obligatorio para la categoría Tracto.');
     }
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -207,7 +218,18 @@ async registrarConDocumentos(
 
   async update(placa: string, updateUnidadDto: UpdateUnidadDto, files: Express.Multer.File[], userId: number, fotosEliminarIds: number[] = []) {
     const unidadOriginal = await this.findOne(placa);
-    const { id_categoria, num_chasis } = updateUnidadDto;
+    const { id_categoria, num_chasis, num_poliza } = updateUnidadDto;
+
+    let categoriaFinal = unidadOriginal.categoria;
+    if (id_categoria && id_categoria !== unidadOriginal.id_categoria) {
+      categoriaFinal = await this.categoriaEntidadService.findOne(id_categoria);
+    }
+
+    const numPolizaFinal = num_poliza !== undefined ? num_poliza : unidadOriginal.num_poliza;
+
+    if (categoriaFinal.tipo_categoria === TipoCategoria.TRACTO && (!numPolizaFinal || !numPolizaFinal.trim())) {
+      throw new BadRequestException('El número de póliza (seguro CTI) es obligatorio para la categoría Tracto.');
+    }
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -249,9 +271,7 @@ async registrarConDocumentos(
 
   async remove(placa: string, userId: number): Promise<Unidad> {
     const unidad = await this.findOne(placa);
-    if (unidad.estado_unidad === EstadoUnidad.ASIGNADO || unidad.estado_unidad === EstadoUnidad.EN_VIAJE) {
-      throw new ForbiddenException(`No se puede eliminar la unidad "${unidad.placa}" porque está en estado ${unidad.estado_unidad}`);
-    }
+  
     unidad.status = false;
     unidad.UpdatedId = userId;
     return this.unidadRepository.save(unidad);

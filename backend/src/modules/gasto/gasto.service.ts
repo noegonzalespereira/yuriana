@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Repository, In } from 'typeorm';
 
 // Entidades Centralizadas del Módulo
 import { Gasto } from './entities/gasto.entity';
@@ -65,6 +65,12 @@ export class GastosService {
           const saldoRestanteOriginal = viaticoOriginal - acumuladoGastosOriginal;
           const saldoRestanteBs = saldoRestanteOriginal * tCambio;
 
+          // LÓGICA MEJORADA: La fecha de la cabecera será la fecha más reciente de sus detalles.
+          if (dto.items.length === 0) throw new BadRequestException('Debe agregar al menos un detalle de gasto.');
+          
+          const fechasItems = dto.items.map(item => new Date(`${item.fecha}T00:00:00`));
+          const fechaMasReciente = new Date(Math.max.apply(null, fechasItems));
+
           // Creamos la cabecera de la rendición del viaje
           const cabeceraGasto = queryRunner.manager.create(GastosServicio, {
             id_servicio: viajeExistente.id_servicio,
@@ -76,14 +82,15 @@ export class GastosService {
             total_gastos_bs: acumuladoGastosBs,
             saldo: saldoRestanteOriginal,
             saldo_bs: saldoRestanteBs,
-            fecha_registro: new Date(),
+            fecha_registro: fechaMasReciente, // <-- CAMBIO CLAVE
             CreatedId: userId
           });
           const cabeceraGuardada = await queryRunner.manager.save(cabeceraGasto);
 
           // Insertamos todas las filas en el Detalle relacionándolas también a la tabla general Gasto
           for (const item of dto.items) {
-            const fGasto = new Date(item.fecha);
+            // FIX: Interpretar la fecha como local para evitar el desfase de zona horaria.
+            const fGasto = new Date(`${item.fecha}T00:00:00`);
             
             const gastoMaestro = queryRunner.manager.create(Gasto, {
               fecha: fGasto,
@@ -114,7 +121,8 @@ export class GastosService {
           if (!unidadExistente) throw new NotFoundException('La unidad vehicular no existe');
 
           for (const item of dto.items) {
-            const fGasto = new Date(item.fecha);
+            // FIX: Interpretar la fecha como local.
+            const fGasto = new Date(`${item.fecha}T00:00:00`);
 
             const gastoMaestro = queryRunner.manager.create(Gasto, {
               fecha: fGasto,
@@ -140,7 +148,8 @@ export class GastosService {
 
         case TipoPestaña.ADMINISTRATIVO: {
           for (const item of dto.items) {
-            const fGasto = new Date(item.fecha);
+            // FIX: Interpretar la fecha como local.
+            const fGasto = new Date(`${item.fecha}T00:00:00`);
 
             const gastoMaestro = queryRunner.manager.create(Gasto, {
               fecha: fGasto,
@@ -165,7 +174,8 @@ export class GastosService {
 
         case TipoPestaña.GENERAL: {
           for (const item of dto.items) {
-            const fGasto = new Date(item.fecha);
+            // FIX: Interpretar la fecha como local.
+            const fGasto = new Date(`${item.fecha}T00:00:00`);
 
             const gastoMaestro = queryRunner.manager.create(Gasto, {
               fecha: fGasto,
@@ -215,7 +225,30 @@ export class GastosService {
       if (filters.fecha_inicio && filters.fecha_fin) {
         query.andWhere('gs.fecha_registro BETWEEN :f1 AND :f2', { f1: filters.fecha_inicio, f2: filters.fecha_fin });
       }
-      return await query.orderBy('gs.createdAt', 'DESC').getMany();
+      
+      const cabeceras = await query.orderBy('gs.createdAt', 'DESC').getMany();
+
+      if (cabeceras.length === 0) {
+        return [];
+      }
+
+      // Enriquecer con los detalles para que el frontend pueda acceder a las fechas individuales
+      const cabeceraIds = cabeceras.map(c => c.id_gasto_servicio);
+      const todosLosDetalles = await this.detalleGastoRepo.find({
+        where: { id_gasto_servicio: In(cabeceraIds), status: true },
+        relations: ['gasto'],
+      });
+
+      const detallesPorCabecera = todosLosDetalles.reduce((acc, detalle) => {
+        (acc[detalle.id_gasto_servicio] = acc[detalle.id_gasto_servicio] || []).push(detalle);
+        return acc;
+      }, {} as Record<number, DetalleGastoServicio[]>);
+
+      cabeceras.forEach(cabecera => {
+        (cabecera as any).detalles = detallesPorCabecera[cabecera.id_gasto_servicio] || [];
+      });
+
+      return cabeceras;
     }
 
     if (pestana === TipoPestaña.OPERATIVO) {
@@ -315,46 +348,70 @@ export class GastosService {
    * REMOVE (eliminar): Borrado lógico controlado (el basurero de tu interfaz)
    */
   async remove(pestana: TipoPestaña, id: number, userId: number) {
-    if (pestana === TipoPestaña.SERVICIO) {
-      // Aquí 'id' es el id_gasto_servicio (la cabecera de la rendición)
-      const cabecera = await this.gastosServicioRepo.findOne({
-        where: { id_gasto_servicio: id, status: true },
-        relations: ['servicio'],
-      });
-      if (!cabecera) throw new NotFoundException('Rendición de gastos no encontrada.');
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-      // Validación: No permitir eliminar si el servicio ya está pagado o retrasado.
-      const estadoPagoServicio = cabecera.servicio?.estado_pago;
-      if (estadoPagoServicio === 'PAGADO' || estadoPagoServicio === 'RETRASADO') {
-        throw new ConflictException(
-          `No se puede eliminar el gasto. El viaje esta en estado "${estadoPagoServicio}".`
-        );
+    try {
+      if (pestana === TipoPestaña.SERVICIO) {
+        // Aquí 'id' es el id_gasto_servicio (la cabecera de la rendición)
+        const cabecera = await queryRunner.manager.findOne(GastosServicio, {
+          where: { id_gasto_servicio: id, status: true },
+        });
+        if (!cabecera) throw new NotFoundException('Rendición de gastos no encontrada.');
+
+        // No hay validación de estado de pago, lo cual es correcto según el requisito del cliente.
+
+        const detalles = await queryRunner.manager.find(DetalleGastoServicio, {
+          where: { id_gasto_servicio: id, status: true }
+        });
+
+        // 1. Borrado lógico de la cabecera
+        cabecera.status = false;
+        cabecera.UpdatedId = userId;
+        await queryRunner.manager.save(cabecera);
+
+        if (detalles.length > 0) {
+          const idsGastos = detalles.map(d => d.id_gasto);
+          
+          // 2. Borrado lógico de los detalles
+          await queryRunner.manager.update(DetalleGastoServicio, { id_gasto_servicio: id }, { status: false, UpdatedId: userId });
+
+          // 3. Borrado lógico de los gastos maestros asociados para no dejar registros huérfanos
+          if (idsGastos.length > 0) {
+            await queryRunner.manager.update(Gasto, { id_gasto: In(idsGastos) }, { status: false, UpdatedId: userId });
+          }
+        }
+
+        await queryRunner.commitTransaction();
+        return { success: true, message: 'Rendición de gastos y sus detalles eliminados correctamente' };
+
+      } else {
+        // Lógica transaccional para las otras pestañas (OPERATIVO, ADMINISTRATIVO, GENERAL)
+        const { repo, idField } = this.getRepoAndIdField(pestana);
+        const registroExtenso = await queryRunner.manager.findOne(repo.target as any, { where: { [idField]: id, status: true }, relations: ['gasto'] });
+
+        if (!registroExtenso) throw new NotFoundException('Gasto no encontrado');
+
+        (registroExtenso as any).status = false;
+        (registroExtenso as any).UpdatedId = userId;
+
+        if ((registroExtenso as any).gasto) {
+          (registroExtenso as any).gasto.status = false;
+          (registroExtenso as any).gasto.UpdatedId = userId;
+          await queryRunner.manager.save(Gasto, (registroExtenso as any).gasto);
+        }
+
+        await queryRunner.manager.save(registroExtenso);
+        await queryRunner.commitTransaction();
+        return registroExtenso;
       }
-
-      
-      cabecera.status = false;
-      cabecera.UpdatedId = userId;
-      await this.gastosServicioRepo.save(cabecera);
-
-      // Opcional pero recomendado: Borrar lógicamente los detalles asociados
-      await this.detalleGastoRepo.update({ id_gasto_servicio: id }, { status: false, UpdatedId: userId });
-
-      return { success: true, message: 'Rendición de gastos eliminada' };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    const registroExtenso = await this.findOne(pestana, id);
-    registroExtenso.status = false;
-    registroExtenso.UpdatedId = userId;
-
-    if (registroExtenso.gasto) {
-      registroExtenso.gasto.status = false;
-      registroExtenso.gasto.UpdatedId = userId;
-      await this.gastoRepo.save(registroExtenso.gasto);
-    }
-
-    const repo = pestana === TipoPestaña.OPERATIVO ? this.gastoOperativoRepo :
-                 pestana === TipoPestaña.ADMINISTRATIVO ? this.gastoAdminRepo : this.gastoGeneralRepo;
-    return await this.dataSource.manager.save(registroExtenso);
   }
 
   /**
@@ -367,15 +424,30 @@ export class GastosService {
     const detallesActivos = await this.detalleGastoRepo.find({ where: { id_gasto_servicio: idCabecera, status: true }, relations: ['gasto'] });
     
     let nuevoTotalOriginal = 0;
-    detallesActivos.forEach(d => nuevoTotalOriginal += Number(d.gasto?.monto || 0));
+    const fechasDetalles = detallesActivos.map(d => {
+      nuevoTotalOriginal += Number(d.gasto?.monto || 0);
+      return d.gasto.fecha; // Asumimos que la fecha ya es un objeto Date o un string ISO
+    });
+    const fechaMasReciente = fechasDetalles.length > 0 ? new Date(Math.max.apply(null, fechasDetalles.map(f => new Date(f)))) : new Date();
 
     cabecera.total_gastos = nuevoTotalOriginal;
     cabecera.total_gastos_bs = nuevoTotalOriginal * Number(cabecera.tipo_cambio);
     cabecera.saldo = Number(cabecera.viatico_entregado) - nuevoTotalOriginal;
     cabecera.saldo_bs = cabecera.saldo * Number(cabecera.tipo_cambio);
+    cabecera.fecha_registro = fechaMasReciente; // <-- AÑADIDO: Recalcular fecha representativa
     cabecera.UpdatedId = userId;
 
     await this.gastosServicioRepo.save(cabecera);
+  }
+
+  /**
+   * Helper para obtener el repositorio y el campo ID según la pestaña
+   */
+  private getRepoAndIdField(pestana: TipoPestaña) {
+    if (pestana === TipoPestaña.OPERATIVO) return { repo: this.gastoOperativoRepo, idField: 'id_gasto_operativo' };
+    if (pestana === TipoPestaña.ADMINISTRATIVO) return { repo: this.gastoAdminRepo, idField: 'id_gasto_admin' };
+    if (pestana === TipoPestaña.GENERAL) return { repo: this.gastoGeneralRepo, idField: 'id_gasto_general' };
+    throw new BadRequestException('Tipo de pestaña de gasto no válida');
   }
 
   /**

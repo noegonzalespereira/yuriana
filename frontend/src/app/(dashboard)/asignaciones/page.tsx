@@ -5,11 +5,13 @@ import { FilterSelect } from "@/components/atoms/FilterSelect";
 import { AsignacionTable } from "@/components/organisms/AsignacionTable";
 import { AsignacionForm } from "@/components/organisms/AsignacionForm";
 import { getAsignaciones, createAsignacion, updateAsignacion, desengancharUnidad } from "@/lib/api/asignacion.api";
+import { getEmpresa } from "@/lib/api/empresa.api";
 import { Asignacion } from "@/types/asignacion.types";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
 import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
 import { TablePagination } from "@/components/molecules/TablePagination";
+import { Empresa } from "@/types/empresa.types";
 
 const PAGE_SIZE = 10;
 
@@ -26,6 +28,7 @@ export default function AsignacionesPage() {
   // Estados de control idénticos a Colaboradores
   const [selectedAsignacion, setSelectedAsignacion] = useState<Asignacion | null>(null);
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const [infoEmpresa, setInfoEmpresa] = useState<Empresa | null>(null);
   
   const [showDesengancheModal, setShowDesengancheModal] = useState(false);
   const [idParaDesenganchar, setIdParaDesenganchar] = useState<number | null>(null);
@@ -33,8 +36,12 @@ export default function AsignacionesPage() {
   const syncAsignaciones = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await getAsignaciones(filters);
-      setAsignaciones(res);
+      const [asignacionesData, empresaData] = await Promise.all([
+        getAsignaciones(filters),
+        getEmpresa()
+      ]);
+      setAsignaciones(asignacionesData);
+      setInfoEmpresa(empresaData);
     } catch (err: any) {
       console.error(err);
       toast.error("Error al sincronizar el mapa logístico de enganches.");
@@ -116,6 +123,7 @@ export default function AsignacionesPage() {
           ) : (
             <AsignacionTable
               data={registrosPagina}
+              infoEmpresa={infoEmpresa}
               onView={(asig) => { setSelectedAsignacion(asig); setIsReadOnly(true); setView('form'); }}
               onEdit={(asig) => { setSelectedAsignacion(asig); setIsReadOnly(false); setView('form'); }}
               onDelete={(id) => { setIdParaDesenganchar(id); setShowDesengancheModal(true); }}

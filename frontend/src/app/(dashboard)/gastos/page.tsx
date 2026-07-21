@@ -35,6 +35,7 @@ import {
   type GastoFilters,
 } from "@/lib/api/gasto.api";
 import { GastosServicio, GastoOperativo, GastoAdministrativo, GastoGeneral, TotalesPaneles, TipoPestana, TipoGastoOperativo, TipoGastoAdministrativo, TipoGastoGeneral } from "@/types/gasto.types";
+import { useAuth } from "@/context/AuthContext";
 
 type Vista = "list" | "form";
 type TabActiva = TipoPestana;
@@ -93,6 +94,7 @@ const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString(
 const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).toISOString().slice(0, 10);
 
 export default function GastosPage() {
+  const { user } = useAuth(); // <-- Obtenemos el usuario del contexto
   const [vista, setVista] = useState<Vista>("list");
   const [tabActiva, setTabActiva] = useState<TabActiva>(TipoPestana.SERVICIO);
   const [loading, setLoading] = useState(true);
@@ -477,6 +479,12 @@ export default function GastosPage() {
                         + Nuevo Gasto
                       </button>
                     </div>
+                      <div className="ml-auto">
+                        <button type="button" onClick={handleNuevoGasto} className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black py-2 px-5 rounded-xl shadow text-xs transition-all active:scale-95">
+                          + Nuevo Gasto
+                        </button>
+                      </div>
+                    
                   </div>
                   {loading ? (
                     <div className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">Cargando registros...</div>
