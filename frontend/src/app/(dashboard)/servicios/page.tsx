@@ -89,6 +89,7 @@ export default function ServiciosPage() {
   const [pagina, setPagina] = useState(1);
   useEffect(() => { setPagina(1); }, [filters]);
 
+  // ... (otras funciones)
   // ── Cargar datos ──────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
     try {
@@ -118,10 +119,28 @@ export default function ServiciosPage() {
   const totalPagados   = servicios.filter(s => s.estado_pago === EstadoPago.PAGADO).reduce((a, s) => a + Number(s.total_flete), 0);
   const totalPendientes = servicios.filter(s => s.estado_pago === EstadoPago.PENDIENTE).reduce((a, s) => a + Number(s.total_flete), 0);
   const totalRetrasados = servicios.filter(s => s.estado_pago === EstadoPago.RETRASADO).reduce((a, s) => a + Number(s.total_flete), 0);
-
+  
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleNuevo = () => { setSelected(null); setIsReadOnly(false); setVista("form"); };
-  const handleFormSuccess = () => { setVista("list"); loadData(); };
+  const handleFormSuccess = (itemActualizado: ServicioItem) => {
+    setVista("list");
+
+    // Actualiza el estado local para reflejar el cambio en la tabla al instante
+    setServicios(prevServicios => {
+      const existe = prevServicios.some(s => s.id_servicio === itemActualizado.id_servicio);
+
+      if (existe) {
+        // Es una edición: reemplaza el item antiguo con el nuevo
+        return prevServicios.map(s =>
+          s.id_servicio === itemActualizado.id_servicio ? itemActualizado : s
+        );
+      }
+      // Es una creación: añade el nuevo item al principio de la lista
+      return [itemActualizado, ...prevServicios];
+    });
+    // Recarga los contadores en segundo plano para mantenerlos actualizados
+    getContadoresServicio({ fecha_inicio: filters.fecha_inicio, fecha_fin: filters.fecha_fin }).then(setContadores);
+  };
 
   const handleVer = async (item: ServicioItem) => {
     try {
@@ -142,7 +161,9 @@ export default function ServiciosPage() {
     try {
       await eliminarServicio(deleteId);
       toast.success("Viaje eliminado correctamente");
-      loadData();
+      // Actualiza el estado local para reflejar el cambio en la tabla al instante
+      setServicios(prev => prev.filter(s => s.id_servicio !== deleteId));
+      getContadoresServicio({ fecha_inicio: filters.fecha_inicio, fecha_fin: filters.fecha_fin }).then(setContadores);
     } catch (err: any) {
       toast.error("Acción denegada", { description: err.message || "No se pudo eliminar el viaje." });
     }

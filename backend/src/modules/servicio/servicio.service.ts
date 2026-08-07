@@ -261,7 +261,11 @@ export class ServicioService {
     return servicio;
   }
 
-  async update(id: number, dto: UpdateServicioDto, fileVoucher: Express.Multer.File, userId: number) {
+  async update(
+    id: number,
+    dto: UpdateServicioDto,
+    files: { foto_factura?: Express.Multer.File[], documentacion_aduanera?: Express.Multer.File[], vaucher?: Express.Multer.File[] },
+    userId: number) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -301,11 +305,53 @@ export class ServicioService {
         if (ids.length > 0) await queryRunner.manager.delete(FotoFactura, ids);
       }
 
-      if (fileVoucher) {
-        const { url } = await this.cloudinaryService.subirArchivo(fileVoucher, 'yuriana/vouchers');
+      if (files?.vaucher?.[0]) {
+        const { url } = await this.cloudinaryService.subirArchivo(files.vaucher[0], 'yuriana/vouchers');
         servicio.comprobante_pago = url;
         servicio.estado_pago = EstadoPago.PAGADO;
       }
+
+      if (dto.es_facturado === 'si' && files?.foto_factura?.length) {
+        let factura = await queryRunner.manager.findOne(Factura, { where: { id_servicio: id } });
+        if (!factura) {
+          factura = queryRunner.manager.create(Factura, {
+            id_servicio: id,
+            factura_transporte: String(dto.factura_transporte ?? ''),
+            monto_factura: dto.monto_factura || servicio.total_flete,
+            fecha_emision: servicio.fecha_inicio,
+            mes: (servicio.fecha_inicio.getMonth() + 1).toString().padStart(2, '0'),
+            anio: servicio.fecha_inicio.getFullYear(),
+            CreatedId: userId,
+          });
+          await queryRunner.manager.save(factura);
+        }
+        for (const file of files.foto_factura) {
+          const { url } = await this.cloudinaryService.subirArchivo(file, 'yuriana/facturas');
+          await queryRunner.manager.save(FotoFactura, {
+            id_factura: factura.id_factura,
+            url_foto: url,
+            CreatedId: userId,
+          });
+        }
+      }
+
+      if (files?.documentacion_aduanera && dto.ids_requisitos_aduaneros) {
+        const idsRequisitos = dto.ids_requisitos_aduaneros ?? [];
+        for (let i = 0; i < files.documentacion_aduanera.length; i++) {
+          const file = files.documentacion_aduanera[i];
+          const idReq = idsRequisitos[i];
+          if (isNaN(idReq)) continue;
+          const { url } = await this.cloudinaryService.subirArchivo(file, 'yuriana/documentos/servicio');
+          await queryRunner.manager.save(Documento, {
+            id_requisito: idReq,
+            id_servicio: id,
+            url_documento: url,
+            tipo_documento: file.mimetype,
+            CreatedId: userId,
+          });
+        }
+      }
+
 
       if (debeBorrarFechaFin) {
         servicio.fecha_fin = null;
@@ -319,10 +365,17 @@ export class ServicioService {
         servicio.fecha_limite_pago = fLimite;
       }
 
+      // Recalcular el flete total
+      const montoBase = Number(dto.flete ?? servicio.flete);
+      const montoExtra = Number(dto.flete_adicional ?? servicio.flete_adicional ?? 0);
+      const tCambio = (dto.moneda ?? servicio.moneda) === Moneda.DOLAR ? Number(dto.tipo_cambio ?? servicio.tipo_cambio ?? 1) : 1;
+      servicio.total_flete = (montoBase + montoExtra) * tCambio;
+
       Object.assign(servicio, { ...datosActualizar, UpdatedId: userId });
-      const guardado = await queryRunner.manager.save(servicio);
+      await queryRunner.manager.save(servicio);
 
       // Lógica de transición de estados
+      const guardado = servicio; // Use the current instance for state transition logic
       if (estadoAnterior === EstadoServicio.EN_CURSO && guardado.estado_servicio === EstadoServicio.FINALIZADO) {
         await this.liberarEquipo(servicio.asignacion, userId, queryRunner);
       } else if (estadoAnterior === EstadoServicio.FINALIZADO && guardado.estado_servicio === EstadoServicio.EN_CURSO) {
@@ -334,7 +387,9 @@ export class ServicioService {
       }
 
       await queryRunner.commitTransaction();
-      return guardado;
+
+      // Devolver la entidad completa con todas sus relaciones para actualizar el frontend correctamente
+      return this.findOne(id);
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;

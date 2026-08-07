@@ -127,7 +127,7 @@ interface Props {
   initialData?: ServicioItem | null;
   isReadOnly?: boolean;
   onCancel: () => void;
-  onSuccess: () => void;
+  onSuccess: (item: ServicioItem) => void;
 }
 
 export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSuccess }: Props) => {
@@ -427,13 +427,14 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     try {
       setSaving(true);
       if (isEdit && initialData) {
-        await editarServicio(initialData.id_servicio, fd);
+        const updatedItem = await editarServicio(initialData.id_servicio, fd);
         toast.success("Viaje actualizado correctamente.");
+        onSuccess(updatedItem);
       } else {
-        await crearServicio(fd);
+        const newItem = await crearServicio(fd);
         toast.success("Viaje registrado correctamente.");
+        onSuccess(newItem);
       }
-      onSuccess();
     } catch (err: any) {
       toast.error("Error al guardar", { description: err.message });
     } finally {

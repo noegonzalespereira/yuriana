@@ -24,14 +24,6 @@ interface Props {
 }
 
 export const ServicioTable = ({ data, onView, onEdit, onDelete }: Props) => {
-  if (data.length === 0) {
-    return (
-      <div className="py-16 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">
-        No hay viajes registrados
-      </div>
-    );
-  }
-
   const esInternacional = (item: ServicioItem) =>
     item.categoria?.tipo_categoria?.toUpperCase().includes("INTERNACIONAL");
 
@@ -52,8 +44,15 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete }: Props) => {
           </tr>
         </thead>
         <tbody className="divide-y divide-[var(--yuriana-input-border)] text-xs">
-          {data.map((item) => (
-            <tr key={item.id_servicio} className="hover:bg-orange-50/30 transition-colors">
+          {data.length === 0 ? (
+            <tr>
+              <td colSpan={9} className="py-16 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">
+                No hay viajes registrados con los filtros seleccionados.
+              </td>
+            </tr>
+          ) : (
+            data.map((item) => (
+              <tr key={item.id_servicio} className="hover:bg-orange-50/30 transition-colors">
               {/* ID Viaje */}
               <td className="px-4 py-2.5">
                 <span className="font-black text-[var(--yuriana-base-orange)]">
@@ -132,8 +131,9 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete }: Props) => {
               <td className="px-4 py-2.5">
                 <TableActions onView={() => onView(item)} onEdit={() => onEdit(item)} onDelete={() => onDelete(item.id_servicio)} size={14} />
               </td>
-            </tr>
-          ))}
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>
