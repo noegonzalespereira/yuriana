@@ -38,6 +38,7 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete }: Props) => {
             <th className="px-4 py-2.5">Ruta / Tipo</th>
             <th className="px-4 py-2.5 text-right">Flete Total</th>
             <th className="px-4 py-2.5">Fechas</th>
+            <th className="px-4 py-2.5 text-center">Fecha Pago</th>
             <th className="px-4 py-2.5 text-center">Pago</th>
             <th className="px-4 py-2.5 text-center">Estado</th>
             <th className="px-4 py-2.5 text-center">Acciones</th>
@@ -46,7 +47,7 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete }: Props) => {
         <tbody className="divide-y divide-[var(--yuriana-input-border)] text-xs">
           {data.length === 0 ? (
             <tr>
-              <td colSpan={9} className="py-16 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">
+              <td colSpan={10} className="py-16 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">
                 No hay viajes registrados con los filtros seleccionados.
               </td>
             </tr>
@@ -111,6 +112,15 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete }: Props) => {
                     Fin: <span className="text-[var(--yuriana-base-gray-dark)] font-medium">{item.fecha_fin?.slice(0, 10)}</span>
                   </p>
                 )}
+              </td>
+
+              {/* Fecha Pago */}
+              <td className="px-4 py-2.5 text-center">
+                {(item as any).fecha_pago ? (
+                  <span className="font-bold text-emerald-600">
+                    {new Date((item as any).fecha_pago).toLocaleDateString('es-BO', { timeZone: 'UTC' })}
+                  </span>
+                ) : <span className="text-slate-400">-</span>}
               </td>
 
               {/* Pago */}

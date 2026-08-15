@@ -468,41 +468,42 @@ export class GastosService {
   /**
    * SUMATORIAS CONSOLIDADAS: Calcula en Bs. el dinero total para las 4 tarjetas informativas de arriba
    */
-  async obtenerTotalesInformativos(filters: { fecha_inicio?: string, fecha_fin?: string }) {
+  async obtenerTotalesInformativos(filters: { mes?: string, anio?: number }) {
     const now = new Date();
-    const primerDiaMes = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-    const ultimoDiaMes = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
-
-    const fecha_inicio = filters.fecha_inicio || primerDiaMes;
-    const fecha_fin = filters.fecha_fin || ultimoDiaMes;
+    const mesParam = filters.mes || (now.getMonth() + 1).toString().padStart(2, '0');
+    const anioParam = filters.anio || now.getFullYear();
 
     const [totalServiciosResult, totalOps, totalAdmin, totalGral] = await Promise.all([
       // Total Gastos de Viaje (se basa en la fecha de registro de la rendición)
       this.gastosServicioRepo.createQueryBuilder('gs')
         .select('SUM(gs.total_gastos_bs)', 'total')
         .where('gs.status = true')
-        .andWhere('gs.fecha_registro BETWEEN :f1 AND :f2', { f1: fecha_inicio, f2: fecha_fin })
+        .andWhere('EXTRACT(YEAR FROM gs.fecha_registro) = :anio', { anio: anioParam })
+        .andWhere('EXTRACT(MONTH FROM gs.fecha_registro) = :mes', { mes: Number(mesParam) })
         .getRawOne(),
 
       // Total Gastos Operativos (se basa en la fecha del gasto individual)
       this.gastoOperativoRepo.createQueryBuilder('go')
         .leftJoin('go.gasto', 'g').select('SUM(g.monto)', 'total')
         .where('go.status = true AND g.status = true')
-        .andWhere('g.fecha BETWEEN :f1 AND :f2', { f1: fecha_inicio, f2: fecha_fin })
+        .andWhere('g.anio = :anio', { anio: anioParam })
+        .andWhere('g.mes = :mes', { mes: mesParam })
         .getRawOne(),
 
       // Total Gastos Administrativos (se basa en la fecha del gasto individual)
       this.gastoAdminRepo.createQueryBuilder('ga')
         .leftJoin('ga.gasto', 'g').select('SUM(g.monto)', 'total')
         .where('ga.status = true AND g.status = true')
-        .andWhere('g.fecha BETWEEN :f1 AND :f2', { f1: fecha_inicio, f2: fecha_fin })
+        .andWhere('g.anio = :anio', { anio: anioParam })
+        .andWhere('g.mes = :mes', { mes: mesParam })
         .getRawOne(),
 
       // Total Gastos Generales (se basa en la fecha del gasto individual)
       this.gastoGeneralRepo.createQueryBuilder('gg')
         .leftJoin('gg.gasto', 'g').select('SUM(g.monto)', 'total')
         .where('gg.status = true AND g.status = true')
-        .andWhere('g.fecha BETWEEN :f1 AND :f2', { f1: fecha_inicio, f2: fecha_fin })
+        .andWhere('g.anio = :anio', { anio: anioParam })
+        .andWhere('g.mes = :mes', { mes: mesParam })
         .getRawOne(),
     ]);
 

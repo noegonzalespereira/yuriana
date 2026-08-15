@@ -17,6 +17,10 @@ export class UpdateServicioDto extends PartialType(CreateServicioDto) {
   periodo_liquidacion?: number;
 
   @IsOptional()
+  @IsDateString()
+  fecha_pago?: string;
+
+  @IsOptional()
   @IsString()
   ids_fotos_eliminar?: string;
 }

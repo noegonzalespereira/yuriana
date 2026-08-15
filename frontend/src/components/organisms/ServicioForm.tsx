@@ -193,6 +193,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
   // ── Carga ────────────────────────────────────────────────────────────────
   const [descripcionCarga, setDescripcionCarga] = useState("");
   const [voucher, setVoucher] = useState<File | null>(null);
+  const [fechaPago, setFechaPago] = useState("");
 
   const [fotosEliminadas, setFotosEliminadas] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
@@ -208,19 +209,43 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
   useEffect(() => {
     if (isReadOnly) return;
     setLoadingListas(true);
+    
     Promise.all([
       getClientes(), 
       getAsignaciones({ estado_asignacion: 'ACTIVA' }),
       getColaboradores()
     ])
-      .then(([clientes, asignaciones, colaboradores]) => {
+      .then(async ([clientes, asignacionesActivas, colaboradores]) => {
         setListaClientes(clientes);
-        setListaAsignaciones(asignaciones);
         setListaColaboradores(colaboradores);
+
+        // Lógica robusta para asegurar que la asignación actual (en modo edición) esté en la lista.
+        if (initialData?.id_asignacion && !asignacionesActivas.some(a => a.id_asignacion === initialData.id_asignacion)) {
+          try {
+            // No podemos filtrar por 'id_asignacion' directamente.
+            // Usamos el CI del conductor, que es un filtro soportado, para encontrar la asignación.
+            const ciConductorActual = initialData.asignacion?.conductor?.persona?.ci;
+            if (ciConductorActual) {
+              const asignacionesDelConductor = await getAsignaciones({ ci_conductor: String(ciConductorActual) });
+              const asignacionActual = asignacionesDelConductor.find(a => a.id_asignacion === initialData.id_asignacion);
+              if (asignacionActual) {
+                setListaAsignaciones([asignacionActual, ...asignacionesActivas]);
+                return; // Salimos para no ejecutar el setListaAsignaciones de abajo
+              }
+            }
+          } catch {
+            toast.error("Error al cargar la asignación actual del viaje.");
+          }
+        }
+
+        setListaAsignaciones(asignacionesActivas);
+
+        // Si no se hizo nada especial, o si algo falló, simplemente usamos la lista de activas.
+        setListaAsignaciones(asignacionesActivas);
       })
-      .catch(() => {})
+      .catch(() => toast.error("Error al cargar listas", { description: "No se pudieron obtener los datos para los menús desplegables." }))
       .finally(() => setLoadingListas(false));
-  }, [isReadOnly]);
+  }, [isReadOnly, initialData]);
 
   // ── Cargar categorías y requisitos ───────────────────────────────────────
   useEffect(() => {
@@ -262,6 +287,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     setFechaFin(initialData.fecha_fin?.slice(0, 10) ?? "");
     setPeriodoLiquidacion(initialData.periodo_liquidacion ?? 0);
     setDescripcionCarga(initialData.descripcion_carga ?? "");
+    setFechaPago(initialData.fecha_pago?.slice(0, 10) ?? "");
 
     // Cliente
     setIdCliente(initialData.id_cliente);
@@ -353,6 +379,28 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     if (montoFactura < 0) return toast.error("El monto de factura no puede ser negativo");
     if (montoColaborador < 0) return toast.error("El monto del colaborador no puede ser negativo");
 
+    // Validación de límites numéricos para evitar desbordamiento en la base de datos
+    const LIMITE_MONTO = 10_000_000_000; // Límite para 10 dígitos enteros (precisión 12, escala 2)
+    if (flete >= LIMITE_MONTO) {
+      return toast.error("Monto de Flete Excedido", { description: `El valor no puede ser mayor o igual a 10 mil millones.` });
+    }
+    if (fleteAdicional >= LIMITE_MONTO) {
+      return toast.error("Flete Adicional Excedido", { description: `El valor no puede ser mayor o igual a 10 mil millones.` });
+    }
+    if (montoFactura >= LIMITE_MONTO) {
+      return toast.error("Monto de Factura Excedido", { description: `El valor no puede ser mayor o igual a 10 mil millones.` });
+    }
+
+    // VALIDACIÓN CRUZADA VOUCHER Y FECHA PAGO
+    const tieneVoucher = !!voucher || !!initialData?.comprobante_pago;
+    if (fechaPago && !tieneVoucher) {
+      return toast.error("Si registra una fecha de pago, debe subir el comprobante (voucher).");
+    }
+    // Si se sube un voucher nuevo, o si ya existía uno y no se ha puesto fecha de pago
+    if (tieneVoucher && !fechaPago) {
+      return toast.error("Si sube un comprobante (voucher), debe registrar la fecha de pago.");
+    }
+
     // Validación de documentos aduaneros (solo viaje Internacional)
     if (esInternacional && requisitosAduaneros.length > 0) {
       const faltantes = requisitosAduaneros.filter((req) => {
@@ -408,6 +456,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     }
     if (periodoLiquidacion > 0) fd.append("periodo_liquidacion", String(periodoLiquidacion));
     if (descripcionCarga) fd.append("descripcion_carga", descripcionCarga.trim());
+    if (fechaPago) fd.append("fecha_pago", fechaPago);
     if (voucher) fd.append("vaucher", voucher);
     if (fotosEliminadas.length > 0) fd.append("ids_fotos_eliminar", fotosEliminadas.join(","));
 
@@ -818,9 +867,12 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
             file={voucher} onChange={setVoucher} disabled={isReadOnly}
             optional
             existingUrl={initialData?.comprobante_pago} />
+          <Field label="Fecha de Pago" optional>
+            <input type="date" className={INPUT_CLASS} value={fechaPago} onChange={(e) => setFechaPago(e.target.value)} disabled={isReadOnly} />
+          </Field>
           <Field label="Estado de Pago">
             <input className={`${INPUT_CLASS} uppercase`} disabled readOnly
-              value={initialData?.estado_pago ?? "PENDIENTE"} />
+              value={(fechaPago || voucher || initialData?.comprobante_pago) ? 'PAGADO' : (initialData?.estado_pago ?? "PENDIENTE")} />
           </Field>
           <Field label="Estado de Viaje">
             <input className={`${INPUT_CLASS} uppercase`} disabled readOnly

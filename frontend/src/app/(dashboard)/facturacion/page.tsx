@@ -37,30 +37,6 @@ const hoy = new Date();
 const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().slice(0, 10);
 const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).toISOString().slice(0, 10);
 
-const exportarCSV = (data: FacturaItem[], totales: TotalesFacturacion) => {
-  const filas = [
-    ["ID Viaje", "Factura de Transporte", "Tipo de Viaje", "Fecha Emisión", "Monto (Bs)"],
-    ...data.map((f) => [
-      f.servicio?.codigo_servicio ?? "-",
-      f.factura_transporte,
-      tipoViajeLabel(f.servicio?.categoria?.tipo_categoria),
-      fmtFecha(f.fecha_emision),
-      Number(f.monto_factura).toFixed(2),
-    ]),
-    [],
-    ["", "", "", "TOTAL FACTURADO", totales.total_facturado.toFixed(2)],
-    ["", "", "", "IMPUESTO IT (3%)", totales.impuesto_it.toFixed(2)],
-  ];
-  const csv = filas.map((r) => r.join(",")).join("\n");
-  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `facturacion_${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-};
-
 type ModalType = "ver" | "editar" | "eliminar" | null;
 
 export default function FacturacionPage() {
@@ -378,15 +354,6 @@ export default function FacturacionPage() {
             />
           </div>
           <ResetFiltersButton onClick={handleResetFilters} />
-          <button
-            type="button"
-            onClick={() => exportarCSV(facturas, totales)}
-            disabled={facturas.length === 0}
-            className="ml-auto flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black py-2 px-5 rounded-xl shadow text-xs transition-all active:scale-95 disabled:opacity-40"
-          >
-            <Download size={13} />
-            Exportar
-          </button>
         </div>
 
         {/* Table */}
@@ -394,7 +361,7 @@ export default function FacturacionPage() {
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-[var(--yuriana-base-orange)] text-white">
-                {["ID Viaje", "Factura de Transporte", "Tipo Viaje", "Fecha Emisión", "Monto", "Acciones"].map((col) => (
+                {["ID Viaje", "Factura de Transporte", "Tipo Viaje", "Fecha Emisión", "Monto", "IT Individual", "Acciones"].map((col) => (
                   <th key={col} className="px-5 py-3.5 text-left font-black uppercase tracking-wider whitespace-nowrap">
                     {col}
                   </th>
@@ -402,15 +369,15 @@ export default function FacturacionPage() {
               </tr>
             </thead>
             <tbody>
-              {loading ? (
+              {loading ? ( // Ajustar colSpan para la nueva columna
                 <tr>
-                  <td colSpan={6} className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic font-medium">
+                  <td colSpan={7} className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic font-medium">
                     Cargando registros...
                   </td>
                 </tr>
               ) : registrosPagina.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic font-medium uppercase tracking-wide text-[10px]">
+                  <td colSpan={7} className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic font-medium uppercase tracking-wide text-[10px]">
                     No se encontraron registros de facturación.
                   </td>
                 </tr>
@@ -442,6 +409,9 @@ export default function FacturacionPage() {
                     </td>
                     <td className="px-5 py-4 font-black text-[var(--yuriana-base-orange)]">
                       {fmt(Number(f.monto_factura))} Bs
+                    </td>
+                    <td className="px-5 py-4 font-black text-blue-600">
+                      {fmt(Number(f.monto_factura) * 0.03)} Bs
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-1.5">

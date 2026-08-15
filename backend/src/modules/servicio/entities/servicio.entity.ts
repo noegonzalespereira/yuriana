@@ -114,6 +114,9 @@ export class Servicio {
 
     @Column({ nullable: true })
     comprobante_pago?: string; // URL del voucher en Cloudinary
+    
+    @Column({type: 'date', nullable: true})
+    fecha_pago?: Date | null;
 
     @Column({ type: 'enum', enum: EstadoPago, default: EstadoPago.PENDIENTE })
     estado_pago!: EstadoPago;

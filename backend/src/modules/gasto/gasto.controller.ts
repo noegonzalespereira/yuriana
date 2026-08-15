@@ -27,10 +27,10 @@ export class GastoController {
 
   @Get('totales-paneles')
   async obtenerTotalesPaneles(
-    @Query('fecha_inicio') fecha_inicio?: string,
-    @Query('fecha_fin') fecha_fin?: string,
+    @Query('mes') mes?: string,
+    @Query('anio') anio?: string,
   ) {
-    return this.gastosService.obtenerTotalesInformativos({ fecha_inicio, fecha_fin });
+    return this.gastosService.obtenerTotalesInformativos({ mes, anio: anio ? parseInt(anio, 10) : undefined });
   }
 
   @Get('listado/:pestana')

@@ -73,6 +73,7 @@ export default function DashboardPage() {
   // Cards: recargan al cambiar mes o año
   useEffect(() => {
     setLoadingCards(true);
+
     Promise.all([
       getTotalesIngresos(mesSeleccionado, anioSeleccionado),
       getTotalesGastos(mesSeleccionado, anioSeleccionado),
@@ -259,7 +260,7 @@ export default function DashboardPage() {
       {/* ── Viajes Recientes ── */}
       <div className="bg-white rounded-3xl border border-border shadow-xl overflow-hidden">
         <div className="px-6 pt-5 pb-3 border-b border-slate-100">
-          <h2 className="font-black text-sm uppercase tracking-tight text-[var(--yuriana-base-gray-dark)]">Viajes Recientes</h2>
+          <h2 className="font-black text-sm uppercase tracking-tight text-[var(--yuriana-base-gray-dark)]">Viajes Recientes (Solo se muestre 10 viajes recientes)</h2>
         </div>
         {loadingViajes ? (
           <div className="py-12 text-center text-xs text-slate-400 italic">Cargando...</div>
@@ -270,6 +271,7 @@ export default function DashboardPage() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-[var(--yuriana-base-orange)] text-white uppercase text-[10px] font-black tracking-widest">
                 <tr>
+                  <th className="px-4 py-2.5 text-center">#</th>
                   <th className="px-4 py-2.5">ID Viaje</th>
                   <th className="px-4 py-2.5">Empresa / Conductor</th>
                   <th className="px-4 py-2.5">Vehículo</th>
@@ -281,10 +283,11 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-xs font-medium text-[var(--yuriana-base-gray-dark)]">
-                {viajes.map((v) => {
+                {viajes.map((v, index) => {
                   const esInternacional = v.tipo_categoria?.toUpperCase().includes("INTERNACIONAL");
                   return (
                     <tr key={v.id_servicio} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="px-4 py-3 text-center font-bold text-slate-400">{index + 1}</td>
                       <td className="px-4 py-3 font-bold text-[var(--yuriana-base-orange)]">{v.codigo_servicio}</td>
                       <td className="px-4 py-3">
                         <div className="font-semibold">{v.cliente_nombre || "-"}</div>

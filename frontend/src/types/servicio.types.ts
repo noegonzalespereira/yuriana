@@ -54,6 +54,7 @@ export interface ServicioItem {
   total_flete: number;
   fecha_inicio: string;
   fecha_fin?: string;
+  fecha_pago?: string | null;
   periodo_liquidacion?: number;
   fecha_limite_pago?: string;
   descripcion_carga?: string;

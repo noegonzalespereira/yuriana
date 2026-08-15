@@ -29,19 +29,20 @@ export const ClienteForm = ({ initialData, onSubmit, onCancel, isReadOnly }: Pro
   }, [initialData, reset]);
 
   const handleLocalSubmit = (data: any) => {
-    const { codigo_cliente, ...rest } = data;
     const payload = {
-      ...rest,
-      razon_social: data.razon_social?.trim().toUpperCase() || undefined,
+      // Datos de Persona
       nombre: data.nombre?.trim().toUpperCase(),
-      ciudad: data.ciudad?.trim().toUpperCase(),
-      direccion: data.direccion?.trim().toUpperCase() || "",
-      notas: data.notas?.trim().toUpperCase() || "",
+      ci: data.ci ? parseInt(data.ci, 10) : undefined,
       correo: data.correo?.trim() || undefined,
-      nit: data.nit ? parseInt(data.nit) : undefined,
-      ci: data.ci ? parseInt(data.ci) : undefined,
-      telefono: data.telefono ? parseInt(data.telefono) : 0,
-      telefono2: data.telefono2 ? parseInt(data.telefono2) : undefined,
+      telefono: data.telefono ? parseInt(data.telefono, 10) : undefined,
+      telefono2: data.telefono2 ? parseInt(data.telefono2, 10) : undefined,
+      ciudad: data.ciudad?.trim().toUpperCase() || undefined,
+
+      // Datos de Cliente
+      nit: data.nit ? parseInt(data.nit, 10) : undefined,
+      razon_social: data.razon_social?.trim().toUpperCase() || undefined,
+      direccion: data.direccion?.trim().toUpperCase() || undefined,
+      notas: data.notas?.trim() || undefined,
     };
     onSubmit(payload);
   };

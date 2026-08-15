@@ -73,6 +73,13 @@ export class ServicioService {
       // 1. VALIDACIONES DE ENTRADA
       const asignacion = await this.validateAsignacion(dto.id_asignacion, queryRunner);
 
+      if (dto.fecha_pago && !files?.vaucher?.[0]) {
+        throw new BadRequestException('Si registra una fecha de pago, debe subir el comprobante (voucher).');
+      }
+      if (files?.vaucher?.[0] && !dto.fecha_pago) {
+        throw new BadRequestException('Si sube un comprobante (voucher), debe registrar la fecha de pago.');
+      }
+
       const categoria = await queryRunner.manager.findOne(CategoriaEntidad, { where: { id_categoria: dto.id_categoria } });
       const esInternacional = categoria?.tipo_categoria?.toUpperCase().includes('INTERNACIONAL') ?? false;
 
@@ -90,7 +97,12 @@ export class ServicioService {
       }
 
       // 2. PREPARACIÓN DE DATOS Y ESTADOS
-      // FIX: Interpretar la fecha como local para evitar el desfase de zona horaria.
+      const {
+        ids_requisitos_aduaneros, // Excluir del spread
+        es_facturado,             // Excluir del spread
+        fecha_pago,               // Excluir para manejarlo explícitamente
+        ...restOfDto
+      } = dto;
       const fInicio = new Date(`${dto.fecha_inicio}T00:00:00`);
       const estadoServicio = dto.fecha_fin ? EstadoServicio.FINALIZADO : EstadoServicio.EN_CURSO;
       let fLimitePago: Date | null = null;
@@ -99,7 +111,7 @@ export class ServicioService {
         fLimitePago = new Date(fFin);
         fLimitePago.setDate(fFin.getDate() + (dto.periodo_liquidacion || 0));
       }
-
+      const fPago = dto.fecha_pago ? new Date(`${dto.fecha_pago}T00:00:00`) : null;
       const montoBase = Number(dto.flete);
       const montoExtra = Number(dto.flete_adicional || 0);
       const tCambio = dto.moneda === Moneda.DOLAR ? Number(dto.tipo_cambio || 1) : 1;
@@ -113,14 +125,14 @@ export class ServicioService {
 
       // 3. CREACIÓN DE ENTIDADES
       const servicio = queryRunner.manager.create(Servicio, {
-        ...dto,
-
+        ...restOfDto,
+        fecha_pago: fPago,
         periodo_liquidacion: dto.periodo_liquidacion || 0,
         tipo_cambio: dto.moneda === Moneda.DOLAR ? Number(dto.tipo_cambio) : 1,
         total_flete: fleteTotalBs,
         fecha_limite_pago: fLimitePago,
         estado_servicio: estadoServicio,
-        estado_pago: urlVoucher ? EstadoPago.PAGADO : EstadoPago.PENDIENTE,
+        estado_pago: (urlVoucher || fPago) ? EstadoPago.PAGADO : EstadoPago.PENDIENTE,
         comprobante_pago: urlVoucher,
         mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
         anio: fInicio.getFullYear(),
@@ -277,11 +289,23 @@ export class ServicioService {
       });
       if (!servicio) throw new NotFoundException('Servicio no encontrado');
 
-      const { borrar_fecha_fin, ...datosActualizar } = dto;
-      const debeBorrarFechaFin = String(borrar_fecha_fin) === 'true';
-      const estadoAnterior = servicio.estado_servicio;
+      const tieneVoucherNuevo = !!files?.vaucher?.[0];
+      const tieneFechaPagoNueva = !!dto.fecha_pago;
 
-      if (debeBorrarFechaFin && dto.fecha_fin) {
+      // Validación cruzada para voucher y fecha de pago en la actualización
+      if (tieneVoucherNuevo && !tieneFechaPagoNueva && !servicio.fecha_pago) {
+        throw new BadRequestException('Si sube un nuevo comprobante (voucher), también debe registrar la fecha de pago.');
+      }
+      if (tieneFechaPagoNueva && !tieneVoucherNuevo && !servicio.comprobante_pago) {
+        throw new BadRequestException('Si registra una nueva fecha de pago, también debe subir el comprobante (voucher).');
+      }
+
+      const oldAsignacion = servicio.asignacion;
+      const oldEstadoServicio = servicio.estado_servicio;
+      const { borrar_fecha_fin, fecha_pago, ...datosActualizar } = dto;
+      const debeBorrarFechaFin = String(borrar_fecha_fin) === 'true';
+
+      if (String(borrar_fecha_fin) === 'true' && dto.fecha_fin) {
         throw new BadRequestException('No se puede borrar y establecer la fecha de fin al mismo tiempo');
       }
 
@@ -308,6 +332,12 @@ export class ServicioService {
       if (files?.vaucher?.[0]) {
         const { url } = await this.cloudinaryService.subirArchivo(files.vaucher[0], 'yuriana/vouchers');
         servicio.comprobante_pago = url;
+        servicio.estado_pago = EstadoPago.PAGADO;
+      }
+
+      // Si se proporciona una fecha de pago, actualizar el estado a PAGADO
+      if (dto.fecha_pago) {
+        servicio.fecha_pago = new Date(`${dto.fecha_pago}T00:00:00`);
         servicio.estado_pago = EstadoPago.PAGADO;
       }
 
@@ -365,30 +395,41 @@ export class ServicioService {
         servicio.fecha_limite_pago = fLimite;
       }
 
+      Object.assign(servicio, { ...datosActualizar, UpdatedId: userId });
+
       // Recalcular el flete total
-      const montoBase = Number(dto.flete ?? servicio.flete);
-      const montoExtra = Number(dto.flete_adicional ?? servicio.flete_adicional ?? 0);
-      const tCambio = (dto.moneda ?? servicio.moneda) === Moneda.DOLAR ? Number(dto.tipo_cambio ?? servicio.tipo_cambio ?? 1) : 1;
+      const montoBase = Number(servicio.flete);
+      const montoExtra = Number(servicio.flete_adicional ?? 0);
+      const tCambio = servicio.moneda === Moneda.DOLAR ? Number(servicio.tipo_cambio ?? 1) : 1;
       servicio.total_flete = (montoBase + montoExtra) * tCambio;
 
-      Object.assign(servicio, { ...datosActualizar, UpdatedId: userId });
+      
+      const asignacionCambio = servicio.id_asignacion !== oldAsignacion.id_asignacion;
+
+      if (asignacionCambio) {
+        const newAsignacion = await this.validateAsignacion(servicio.id_asignacion, queryRunner);
+        servicio.asignacion = newAsignacion;
+      }
+
       await queryRunner.manager.save(servicio);
 
-      // Lógica de transición de estados
-      const guardado = servicio; // Use the current instance for state transition logic
-      if (estadoAnterior === EstadoServicio.EN_CURSO && guardado.estado_servicio === EstadoServicio.FINALIZADO) {
-        await this.liberarEquipo(servicio.asignacion, userId, queryRunner);
-      } else if (estadoAnterior === EstadoServicio.FINALIZADO && guardado.estado_servicio === EstadoServicio.EN_CURSO) {
-        await this.ocuparEquipo(servicio.asignacion, userId, queryRunner);
-      } else if (guardado.estado_servicio === EstadoServicio.FINALIZADO && servicio.asignacion.estado_asignacion !== EstadoAsignacion.ACTIVA) {
-       
-        console.log(`Saneando asignación #${servicio.id_asignacion} para servicio finalizado #${guardado.id_servicio}`);
-        await this.liberarEquipo(servicio.asignacion, userId, queryRunner);
+      if (asignacionCambio) {
+        if (oldEstadoServicio === EstadoServicio.EN_CURSO) {
+          await this.liberarEquipo(oldAsignacion, userId, queryRunner);
+        }
+        if (servicio.estado_servicio === EstadoServicio.EN_CURSO) {
+          await this.ocuparEquipo(servicio.asignacion, userId, queryRunner); // Ahora 'servicio.asignacion' es el nuevo.
+        }
+      } else {
+        if (oldEstadoServicio === EstadoServicio.EN_CURSO && servicio.estado_servicio === EstadoServicio.FINALIZADO) {
+          await this.liberarEquipo(oldAsignacion, userId, queryRunner);
+        } else if (oldEstadoServicio === EstadoServicio.FINALIZADO && servicio.estado_servicio === EstadoServicio.EN_CURSO) {
+          await this.ocuparEquipo(oldAsignacion, userId, queryRunner);
+        }
       }
 
       await queryRunner.commitTransaction();
 
-      // Devolver la entidad completa con todas sus relaciones para actualizar el frontend correctamente
       return this.findOne(id);
     } catch (error) {
       await queryRunner.rollbackTransaction();

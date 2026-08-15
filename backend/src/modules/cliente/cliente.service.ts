@@ -85,8 +85,31 @@ export class ClienteService {
   }
 
   async update(codigo_cliente: string, updateClienteDto: UpdateClienteDto, userId: number) {
-    const cliente = await this.findOne(codigo_cliente);
+    const cliente = await this.findOne(codigo_cliente); // 1. Cargar cliente y su persona
 
+    // 2. Separar explícitamente los datos para Persona y para Cliente desde el DTO.
+    // Esto previene que propiedades extra (como id_cliente, createdAt, etc.) se filtren.
+    const personaPayload = {
+      nombre: updateClienteDto.nombre,
+      ci: updateClienteDto.ci,
+      correo: updateClienteDto.correo,
+      telefono: updateClienteDto.telefono,
+      telefono2: updateClienteDto.telefono2,
+      ciudad: updateClienteDto.ciudad,
+    };
+
+    const clientePayload = {
+      nit: updateClienteDto.nit,
+      razon_social: updateClienteDto.razon_social,
+      direccion: updateClienteDto.direccion,
+      notas: updateClienteDto.notas,
+    };
+
+    // 3. Filtrar para actualizar solo los campos que realmente se enviaron (no undefined).
+    const personaChanges = Object.fromEntries(Object.entries(personaPayload).filter(([_, v]) => v !== undefined));
+    const clienteChanges = Object.fromEntries(Object.entries(clientePayload).filter(([_, v]) => v !== undefined));
+
+    // 4. Validar unicidad del NIT si se está cambiando.
     if (updateClienteDto.nit !== undefined && updateClienteDto.nit !== cliente.nit) {
       const existeNit = await this.clienteRepository.findOneBy({ nit: updateClienteDto.nit, status: true });
       if (existeNit && existeNit.id_cliente !== cliente.id_cliente) {
@@ -94,20 +117,14 @@ export class ClienteService {
       }
     }
 
-    const {
-      nombre, ci, correo, telefono, telefono2, ciudad,
-      ...datosCliente
-     } = updateClienteDto;
-    
-    if(nombre || ci || correo || telefono || telefono2 || ciudad){
-      await this.personaService.update(cliente.persona.id_persona,
-        { nombre, ci, correo, telefono, telefono2, ciudad }, userId);
+    // 5. Actualizar la entidad Persona si hay cambios.
+    if (Object.keys(personaChanges).length > 0) {
+      await this.personaService.update(cliente.persona.id_persona, personaChanges, userId);
     }
 
-    Object.assign(cliente, {
-      ...datosCliente,
-      UpdatedId: userId
-    });
+    // 6. Asignar cambios a la entidad Cliente y guardar.
+    Object.assign(cliente, clienteChanges);
+    cliente.UpdatedId = userId;
     return this.clienteRepository.save(cliente);
   }
 

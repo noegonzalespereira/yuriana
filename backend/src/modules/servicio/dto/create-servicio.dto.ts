@@ -92,8 +92,14 @@ export class CreateServicioDto {
   periodo_liquidacion?: number;
 
   @IsOptional()
+  @IsDateString()
+  fecha_pago?: string;
+
+  @IsOptional()
   @IsString()
   descripcion_carga?: string;
+
+  
 
   @IsOptional()
   @Transform(({ value }) => {
