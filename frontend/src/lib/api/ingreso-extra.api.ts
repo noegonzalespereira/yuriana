@@ -1,14 +1,19 @@
 import { apiFetch } from "../api";
 import { IngresoExtra, TotalesIngreso, IngresoFilters } from "@/types/ingreso-extra.types";
 
-export const getTotalesIngreso = async (): Promise<TotalesIngreso> => {
-  return apiFetch("/ingreso-extra/totales");
+export const getTotalesIngreso = async (filters: Partial<IngresoFilters> = {}): Promise<TotalesIngreso> => {
+  const params = new URLSearchParams();
+  if (filters.fecha_inicio) params.append("fecha_inicio", filters.fecha_inicio);
+  if (filters.fecha_fin) params.append("fecha_fin", filters.fecha_fin);
+  const q = params.toString();
+  return apiFetch(`/ingreso-extra/totales${q ? `?${q}` : ""}`);
 };
 
 export const getIngresos = async (filters: IngresoFilters = {}): Promise<IngresoExtra[]> => {
   const params = new URLSearchParams();
   if (filters.fecha_inicio) params.append("fecha_inicio", filters.fecha_inicio);
   if (filters.fecha_fin) params.append("fecha_fin", filters.fecha_fin);
+  if (filters.buscar) params.append("buscar", filters.buscar);
   const q = params.toString();
   return apiFetch(`/ingreso-extra${q ? `?${q}` : ""}`);
 };

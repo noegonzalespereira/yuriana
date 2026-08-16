@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, Brackets } from 'typeorm';
-import { Servicio, EstadoPago, EstadoServicio, Moneda } from './entities/servicio.entity';
+import { Servicio, EstadoPago, EstadoServicio, Moneda, OperacionFleteAdicional } from './entities/servicio.entity';
 import { CategoriaEntidad } from '../categoria-entidad/entities/categoria-entidad.entity';
 import { CreateServicioDto } from './dto/create-servicio.dto';
 import { UpdateServicioDto } from './dto/update-servicio.dto';
@@ -86,9 +86,10 @@ export class ServicioService {
       if (esInternacional && !dto.crt?.trim()) {
         throw new BadRequestException('El CRT es obligatorio para viajes internacionales');
       }
-      if (dto.es_facturado === 'si' && !files?.foto_factura?.length) {
-        throw new BadRequestException('Si el viaje está facturado, debes subir al menos una foto de factura');
-      }
+      // La validación de factura es más compleja y se maneja mejor en el frontend al finalizar.
+      // if (dto.es_facturado === 'si' && !files?.foto_factura?.length) {
+      //   throw new BadRequestException('Si el viaje está facturado, debes subir al menos una foto de factura');
+      // }
       if (dto.fecha_fin && new Date(dto.fecha_fin) < new Date(dto.fecha_inicio)) {
         throw new BadRequestException('La fecha fin no puede ser menor a la fecha inicio');
       }
@@ -99,8 +100,9 @@ export class ServicioService {
       // 2. PREPARACIÓN DE DATOS Y ESTADOS
       const {
         ids_requisitos_aduaneros, // Excluir del spread
-        es_facturado,             // Excluir del spread
-        fecha_pago,               // Excluir para manejarlo explícitamente
+        es_facturado,
+        fecha_pago,
+        operacion_flete_adicional,
         ...restOfDto
       } = dto;
       const fInicio = new Date(`${dto.fecha_inicio}T00:00:00`);
@@ -114,8 +116,10 @@ export class ServicioService {
       const fPago = dto.fecha_pago ? new Date(`${dto.fecha_pago}T00:00:00`) : null;
       const montoBase = Number(dto.flete);
       const montoExtra = Number(dto.flete_adicional || 0);
+      const operacion: OperacionFleteAdicional = operacion_flete_adicional || OperacionFleteAdicional.SUMA;
+      const montoExtraCalculado = operacion === OperacionFleteAdicional.SUMA ? montoExtra : -montoExtra;
       const tCambio = dto.moneda === Moneda.DOLAR ? Number(dto.tipo_cambio || 1) : 1;
-      const fleteTotalBs = (montoBase + montoExtra) * tCambio;
+      const fleteTotalBs = (montoBase + montoExtraCalculado) * tCambio;
 
       let urlVoucher: string | undefined = undefined;
       if (files?.vaucher?.[0]) {
@@ -127,6 +131,7 @@ export class ServicioService {
       const servicio = queryRunner.manager.create(Servicio, {
         ...restOfDto,
         fecha_pago: fPago,
+        operacion_flete_adicional: operacion, // Se asegura que el valor (incluyendo el default 'SUMA') se guarde
         periodo_liquidacion: dto.periodo_liquidacion || 0,
         tipo_cambio: dto.moneda === Moneda.DOLAR ? Number(dto.tipo_cambio) : 1,
         total_flete: fleteTotalBs,
@@ -170,13 +175,13 @@ export class ServicioService {
       }
 
       if (files?.documentacion_aduanera && dto.ids_requisitos_aduaneros) {
-        const idsRequisitos = dto.ids_requisitos_aduaneros ?? [];
+        const idsRequisitos = String(dto.ids_requisitos_aduaneros).split(',').map(Number);
 
         for (let i = 0; i < files.documentacion_aduanera.length; i++) {
           const file = files.documentacion_aduanera[i];
           const idReq = idsRequisitos[i];
 
-          if (isNaN(idReq)) continue;
+          if (!idReq || isNaN(idReq)) continue;
 
           const { url } = await this.cloudinaryService.subirArchivo(file, 'yuriana/documentos/servicio');
           await queryRunner.manager.save(Documento, {
@@ -195,7 +200,7 @@ export class ServicioService {
       } 
 
       await queryRunner.commitTransaction();
-      return guardado;
+      return this.findOne(guardado.id_servicio); // Retorna el servicio completamente cargado
 
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -341,36 +346,41 @@ export class ServicioService {
         servicio.estado_pago = EstadoPago.PAGADO;
       }
 
-      if (dto.es_facturado === 'si' && files?.foto_factura?.length) {
+      if (dto.es_facturado === 'si') {
         let factura = await queryRunner.manager.findOne(Factura, { where: { id_servicio: id } });
         if (!factura) {
+          const fechaInicioDate = new Date(servicio.fecha_inicio);
           factura = queryRunner.manager.create(Factura, {
             id_servicio: id,
             factura_transporte: String(dto.factura_transporte ?? ''),
-            monto_factura: dto.monto_factura || servicio.total_flete,
-            fecha_emision: servicio.fecha_inicio,
-            mes: (servicio.fecha_inicio.getMonth() + 1).toString().padStart(2, '0'),
-            anio: servicio.fecha_inicio.getFullYear(),
+            monto_factura: dto.monto_factura ?? servicio.total_flete,
+            fecha_emision: fechaInicioDate,
+            mes: (fechaInicioDate.getMonth() + 1).toString().padStart(2, '0'),
+            anio: fechaInicioDate.getFullYear(),
             CreatedId: userId,
           });
-          await queryRunner.manager.save(factura);
+        } else {
+          // Si la factura ya existe, actualizamos sus datos si vienen en el DTO
+          if (dto.factura_transporte !== undefined) factura.factura_transporte = String(dto.factura_transporte);
+          if (dto.monto_factura !== undefined) factura.monto_factura = dto.monto_factura;
+          factura.UpdatedId = userId;
         }
-        for (const file of files.foto_factura) {
-          const { url } = await this.cloudinaryService.subirArchivo(file, 'yuriana/facturas');
-          await queryRunner.manager.save(FotoFactura, {
-            id_factura: factura.id_factura,
-            url_foto: url,
-            CreatedId: userId,
-          });
+        await queryRunner.manager.save(factura);
+
+        if (files?.foto_factura?.length) {
+          for (const file of files.foto_factura) {
+            const { url } = await this.cloudinaryService.subirArchivo(file, 'yuriana/facturas');
+            await queryRunner.manager.save(FotoFactura, { id_factura: factura.id_factura, url_foto: url, CreatedId: userId });
+          }
         }
       }
 
       if (files?.documentacion_aduanera && dto.ids_requisitos_aduaneros) {
-        const idsRequisitos = dto.ids_requisitos_aduaneros ?? [];
+        const idsRequisitos = String(dto.ids_requisitos_aduaneros).split(',').map(Number);
         for (let i = 0; i < files.documentacion_aduanera.length; i++) {
           const file = files.documentacion_aduanera[i];
           const idReq = idsRequisitos[i];
-          if (isNaN(idReq)) continue;
+          if (!idReq || isNaN(idReq)) continue;
           const { url } = await this.cloudinaryService.subirArchivo(file, 'yuriana/documentos/servicio');
           await queryRunner.manager.save(Documento, {
             id_requisito: idReq,
@@ -400,8 +410,10 @@ export class ServicioService {
       // Recalcular el flete total
       const montoBase = Number(servicio.flete);
       const montoExtra = Number(servicio.flete_adicional ?? 0);
+      const operacion = servicio.operacion_flete_adicional || OperacionFleteAdicional.SUMA;
+      const montoExtraCalculado = operacion === OperacionFleteAdicional.SUMA ? montoExtra : -montoExtra;
       const tCambio = servicio.moneda === Moneda.DOLAR ? Number(servicio.tipo_cambio ?? 1) : 1;
-      servicio.total_flete = (montoBase + montoExtra) * tCambio;
+      servicio.total_flete = (montoBase + montoExtraCalculado) * tCambio;
 
       
       const asignacionCambio = servicio.id_asignacion !== oldAsignacion.id_asignacion;

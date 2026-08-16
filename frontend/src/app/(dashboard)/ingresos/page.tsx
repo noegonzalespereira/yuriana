@@ -23,6 +23,10 @@ type Vista = "list" | "form";
 const fmt = (n: number) =>
   new Intl.NumberFormat("es-BO", { maximumFractionDigits: 2 }).format(n);
 
+const hoy = new Date();
+const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().slice(0, 10);
+const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).toISOString().slice(0, 10);
+
 const DeleteModal = ({
   onConfirm,
   onCancel,
@@ -69,7 +73,11 @@ export default function IngresosPage() {
   const [totales, setTotales] = useState<TotalesIngreso>({ totalIngresoExtras: 0, totalFletes: 0 });
   const [ingresos, setIngresos] = useState<IngresoExtra[]>([]);
   const [selected, setSelected] = useState<IngresoExtra | null>(null);
-  const INITIAL_FILTERS: IngresoFilters = { fecha_inicio: "", fecha_fin: "", buscar: "" };
+  const INITIAL_FILTERS: IngresoFilters = {
+    fecha_inicio: primerDiaMes,
+    fecha_fin: ultimoDiaMes,
+    buscar: "",
+  };
   const [filters, setFilters] = useState<IngresoFilters>(INITIAL_FILTERS);
   const handleResetFilters = () => setFilters(INITIAL_FILTERS);
   const [pagina, setPagina] = useState(1);
@@ -80,8 +88,8 @@ export default function IngresosPage() {
     try {
       setLoading(true);
       const [tots, list] = await Promise.all([
-        getTotalesIngreso(),
-        getIngresos({ fecha_inicio: filters.fecha_inicio, fecha_fin: filters.fecha_fin }),
+        getTotalesIngreso({ fecha_inicio: filters.fecha_inicio, fecha_fin: filters.fecha_fin }),
+        getIngresos(filters),
       ]);
       setTotales(tots);
       setIngresos(list);
@@ -90,19 +98,11 @@ export default function IngresosPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters.fecha_inicio, filters.fecha_fin]);
+  }, [filters]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  const ingresosFiltrados = filters.buscar?.trim()
-    ? ingresos.filter((i) =>
-        i.descripcion.toUpperCase().includes(filters.buscar!.toUpperCase()) ||
-        i.mes.toUpperCase().includes(filters.buscar!.toUpperCase()) ||
-        String(i.anio).includes(filters.buscar!.toUpperCase())
-      )
-    : ingresos;
 
   const handleNuevo = () => {
     setSelected(null);
@@ -156,9 +156,9 @@ export default function IngresosPage() {
     return selected ? "Editar Ingreso Extra" : "Registrar Ingresos Extras";
   };
 
-  const totalPaginas = Math.max(1, Math.ceil(ingresosFiltrados.length / PAGE_SIZE));
+  const totalPaginas = Math.max(1, Math.ceil(ingresos.length / PAGE_SIZE));
   const paginaActual = Math.min(pagina, totalPaginas);
-  const registrosPagina = ingresosFiltrados.slice((paginaActual - 1) * PAGE_SIZE, paginaActual * PAGE_SIZE);
+  const registrosPagina = ingresos.slice((paginaActual - 1) * PAGE_SIZE, paginaActual * PAGE_SIZE);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
@@ -242,7 +242,7 @@ export default function IngresosPage() {
                   onDelete={(id) => setDeleteId(id)}
                 />
               )}
-              <TablePagination pagina={paginaActual} totalPaginas={totalPaginas} totalRegistros={ingresosFiltrados.length} registrosMostrados={registrosPagina.length} onPageChange={setPagina} />
+              <TablePagination pagina={paginaActual} totalPaginas={totalPaginas} totalRegistros={ingresos.length} registrosMostrados={registrosPagina.length} onPageChange={setPagina} />
             </div>
           </div>
         </div>

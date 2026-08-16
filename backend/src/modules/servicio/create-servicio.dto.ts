@@ -1,6 +1,6 @@
 import { Transform } from 'class-transformer';
 import { IsString, IsNumber, IsOptional, IsEnum, IsDateString, IsIn } from 'class-validator';
-import { Operador, Moneda } from '../servicio/entities/servicio.entity';
+import { Operador, Moneda, OperacionFleteAdicional } from '../servicio/entities/servicio.entity';
 
 export class CreateServicioDto {
   @Transform(({ value }) => parseInt(value))
@@ -61,6 +61,10 @@ export class CreateServicioDto {
   @Transform(({ value }) => parseFloat(value))
   @IsNumber()
   flete_adicional?: number;
+
+  @IsOptional()
+  @IsEnum(OperacionFleteAdicional)
+  operacion_flete_adicional?: OperacionFleteAdicional;
 
   @IsDateString()
   fecha_inicio!: string;

@@ -1,5 +1,5 @@
 import { IsEnum,IsNotEmpty, IsNumber, IsOptional, IsString, IsDateString, Min } from 'class-validator';
-import { Moneda, Operador } from '../entities/servicio.entity';
+import { Moneda, Operador, OperacionFleteAdicional } from '../entities/servicio.entity';
 import { Transform } from 'class-transformer';
 
 const toUpperTrim = ({ value }: { value: any }) =>
@@ -76,6 +76,10 @@ export class CreateServicioDto {
   @Min(0, { message: 'El flete adicional no puede ser negativo' })
   @Transform(({ value }) => (value && value !== "" ? Number(value) : 0))
   flete_adicional?: number;
+
+  @IsOptional()
+  @IsEnum(OperacionFleteAdicional)
+  operacion_flete_adicional?: OperacionFleteAdicional;
 
   @IsDateString()
   fecha_inicio!: string;

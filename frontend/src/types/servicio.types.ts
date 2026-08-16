@@ -3,7 +3,10 @@ export enum EstadoPago {
   PENDIENTE = 'PENDIENTE',
   RETRASADO = 'RETRASADO',
 }
-
+export enum OperacionFleteAdicional {
+  SUMA = 'SUMA',
+  RESTA = 'RESTA',
+}
 export enum EstadoServicio {
   EN_CURSO = 'EN_CURSO',
   FINALIZADO = 'FINALIZADO',
@@ -51,6 +54,7 @@ export interface ServicioItem {
   tipo_cambio?: number;
   flete: number;
   flete_adicional?: number;
+  operacion_flete_adicional?: OperacionFleteAdicional;
   total_flete: number;
   fecha_inicio: string;
   fecha_fin?: string;

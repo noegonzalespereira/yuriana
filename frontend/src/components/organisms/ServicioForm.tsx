@@ -182,7 +182,9 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
   const [tipoCambio, setTipoCambio] = useState<number>(0);
   const [flete, setFlete] = useState<number>(0);
   const [fleteAdicional, setFleteAdicional] = useState<number>(0);
-  const totalFlete = (flete + fleteAdicional) * (moneda === Moneda.BOLIVIANOS ? 1 : (tipoCambio || 1));
+  const [operacionFleteAdicional, setOperacionFleteAdicional] = useState<'SUMA' | 'RESTA'>('SUMA');
+  const fleteAdicionalCalculado = operacionFleteAdicional === 'SUMA' ? fleteAdicional : -fleteAdicional;
+  const totalFlete = (flete + fleteAdicionalCalculado) * (moneda === Moneda.BOLIVIANOS ? 1 : (tipoCambio || 1));
 
   // ── Fechas ───────────────────────────────────────────────────────────────
   const [fechaInicio, setFechaInicio] = useState("");
@@ -283,6 +285,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     setTipoCambio(Number(initialData.tipo_cambio ?? 0));
     setFlete(Number(initialData.flete));
     setFleteAdicional(Number(initialData.flete_adicional ?? 0));
+    setOperacionFleteAdicional((initialData as any).operacion_flete_adicional || 'SUMA');
     setFechaInicio(initialData.fecha_inicio?.slice(0, 10) ?? "");
     setFechaFin(initialData.fecha_fin?.slice(0, 10) ?? "");
     setPeriodoLiquidacion(initialData.periodo_liquidacion ?? 0);
@@ -437,7 +440,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     fd.append("es_facturado",   esFacturado);
     if (esFacturado === "si") {
       if (facturaTransporte) fd.append("factura_transporte", facturaTransporte);
-      if (montoFactura > 0)  fd.append("monto_factura", String(montoFactura));
+      if (montoFactura >= 0) fd.append("monto_factura", String(montoFactura));
       archivosFactura.forEach(f => fd.append("foto_factura", f));
     }
     fd.append("id_cliente",     String(idCliente));
@@ -446,7 +449,10 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     fd.append("moneda",         moneda);
     if (moneda === Moneda.DOLAR && tipoCambio > 0) fd.append("tipo_cambio", String(tipoCambio));
     fd.append("flete",          String(flete));
-    if (fleteAdicional > 0) fd.append("flete_adicional", String(fleteAdicional));
+    if (fleteAdicional >= 0) {
+      fd.append("flete_adicional", String(fleteAdicional));
+      fd.append("operacion_flete_adicional", operacionFleteAdicional);
+    }
     fd.append("fecha_inicio",   fechaInicio);
     if (fechaFin) {
       fd.append("fecha_fin", fechaFin);
@@ -821,7 +827,21 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
             <input type="number" min={0.01} step="any" className={INPUT_CLASS} value={flete || ""} onChange={(e) => setFlete(Number(e.target.value))} disabled={isReadOnly} placeholder="0" />
           </Field>
           <Field label={`Flete Adicional (${moneda === Moneda.DOLAR ? "Dólar" : "Bs"})`} optional>
-            <input type="number" min={0} step="any" className={INPUT_CLASS} value={fleteAdicional || ""} onChange={(e) => setFleteAdicional(Number(e.target.value))} disabled={isReadOnly} placeholder="0" />
+            <div className="flex items-center gap-2">
+              <div className="flex bg-[var(--yuriana-input-bg)] border border-[var(--yuriana-input-border)] rounded-xl p-0.5">
+                <button type="button" onClick={() => !isReadOnly && setOperacionFleteAdicional('SUMA')}
+                  className={`px-2 py-1 rounded-lg text-base font-bold transition-all ${operacionFleteAdicional === 'SUMA' ? 'bg-emerald-500 text-white' : 'text-[var(--yuriana-input-placeholder)] hover:bg-slate-100'}`}
+                  disabled={isReadOnly}>
+                  +
+                </button>
+                <button type="button" onClick={() => !isReadOnly && setOperacionFleteAdicional('RESTA')}
+                  className={`px-2 py-1 rounded-lg text-base font-bold transition-all ${operacionFleteAdicional === 'RESTA' ? 'bg-rose-500 text-white' : 'text-[var(--yuriana-input-placeholder)] hover:bg-slate-100'}`}
+                  disabled={isReadOnly}>
+                  -
+                </button>
+              </div>
+              <input type="number" min={0} step="any" className={INPUT_CLASS} value={fleteAdicional || ""} onChange={(e) => setFleteAdicional(Number(e.target.value))} disabled={isReadOnly} placeholder="0" />
+            </div>
           </Field>
           <Field label="Total Flete Bs">
             <div className="flex items-center">

@@ -25,6 +25,10 @@ export enum Moneda{
     DOLAR = 'DOLAR',
     BOLIVIANOS = 'BOLIVIANOS',
 }
+export enum OperacionFleteAdicional {
+  SUMA = 'SUMA',
+  RESTA = 'RESTA',
+}
 @Entity('servicio')
 @Index(['codigo_servicio'], {unique: true , where: '"status" = true'})
 
@@ -87,6 +91,9 @@ export class Servicio {
     @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
     flete_adicional?: number;
 
+     @Column({type: 'enum',enum: OperacionFleteAdicional,default: OperacionFleteAdicional.SUMA,})
+    operacion_flete_adicional!: OperacionFleteAdicional;
+
     @Column({ type: 'decimal', precision: 12, scale: 2 })
     total_flete!: number;
 
@@ -117,6 +124,7 @@ export class Servicio {
     
     @Column({type: 'date', nullable: true})
     fecha_pago?: Date | null;
+
 
     @Column({ type: 'enum', enum: EstadoPago, default: EstadoPago.PENDIENTE })
     estado_pago!: EstadoPago;
