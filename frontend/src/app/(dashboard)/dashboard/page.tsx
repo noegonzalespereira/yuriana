@@ -260,8 +260,9 @@ export default function DashboardPage() {
       {/* ── Viajes Recientes ── */}
       <div className="bg-white rounded-3xl border border-border shadow-xl overflow-hidden">
         <div className="px-6 pt-5 pb-3 border-b border-slate-100">
-          <h2 className="font-black text-sm uppercase tracking-tight text-[var(--yuriana-base-gray-dark)]">Viajes Recientes (Solo se muestre 10 viajes recientes)</h2>
+          <h2 className="font-black text-sm uppercase tracking-tight text-[var(--yuriana-base-gray-dark)]">Viajes Recientes (Solo se muestra los 10 viajes recientes)</h2>
         </div>
+
         {loadingViajes ? (
           <div className="py-12 text-center text-xs text-slate-400 italic">Cargando...</div>
         ) : viajes.length === 0 ? (
