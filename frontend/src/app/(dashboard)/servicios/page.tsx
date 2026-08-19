@@ -192,7 +192,7 @@ export default function ServiciosPage() {
             ? "Complete el formulario con los datos del viaje"
             : "Control y seguimiento de todos los servicios de transporte"
         }
-        searchPlaceholder="Buscar por código, origen o destino..."
+        searchPlaceholder="Buscar por código o placa"
         onSearch={vista === "list" ? (val) => setFilter("buscar", val) : undefined}
         searchValue={vista === "list" ? filters.buscar : undefined}
         buttonLabel={vista === "list" ? "Nuevo Viaje" : undefined}

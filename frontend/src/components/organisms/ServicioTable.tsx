@@ -32,7 +32,7 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete }: Props) => {
       <table className="w-full text-left border-collapse min-w-[900px]">
         <thead className="bg-[var(--yuriana-base-orange)] text-white uppercase text-[9px] font-black tracking-widest">
           <tr>
-            <th className="px-4 py-2.5">ID Viaje</th>
+            <th className="px-4 py-2.5">CODIGO VIAJE</th>
             <th className="px-4 py-2.5">Empresa / Conductor</th>
             <th className="px-4 py-2.5">Vehículo</th>
             <th className="px-4 py-2.5">Ruta / Tipo</th>

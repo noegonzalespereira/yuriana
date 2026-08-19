@@ -8,7 +8,7 @@ const styles = StyleSheet.create({
   page: { padding: 40, backgroundColor: "#FFFFFF", fontFamily: "Helvetica", fontSize: 9, color: "#000000" },
   headerBox: { backgroundColor: "#E64D24", flexDirection: "row", alignItems: "center", padding: 12, borderRadius: 4, marginBottom: 15 },
   logoBox: { backgroundColor: "#FFFFFF", borderRadius: 50, padding: 5, width: 60, height: 60, justifyContent: "center", alignItems: "center" },
-  logo: { width: 50, height: 50 },
+  logo: { width: 50, height: 50, borderRadius: 25, objectFit: "contain" },
   headerTextContainer: { flex: 1, alignItems: "center", justifyContent: "center" },
   headerTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "bold", textAlign: "center", letterSpacing: 1 },
   headerSubtitle: { color: "#FFFFFF", fontSize: 10, textAlign: "center", marginTop: 2 },
@@ -18,6 +18,7 @@ const styles = StyleSheet.create({
   tableRowLast: { flexDirection: "row", minHeight: 22, alignItems: "center" },
   cellLabel: { width: "30%", backgroundColor: "#E64D24", color: "#FFFFFF", fontWeight: "bold", paddingHorizontal: 8, fontSize: 8, textTransform: "uppercase", height: "100%", paddingTop: 6, borderRightWidth: 1, borderColor: "#000000" },
   cellValueFull: { width: "70%", paddingHorizontal: 12, fontWeight: "bold", textAlign: "center", fontSize: 9, textTransform: "uppercase" },
+  cellValueEmail: { width: "70%", paddingHorizontal: 12, fontWeight: "bold", textAlign: "center", fontSize: 9 },
   cellLabelSub: { width: "20%", backgroundColor: "#E64D24", color: "#FFFFFF", fontWeight: "bold", paddingHorizontal: 6, fontSize: 8, textTransform: "uppercase", height: "100%", paddingTop: 6, borderRightWidth: 1, borderColor: "#000000" },
   cellValueHalfLeft: { width: "40%", paddingHorizontal: 8, textAlign: "center", fontWeight: "bold", fontSize: 9, textTransform: "uppercase", borderRightWidth: 1, borderColor: "#000000", height: "100%", paddingTop: 6 },
   cellValueHalfRight: { width: "40%", paddingHorizontal: 8, textAlign: "center", fontWeight: "bold", fontSize: 9, textTransform: "uppercase", height: "100%", paddingTop: 6 }
@@ -31,8 +32,40 @@ interface ReporteProps {
 
 export const ReporteAsignacion = ({ data, tipoFormato, infoEmpresa }: ReporteProps) => {
   const conductor = data?.conductor?.persona || { nombre: "SIN CONDUCTOR", apellido: "", ci: "S/CI" };
-  const tracto = data?.tracto || { placa: "--", color: "--", marca: "--", modelo: "--", anio: "--", num_chasis: "--", num_poliza: "--" };
+  const tracto = data?.tracto || { placa: "--", color: "--", marca: "--", modelo: "--", anio: "--", num_chasis: "--", num_poliza: "--", documentos: [] };
   const remolque = data?.remolque || { placa: "--", color: "--", marca: "--", modelo: "--", anio: "--", categoria: { tipo_categoria: "Acoplado" } };
+
+  const normalizarTexto = (valor: string = "") =>
+    valor
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase();
+
+  const documentoSeguroPoliza = (tracto.documentos ?? []).find((doc) => {
+    const nombre = normalizarTexto(doc.requisito_documento?.nombre_documento ?? "");
+    return (
+      nombre.includes("SEGURO") ||
+      nombre.includes("POLIZA") ||
+      nombre.includes("CTI")
+    );
+  }) ?? (tracto.documentos ?? []).find((doc) => !!doc.fecha_vencimiento);
+
+  const formatearFechaLocal = (valor: string | Date | null | undefined) => {
+    if (!valor) return null;
+
+    const raw = typeof valor === "string" ? valor : valor.toISOString();
+    const isoDate = raw.includes("T") ? raw.split("T")[0] : raw;
+    const match = /^\d{4}-\d{2}-\d{2}$/.test(isoDate) ? isoDate : null;
+
+    if (!match) return null;
+
+    const [anio, mes, dia] = match.split("-").map(Number);
+    const fecha = new Date(anio, mes - 1, dia);
+
+    return `${String(fecha.getDate()).padStart(2, "0")}/${String(fecha.getMonth() + 1).padStart(2, "0")}/${fecha.getFullYear()}`;
+  };
+
+  const fechaVencimientoPoliza = formatearFechaLocal(documentoSeguroPoliza?.fecha_vencimiento) ?? "VERIFICAR EN EXPEDIENTE";
 
   // Valores dinámicos de la empresa con caídas seguras (fallbacks) por si no hay registros aún
   const nombreEmpresa = infoEmpresa?.nombre || "YURIANA S.R.L.";
@@ -64,7 +97,7 @@ export const ReporteAsignacion = ({ data, tipoFormato, infoEmpresa }: ReportePro
           <View style={styles.table}>
             <View style={styles.tableRow}><Text style={styles.cellLabel}>Nombre de la Empresa</Text><Text style={styles.cellValueFull}>{nombreEmpresa}</Text></View>
             <View style={styles.tableRow}><Text style={styles.cellLabel}>Celular - Whatsapp</Text><Text style={styles.cellValueFull}>{telfEmpresa}</Text></View>
-            <View style={styles.tableRow}><Text style={styles.cellLabel}>Correo Electrónico</Text><Text style={styles.cellValueFull}>{correoEmpresa}</Text></View>
+            <View style={styles.tableRow}><Text style={styles.cellLabel}>Correo Electrónico</Text><Text style={styles.cellValueEmail}>{correoEmpresa}</Text></View>
             <View style={styles.tableRow}><Text style={styles.cellLabel}>Dirección</Text><Text style={styles.cellValueFull}>{dirEmpresa}</Text></View>
             <View style={styles.tableRow}><Text style={styles.cellLabel}>Nit de la Empresa</Text><Text style={styles.cellValueFull}>{nitEmpresa}</Text></View>
             <View style={styles.tableRow}><Text style={styles.cellLabel}>Nro de Paut</Text><Text style={styles.cellValueFull}>{pautEmpresa}</Text></View>
@@ -130,27 +163,9 @@ export const ReporteAsignacion = ({ data, tipoFormato, infoEmpresa }: ReportePro
               {/* Fila Vencimiento de Póliza */}
                 <View style={styles.tableRowLast}>
                 <Text style={styles.cellLabelSub}>Vencimiento Poliza</Text>
-                <Text style={styles.cellValueHalfLeft}>
-                    {(() => {
-                    // Buscamos dinámicamente en los documentos del tracto si existe el del seguro
-                    // Asumiendo que el id_requisito o el nombre del documento contenga 'SEGURO' o 'CTI'
-                    const documentoSeguro = tracto.documentos?.find((doc) => 
-                        doc.requisito_documento?.nombre_documento?.toUpperCase().includes("SEGURO") ||
-                        doc.requisito_documento?.nombre_documento?.toUpperCase().includes("CTI")
-                    );
-                    
-                    if (documentoSeguro?.fecha_vencimiento) {
-                        // Formateamos la fecha a DD/MM/AAAA para el reporte
-                        const fecha = new Date(documentoSeguro.fecha_vencimiento); // Se crea el objeto fecha
-                        // Usamos getUTC... para evitar corrimientos por la zona horaria del cliente que genera el PDF
-                        return `${String(fecha.getUTCDate()).padStart(2, '0')}/${String(fecha.getUTCMonth() + 1).padStart(2, '0')}/${fecha.getUTCFullYear()}`;
-                    }
-                    
-                    return "VERIFICAR EN EXPEDIENTE";
-                    })()}
-                </Text>
+                <Text style={styles.cellValueHalfLeft}>{fechaVencimientoPoliza}</Text>
                 <Text style={styles.cellValueHalfRight}>--</Text>
-                </View>
+              </View>
             </>
           )}
         </View>

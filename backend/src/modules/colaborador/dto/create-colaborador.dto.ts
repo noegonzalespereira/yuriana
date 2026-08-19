@@ -28,7 +28,6 @@ export class CreateColaboradorDto {
     @IsOptional()
     @IsNumber({}, { message: 'El CI debe ser un número' })
     @Min(10000, { message: 'El CI debe tener al menos 5 dígitos' })
-    @Max(99999999, { message: 'El CI no puede tener más de 8 dígitos' })
     ci?: number;
 
     @IsOptional()

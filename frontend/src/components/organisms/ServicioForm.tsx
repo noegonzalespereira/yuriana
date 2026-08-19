@@ -513,7 +513,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
       <div className="bg-[var(--yuriana-card-bg)] rounded-3xl border border-border shadow-xl p-8 space-y-5">
         <SectionHeader icon={<MapPin size={16} />} title="Datos del Viaje" />
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <Field label="ID Viaje">
+          <Field label="CODIGO DEL Viaje">
             <input className={INPUT_CLASS} disabled value={initialData?.codigo_servicio ?? "Auto generado"} readOnly />
           </Field>
           <Field label="Operador" required>
@@ -861,7 +861,11 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
             <input type="date" className={INPUT_CLASS} value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)} disabled={isReadOnly} />
           </Field>
           <Field label="Fecha Fin" optional>
-            <input type="date" className={INPUT_CLASS} value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} disabled={isReadOnly} />
+            <input type="date" className={INPUT_CLASS} value={fechaFin} onChange={(e) => {
+              const nuevaFechaFin = e.target.value;
+              setFechaFin(nuevaFechaFin);
+              if (!nuevaFechaFin) setPeriodoLiquidacion(0);
+            }} disabled={isReadOnly} />
           </Field>
           <Field label="Período de Liquidación (días)" required={tieneFechaFin} optional={!tieneFechaFin}>
             <input type="number" min={1} step={1} className={INPUT_CLASS} value={periodoLiquidacion || ""} onChange={(e) => setPeriodoLiquidacion(Number(e.target.value))} disabled={isReadOnly} placeholder="0" />
@@ -870,7 +874,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
             <input type="date" className={INPUT_CLASS} disabled readOnly
               value={fechaFin && periodoLiquidacion > 0
                 ? new Date(new Date(fechaFin).getTime() + periodoLiquidacion * 86400000).toISOString().slice(0, 10)
-                : initialData?.fecha_limite_pago?.slice(0, 10) ?? ""
+                : ""
               } />
           </Field>
         </div>

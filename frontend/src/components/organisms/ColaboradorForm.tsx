@@ -119,7 +119,7 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
                 name="ci"
                 type="number"
                 register={register}
-                disabled={isReadOnly || !!initialData}
+                disabled={isReadOnly}
                 error={errors.ci}
               />
               

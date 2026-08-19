@@ -224,8 +224,12 @@ async findAll(filters: FilterAsignacionDto) {
     .leftJoinAndSelect('conductor.persona', 'persona')
     .leftJoinAndSelect('asignacion.tracto', 'tracto')
     .leftJoinAndSelect('tracto.categoria', 'categoria_tracto')
+    .leftJoinAndSelect('tracto.documentos', 'tracto_documentos')
+    .leftJoinAndSelect('tracto_documentos.requisito_documento', 'tracto_requisito_documento')
     .leftJoinAndSelect('asignacion.remolque', 'remolque')
     .leftJoinAndSelect('remolque.categoria', 'categoria_remolque')
+    .leftJoinAndSelect('remolque.documentos', 'remolque_documentos')
+    .leftJoinAndSelect('remolque_documentos.requisito_documento', 'remolque_requisito_documento')
     .where('asignacion.status = :status', { status: true });
 
   if (filters.estado_asignacion) {
@@ -257,10 +261,14 @@ async findOne(id_asignacion: number) {
   const asignacion = await this.asignacionRepository.findOne({
     where: { id_asignacion, estado_asignacion: EstadoAsignacion.ACTIVA,status: true },
     relations: [
-      'conductor',          
-      'conductor.persona',  
-      'tracto',             
-      'remolque'            
+      'conductor',
+      'conductor.persona',
+      'tracto',
+      'tracto.documentos',
+      'tracto.documentos.requisito_documento',
+      'remolque',
+      'remolque.documentos',
+      'remolque.documentos.requisito_documento',
     ]
   });
 

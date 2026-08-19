@@ -35,4 +35,5 @@ export class FilterServicioDto {
   @IsOptional()
   @IsString()
   facturado?: 'si' | 'no';
+  
 }

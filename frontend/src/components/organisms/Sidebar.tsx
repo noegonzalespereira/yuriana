@@ -21,8 +21,9 @@ const menuOptions = [
   { icon: <Users size={18} />, label: "Clientes", href: "/clientes" },
   { icon: <UserCircle size={18} />, label: "Conductores", href: "/conductores" },
   { icon: <Handshake size={18} />, label: "Colaboradores", href: "/colaboradores" },
-  { icon: <Map size={18} />, label: "servicios", href: "/servicios" },
   { icon: <ClipboardCheck size={18} />, label: "Asignaciones", href: "/asignaciones" },
+  { icon: <Map size={18} />, label: "servicios", href: "/servicios" },
+
   { icon: <TrendingUp size={18} />, label: "Ingresos", href: "/ingresos" },
   { icon: <Receipt size={18} />, label: "Gastos", href: "/gastos" },
   { icon: <FileCheck size={18} />, label: "Facturación", href: "/facturacion" },

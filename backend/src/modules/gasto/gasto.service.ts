@@ -468,43 +468,98 @@ export class GastosService {
   /**
    * SUMATORIAS CONSOLIDADAS: Calcula en Bs. el dinero total para las 4 tarjetas informativas de arriba
    */
-  async obtenerTotalesInformativos(filters: { mes?: string, anio?: number }) {
+  async obtenerTotalesInformativos(filters: {
+    mes?: string,
+    anio?: number,
+    fecha_inicio?: string,
+    fecha_fin?: string,
+    buscar?: string,
+    tipo_gasto?: string,
+  }) {
     const now = new Date();
     const mesParam = filters.mes || (now.getMonth() + 1).toString().padStart(2, '0');
     const anioParam = filters.anio || now.getFullYear();
+    const tieneRango = !!filters.fecha_inicio || !!filters.fecha_fin;
+
+    const servicioQuery = this.gastosServicioRepo.createQueryBuilder('gs')
+      .leftJoin('gs.servicio', 'servicio')
+      .select('SUM(gs.total_gastos_bs)', 'total')
+      .where('gs.status = true');
+
+    if (filters.buscar?.trim()) {
+      servicioQuery.andWhere('servicio.codigo_servicio ILIKE :b', { b: `%${filters.buscar.trim()}%` });
+    }
+    if (tieneRango) {
+      if (filters.fecha_inicio) servicioQuery.andWhere('gs.fecha_registro >= :f1', { f1: filters.fecha_inicio });
+      if (filters.fecha_fin) servicioQuery.andWhere('gs.fecha_registro <= :f2', { f2: filters.fecha_fin });
+    } else {
+      servicioQuery.andWhere('EXTRACT(YEAR FROM gs.fecha_registro) = :anio', { anio: anioParam });
+      servicioQuery.andWhere('EXTRACT(MONTH FROM gs.fecha_registro) = :mes', { mes: Number(mesParam) });
+    }
+
+    const operativosQuery = this.gastoOperativoRepo.createQueryBuilder('go')
+      .leftJoin('go.gasto', 'g')
+      .leftJoin('go.unidad', 'unidad')
+      .select('SUM(g.monto)', 'total')
+      .where('go.status = true AND g.status = true');
+
+    if (filters.buscar?.trim()) {
+      operativosQuery.andWhere('unidad.placa ILIKE :b', { b: `%${filters.buscar.trim()}%` });
+    }
+    if (filters.tipo_gasto?.trim()) {
+      operativosQuery.andWhere('go.tipo_gasto = :tipo_gasto', { tipo_gasto: filters.tipo_gasto.trim() });
+    }
+    if (tieneRango) {
+      if (filters.fecha_inicio) operativosQuery.andWhere('g.fecha >= :f1', { f1: filters.fecha_inicio });
+      if (filters.fecha_fin) operativosQuery.andWhere('g.fecha <= :f2', { f2: filters.fecha_fin });
+    } else {
+      operativosQuery.andWhere('g.anio = :anio', { anio: anioParam });
+      operativosQuery.andWhere('g.mes = :mes', { mes: mesParam });
+    }
+
+    const adminQuery = this.gastoAdminRepo.createQueryBuilder('ga')
+      .leftJoin('ga.gasto', 'g')
+      .select('SUM(g.monto)', 'total')
+      .where('ga.status = true AND g.status = true');
+
+    if (filters.buscar?.trim()) {
+      adminQuery.andWhere('g.descripcion ILIKE :b', { b: `%${filters.buscar.trim()}%` });
+    }
+    if (filters.tipo_gasto?.trim()) {
+      adminQuery.andWhere('ga.tipo_gasto = :tipo_gasto', { tipo_gasto: filters.tipo_gasto.trim() });
+    }
+    if (tieneRango) {
+      if (filters.fecha_inicio) adminQuery.andWhere('g.fecha >= :f1', { f1: filters.fecha_inicio });
+      if (filters.fecha_fin) adminQuery.andWhere('g.fecha <= :f2', { f2: filters.fecha_fin });
+    } else {
+      adminQuery.andWhere('g.anio = :anio', { anio: anioParam });
+      adminQuery.andWhere('g.mes = :mes', { mes: mesParam });
+    }
+
+    const generalQuery = this.gastoGeneralRepo.createQueryBuilder('gg')
+      .leftJoin('gg.gasto', 'g')
+      .select('SUM(g.monto)', 'total')
+      .where('gg.status = true AND g.status = true');
+
+    if (filters.buscar?.trim()) {
+      generalQuery.andWhere('g.descripcion ILIKE :b', { b: `%${filters.buscar.trim()}%` });
+    }
+    if (filters.tipo_gasto?.trim()) {
+      generalQuery.andWhere('gg.tipo_gasto = :tipo_gasto', { tipo_gasto: filters.tipo_gasto.trim() });
+    }
+    if (tieneRango) {
+      if (filters.fecha_inicio) generalQuery.andWhere('g.fecha >= :f1', { f1: filters.fecha_inicio });
+      if (filters.fecha_fin) generalQuery.andWhere('g.fecha <= :f2', { f2: filters.fecha_fin });
+    } else {
+      generalQuery.andWhere('g.anio = :anio', { anio: anioParam });
+      generalQuery.andWhere('g.mes = :mes', { mes: mesParam });
+    }
 
     const [totalServiciosResult, totalOps, totalAdmin, totalGral] = await Promise.all([
-      // Total Gastos de Viaje (se basa en la fecha de registro de la rendición)
-      this.gastosServicioRepo.createQueryBuilder('gs')
-        .select('SUM(gs.total_gastos_bs)', 'total')
-        .where('gs.status = true')
-        .andWhere('EXTRACT(YEAR FROM gs.fecha_registro) = :anio', { anio: anioParam })
-        .andWhere('EXTRACT(MONTH FROM gs.fecha_registro) = :mes', { mes: Number(mesParam) })
-        .getRawOne(),
-
-      // Total Gastos Operativos (se basa en la fecha del gasto individual)
-      this.gastoOperativoRepo.createQueryBuilder('go')
-        .leftJoin('go.gasto', 'g').select('SUM(g.monto)', 'total')
-        .where('go.status = true AND g.status = true')
-        .andWhere('g.anio = :anio', { anio: anioParam })
-        .andWhere('g.mes = :mes', { mes: mesParam })
-        .getRawOne(),
-
-      // Total Gastos Administrativos (se basa en la fecha del gasto individual)
-      this.gastoAdminRepo.createQueryBuilder('ga')
-        .leftJoin('ga.gasto', 'g').select('SUM(g.monto)', 'total')
-        .where('ga.status = true AND g.status = true')
-        .andWhere('g.anio = :anio', { anio: anioParam })
-        .andWhere('g.mes = :mes', { mes: mesParam })
-        .getRawOne(),
-
-      // Total Gastos Generales (se basa en la fecha del gasto individual)
-      this.gastoGeneralRepo.createQueryBuilder('gg')
-        .leftJoin('gg.gasto', 'g').select('SUM(g.monto)', 'total')
-        .where('gg.status = true AND g.status = true')
-        .andWhere('g.anio = :anio', { anio: anioParam })
-        .andWhere('g.mes = :mes', { mes: mesParam })
-        .getRawOne(),
+      servicioQuery.getRawOne(),
+      operativosQuery.getRawOne(),
+      adminQuery.getRawOne(),
+      generalQuery.getRawOne(),
     ]);
 
     const totalGastosViaje = Number(totalServiciosResult?.total || 0);

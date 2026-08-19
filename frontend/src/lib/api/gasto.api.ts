@@ -12,6 +12,8 @@ export const getTotalesPaneles = async (filters: GastoFilters = {}): Promise<Tot
   const params = new URLSearchParams();
   if (filters.fecha_inicio) params.append("fecha_inicio", filters.fecha_inicio);
   if (filters.fecha_fin) params.append("fecha_fin", filters.fecha_fin);
+  if (filters.buscar?.trim()) params.append("buscar", filters.buscar.trim());
+  if (filters.tipo_gasto?.trim()) params.append("tipo_gasto", filters.tipo_gasto.trim());
   const q = params.toString();
   return apiFetch(`/gastos/totales-paneles${q ? `?${q}` : ""}`);
 };

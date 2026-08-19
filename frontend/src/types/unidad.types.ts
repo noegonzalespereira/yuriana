@@ -41,6 +41,7 @@ export interface Unidad {
   // Relación con documentos (cargada opcionalmente por el backend, ej: en reportes)
   documentos?: {
     id_documento: number;
+    tipo_documento?: string;
     fecha_vencimiento?: string;
     requisito_documento?: { nombre_documento: string };
   }[];

@@ -59,8 +59,8 @@ export interface ServicioItem {
   fecha_inicio: string;
   fecha_fin?: string;
   fecha_pago?: string | null;
-  periodo_liquidacion?: number;
-  fecha_limite_pago?: string;
+  periodo_liquidacion?: number | null;
+  fecha_limite_pago?: string | null;
   descripcion_carga?: string;
   comprobante_pago?: string;
   estado_pago: EstadoPago;

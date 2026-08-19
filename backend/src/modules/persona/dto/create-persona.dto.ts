@@ -9,7 +9,6 @@ export class CreatePersonaDto {
     @IsNotEmpty({ message: 'La cédula es obligatoria' })
     @IsNumber()
     @Min(10000, { message: 'El CI debe tener al menos 5 dígitos' })
-    @Max(99999999, { message: 'El CI no puede tener más de 8 dígitos' })
     ci!: number;
 
     @IsNotEmpty({ message: 'El nombre es obligario'})

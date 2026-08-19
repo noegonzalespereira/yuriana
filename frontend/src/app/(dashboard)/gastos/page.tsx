@@ -110,8 +110,8 @@ export default function GastosPage() {
   // ── Servicio ──
   const INIT_SERVICIO: GastoFilters = { buscar: "", fecha_inicio: primerDiaMes, fecha_fin: ultimoDiaMes };
   const INIT_OPERATIVO: GastoFilters = { buscar: "", fecha_inicio: primerDiaMes, fecha_fin: ultimoDiaMes, tipo_gasto: "" };
-  const INIT_ADMIN: GastoFilters    = { fecha_inicio: primerDiaMes, fecha_fin: ultimoDiaMes, tipo_gasto: "" };
-  const INIT_GENERAL: GastoFilters  = { fecha_inicio: primerDiaMes, fecha_fin: ultimoDiaMes, tipo_gasto: "" };
+  const INIT_ADMIN: GastoFilters = { buscar: "", fecha_inicio: primerDiaMes, fecha_fin: ultimoDiaMes, tipo_gasto: "" };
+  const INIT_GENERAL: GastoFilters = { buscar: "", fecha_inicio: primerDiaMes, fecha_fin: ultimoDiaMes, tipo_gasto: "" };
 
   const [gastosServicio, setGastosServicio] = useState<GastosServicio[]>([]);
   const [selectedServicio, setSelectedServicio] = useState<GastosServicio | null>(null);
@@ -188,7 +188,7 @@ export default function GastosPage() {
     } finally {
       setLoading(false);
     }
-  }, [filtersAdmin.fecha_inicio, filtersAdmin.fecha_fin, filtersAdmin.tipo_gasto]);
+  }, [filtersAdmin.buscar, filtersAdmin.fecha_inicio, filtersAdmin.fecha_fin, filtersAdmin.tipo_gasto]);
 
   const loadGeneralData = useCallback(async () => {
     try {
@@ -201,7 +201,7 @@ export default function GastosPage() {
     } finally {
       setLoading(false);
     }
-  }, [filtersGeneral.fecha_inicio, filtersGeneral.fecha_fin, filtersGeneral.tipo_gasto]);
+  }, [filtersGeneral.buscar, filtersGeneral.fecha_inicio, filtersGeneral.fecha_fin, filtersGeneral.tipo_gasto]);
 
   useEffect(() => {
     if (tabActiva === TipoPestana.SERVICIO) loadServicioData();
@@ -387,16 +387,35 @@ export default function GastosPage() {
         subtitle={vista === "form" ? "Complete el formulario para registrar el gasto" : "Control y seguimiento de todos los egresos operacionales"}
         searchPlaceholder="Buscar..."
         onSearch={
-          vista === "list" && tabActiva === TipoPestana.SERVICIO
-            ? (val) => setFiltersServicio((f) => ({ ...f, buscar: val }))
-            : vista === "list" && tabActiva === TipoPestana.OPERATIVO
-            ? (val) => setFiltersOperativo((f) => ({ ...f, buscar: val }))
+          vista === "list"
+            ? (val) => {
+                if (tabActiva === TipoPestana.SERVICIO) {
+                  setFiltersServicio((f) => ({ ...f, buscar: val }));
+                }
+                if (tabActiva === TipoPestana.OPERATIVO) {
+                  setFiltersOperativo((f) => ({ ...f, buscar: val }));
+                }
+                if (tabActiva === TipoPestana.ADMINISTRATIVO) {
+                  setFiltersAdmin((f) => ({ ...f, buscar: val }));
+                }
+                if (tabActiva === TipoPestana.GENERAL) {
+                  setFiltersGeneral((f) => ({ ...f, buscar: val }));
+                }
+              }
             : undefined
         }
         searchValue={
-          vista === "list" && tabActiva === TipoPestana.SERVICIO ? (filtersServicio.buscar ?? "") :
-          vista === "list" && tabActiva === TipoPestana.OPERATIVO ? (filtersOperativo.buscar ?? "") :
-          undefined
+          vista === "list"
+            ? tabActiva === TipoPestana.SERVICIO
+              ? (filtersServicio.buscar ?? "")
+              : tabActiva === TipoPestana.OPERATIVO
+              ? (filtersOperativo.buscar ?? "")
+              : tabActiva === TipoPestana.ADMINISTRATIVO
+              ? (filtersAdmin.buscar ?? "")
+              : tabActiva === TipoPestana.GENERAL
+              ? (filtersGeneral.buscar ?? "")
+              : ""
+            : undefined
         }
       />
 
@@ -474,11 +493,7 @@ export default function GastosPage() {
                       onFechaFinChange={(val) => setFiltersServicio((f) => ({ ...f, fecha_fin: val }))}
                     />
                     <ResetFiltersButton onClick={handleResetFilters} />
-                    <div className="ml-auto">
-                      <button type="button" onClick={handleNuevoGasto} className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black py-2 px-5 rounded-xl shadow text-xs transition-all active:scale-95">
-                        + Nuevo Gasto
-                      </button>
-                    </div>
+                    
                       <div className="ml-auto">
                         <button type="button" onClick={handleNuevoGasto} className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black py-2 px-5 rounded-xl shadow text-xs transition-all active:scale-95">
                           + Nuevo Gasto

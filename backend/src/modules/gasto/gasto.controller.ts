@@ -29,8 +29,19 @@ export class GastoController {
   async obtenerTotalesPaneles(
     @Query('mes') mes?: string,
     @Query('anio') anio?: string,
+    @Query('fecha_inicio') fecha_inicio?: string,
+    @Query('fecha_fin') fecha_fin?: string,
+    @Query('buscar') buscar?: string,
+    @Query('tipo_gasto') tipo_gasto?: string,
   ) {
-    return this.gastosService.obtenerTotalesInformativos({ mes, anio: anio ? parseInt(anio, 10) : undefined });
+    return this.gastosService.obtenerTotalesInformativos({
+      mes,
+      anio: anio ? parseInt(anio, 10) : undefined,
+      fecha_inicio,
+      fecha_fin,
+      buscar,
+      tipo_gasto,
+    });
   }
 
   @Get('listado/:pestana')

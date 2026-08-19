@@ -110,8 +110,8 @@ export class Servicio {
     @Column()
     anio!: number;
     
-    @Column({nullable: true})
-    periodo_liquidacion?: number;
+    @Column({ type: 'integer', nullable: true })
+    periodo_liquidacion?: number | null;
 
     @Column({ type: 'date', nullable: true })
     fecha_limite_pago!: Date | null;

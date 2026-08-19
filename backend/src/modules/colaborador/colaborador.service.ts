@@ -79,13 +79,13 @@ export class ColaboradorService {
     const colaborador = await this.findOne(id);
 
     const {
-      nombre, correo, telefono, telefono2, ciudad,
+      nombre, ci, correo, telefono, telefono2, ciudad,
       ...datosColaborador   
     } = updateColaboradorDto;
 
-    if(nombre || correo || telefono || telefono2 || ciudad){
+    if(nombre || ci !== undefined || correo || telefono || telefono2 || ciudad){
       await this.personaService.update(colaborador.persona.id_persona,
-        { nombre, correo, telefono, telefono2, ciudad }, userId);
+        { nombre, ci, correo, telefono, telefono2, ciudad }, userId);
     }
 
     Object.assign(colaborador, {

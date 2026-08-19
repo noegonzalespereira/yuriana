@@ -244,8 +244,7 @@ export class ServicioService {
     if (filters.buscar) {
       query.andWhere(new Brackets(qb => {
         qb.where('servicio.codigo_servicio ILIKE :b', { b: `%${filters.buscar}%` })
-          .orWhere('servicio.origen ILIKE :b', { b: `%${filters.buscar}%` })
-          .orWhere('servicio.destino ILIKE :b', { b: `%${filters.buscar}%` });
+          .orWhere('tracto.placa ILIKE :b', { b: `%${filters.buscar}%` });
       }));
     }
 
@@ -406,6 +405,14 @@ export class ServicioService {
       }
 
       Object.assign(servicio, { ...datosActualizar, UpdatedId: userId });
+
+      // Estos campos deben permanecer nulos al reabrir el servicio.
+      if (debeBorrarFechaFin) {
+        servicio.fecha_fin = null;
+        servicio.periodo_liquidacion = null;
+        servicio.fecha_limite_pago = null;
+        servicio.estado_servicio = EstadoServicio.EN_CURSO;
+      }
 
       // Recalcular el flete total
       const montoBase = Number(servicio.flete);
