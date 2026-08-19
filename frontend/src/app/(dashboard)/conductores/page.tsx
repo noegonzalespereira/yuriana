@@ -41,7 +41,7 @@ export default function ConductoresPage() {
   useEffect(() => { setPagina(1); }, [filters]);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [ciParaEliminar, setCiParaEliminar] = useState<number | null>(null);
+  const [ciParaEliminar, setCiParaEliminar] = useState<string | null>(null);
 
   const cargarAlertas = useCallback(async () => {
     try {
@@ -163,7 +163,7 @@ export default function ConductoresPage() {
     }
   };
 
-  const handleOpenDeleteConfirmation = (ci: number) => {
+  const handleOpenDeleteConfirmation = (ci: string) => {
     setCiParaEliminar(ci);
     setShowDeleteModal(true);
   };

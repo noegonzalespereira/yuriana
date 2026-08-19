@@ -7,8 +7,8 @@ export class Persona {
     @PrimaryGeneratedColumn()
     id_persona!: number;
 
-    @Column({ nullable: true })
-    ci?: number;
+    @Column({ type: 'varchar', length: 30, nullable: true })
+    ci?: string;
 
     @Column()
     nombre!: string;

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 interface Props {
   data: Conductor[];
-  onDelete: (ci: number) => void;
+  onDelete: (ci: string) => void;
   onEdit: (conductor: Conductor) => void;
   onView: (conductor: Conductor) => void;
 }

@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form";
 import { Rol, User, EstadoUsuario } from "@/types/auth.types";
 import { Info, ShieldAlert } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ModuleField } from "../molecules/ModuleField";
 import { FormActions } from "../atoms/FormActions";
 
@@ -16,6 +16,7 @@ interface UserFormProps {
 }
 
 export const UserForm = ({ onSubmit, onCancel, roles, initialData, isReadOnly = false }: UserFormProps) => {
+  const [saving, setSaving] = useState(false);
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
   useEffect(() => {
@@ -31,7 +32,7 @@ export const UserForm = ({ onSubmit, onCancel, roles, initialData, isReadOnly = 
     }
   }, [initialData, reset, roles]);
 
-  const handleLocalSubmit = (data: any) => {
+  const handleLocalSubmit = async (data: any) => {
     const payload: Record<string, any> = {
       nombre: data.nombre?.trim().toUpperCase(),
       correo: data.correo,
@@ -50,7 +51,12 @@ export const UserForm = ({ onSubmit, onCancel, roles, initialData, isReadOnly = 
       payload.password = data.password;
     }
 
-    onSubmit(payload);
+    try {
+      setSaving(true);
+      await onSubmit(payload);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -154,7 +160,7 @@ export const UserForm = ({ onSubmit, onCancel, roles, initialData, isReadOnly = 
         </div>
       </div>
 
-      <FormActions onCancel={onCancel} isReadOnly={isReadOnly} isEditing={!!initialData} entityLabel="Operario" />
+      <FormActions onCancel={onCancel} isReadOnly={isReadOnly} isSubmitting={saving} isEditing={!!initialData} entityLabel="Operario" />
     </form>
   );
 };

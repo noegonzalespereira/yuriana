@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Query, Request, Post, Body, Patch, Param, Delete, ParseIntPipe, UseInterceptors, UploadedFiles, BadRequestException } from '@nestjs/common';
+import { Controller, Get, UseGuards, Query, Request, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFiles, BadRequestException } from '@nestjs/common';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { ConductorService } from './conductor.service';
 import { CreateConductorDto } from './dto/create-conductor.dto';
@@ -27,7 +27,7 @@ export class ConductorController {
     }
 
     const datosConductor: CreateConductorDto = {
-      ci: parseInt(body.ci),
+      ci: body.ci,
       nombre: body.nombre,
       correo: body.correo,
       ciudad: body.ciudad,
@@ -66,19 +66,19 @@ export class ConductorController {
 
 
   @Get(':ci')
-  findOne(@Param('ci', ParseIntPipe) ci: number) {
+  findOne(@Param('ci') ci: string) {
     return this.conductorService.findOne(ci);
   }
 
   @Patch(':ci')
   @Roles('ADMIN')
-  update(@Param('ci', ParseIntPipe) ci: number, @Body() updateConductorDto: UpdateConductorDto, @Request() req) {
+  update(@Param('ci') ci: string, @Body() updateConductorDto: UpdateConductorDto, @Request() req) {
     return this.conductorService.update(ci, updateConductorDto, req.user.id);
   }
 
   @Delete(':ci')
   @Roles('ADMIN')
-  remove(@Param('ci', ParseIntPipe) ci: number, @Request() req) {
+  remove(@Param('ci') ci: string, @Request() req) {
     return this.conductorService.remove(ci, req.user.id);
   }
 }

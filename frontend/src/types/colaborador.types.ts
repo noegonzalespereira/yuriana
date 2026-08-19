@@ -6,7 +6,7 @@ export enum TipoColaborador {
 export interface Persona {
   id_persona: number;
   nombre: string;
-  ci: number;
+  ci: string;
   correo: string;
   telefono: string;
   telefono2?: string;
@@ -15,7 +15,7 @@ export interface Persona {
 
 export interface Colaborador {
   id_colaborador: number;
-  persona: Omit<Persona, 'ci'> & { ci?: number };
+  persona: Omit<Persona, 'ci'> & { ci?: string };
   id_persona: number;
   agencia?: string;
   tipo_colaborador: TipoColaborador;

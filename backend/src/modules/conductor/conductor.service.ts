@@ -146,7 +146,7 @@ export class ConductorService {
     return conductoresEnriquecidos;
   }
 
-  async findOne(ci: number): Promise<Conductor> {
+  async findOne(ci: string): Promise<Conductor> {
     const conductor = await this.conductorRepository.findOne({
       where: { persona: { ci, status: true }, status: true },
       relations: ['persona', 'categoria']
@@ -155,17 +155,17 @@ export class ConductorService {
     return conductor;
   }
 
-  async update(ci: number, updateConductorDto: UpdateConductorDto, userId: number) {
-    const conductor = await this.findOne(ci);
-    const { nombre, correo, telefono, telefono2, ciudad, ...datosConductor } = updateConductorDto;
-    if (nombre || correo || telefono || telefono2 || ciudad) {
-      await this.personaService.update(conductor.persona.id_persona, { nombre, correo, telefono, telefono2, ciudad }, userId);
+  async update(ciActual: string, updateConductorDto: UpdateConductorDto, userId: number) {
+    const conductor = await this.findOne(ciActual);
+    const { nombre, ci, correo, telefono, telefono2, ciudad, ...datosConductor } = updateConductorDto;
+    if (nombre || ci !== undefined || correo || telefono || telefono2 || ciudad) {
+      await this.personaService.update(conductor.persona.id_persona, { nombre, ci, correo, telefono, telefono2, ciudad }, userId);
     }
     Object.assign(conductor, { ...datosConductor, UpdatedId: userId });
     return this.conductorRepository.save(conductor);
   }
 
-  async remove(ci: number, userId: number): Promise<Conductor> {
+  async remove(ci: string, userId: number): Promise<Conductor> {
     const conductor = await this.findOne(ci);
     if (conductor.estado_operativo === EstadoOperativo.ASIGNADO || conductor.estado_operativo === EstadoOperativo.VIAJE) {
       throw new ForbiddenException(`No se puede eliminar al conductor "${conductor.persona?.nombre}" porque está en estado ${conductor.estado_operativo}`);

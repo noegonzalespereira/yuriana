@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { Cliente } from "@/types/cliente.types";
 import { Info, User } from "lucide-react";
 import { FormActions } from "../atoms/FormActions";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ModuleField } from "../molecules/ModuleField";
 
 interface Props {
@@ -15,6 +15,7 @@ interface Props {
 }
 
 export const ClienteForm = ({ initialData, onSubmit, onCancel, isReadOnly }: Props) => {
+  const [saving, setSaving] = useState(false);
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
   useEffect(() => {
@@ -28,7 +29,7 @@ export const ClienteForm = ({ initialData, onSubmit, onCancel, isReadOnly }: Pro
     }
   }, [initialData, reset]);
 
-  const handleLocalSubmit = (data: any) => {
+  const handleLocalSubmit = async (data: any) => {
     const payload = {
       // Datos de Persona
       nombre: data.nombre?.trim().toUpperCase(),
@@ -44,7 +45,12 @@ export const ClienteForm = ({ initialData, onSubmit, onCancel, isReadOnly }: Pro
       direccion: data.direccion?.trim().toUpperCase() || undefined,
       notas: data.notas?.trim() || undefined,
     };
-    onSubmit(payload);
+    try {
+      setSaving(true);
+      await onSubmit(payload);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -80,7 +86,7 @@ export const ClienteForm = ({ initialData, onSubmit, onCancel, isReadOnly }: Pro
         </div>
       </div>
 
-      <FormActions onCancel={onCancel} isReadOnly={isReadOnly} isEditing={!!initialData} entityLabel="Cliente" />
+      <FormActions onCancel={onCancel} isReadOnly={isReadOnly} isSubmitting={saving} isEditing={!!initialData} entityLabel="Cliente" />
     </form>
   );
 };

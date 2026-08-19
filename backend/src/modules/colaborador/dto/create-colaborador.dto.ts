@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsNumber, Min, Max, IsEmail } from "class-validator";
+import { IsEnum, IsNotEmpty, IsOptional, IsString, IsNumber, Min, Max, IsEmail, Matches, MinLength } from "class-validator";
 import { Transform } from "class-transformer";
 import { TipoColaborador } from "../entities/colaborador.entity";
 
@@ -26,9 +26,10 @@ export class CreateColaboradorDto {
     telefono!: number;
 
     @IsOptional()
-    @IsNumber({}, { message: 'El CI debe ser un número' })
-    @Min(10000, { message: 'El CI debe tener al menos 5 dígitos' })
-    ci?: number;
+    @IsString({ message: 'El CI/NIT debe ser texto numérico' })
+    @Matches(/^\d+$/, { message: 'El CI/NIT solo debe contener números' })
+    @MinLength(5, { message: 'El CI debe tener al menos 5 dígitos' })
+    ci?: string;
 
     @IsOptional()
     @IsNumber({}, { message: 'El teléfono debe ser un número' })

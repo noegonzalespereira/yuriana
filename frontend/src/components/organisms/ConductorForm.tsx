@@ -187,7 +187,7 @@ export const ConductorForm = ({ initialData, onSubmit, onCancel, isReadOnly }: P
       sueldo: data.sueldo ? parseFloat(data.sueldo) : undefined,
       estado_operativo: data.estado_operativo,
       estado_laboral: data.estado_laboral,
-      ...(!initialData && { ci: data.ci ? parseInt(data.ci) : 0 })
+      ci: data.ci?.trim() || "",
     };
 
     try {
@@ -211,7 +211,23 @@ export const ConductorForm = ({ initialData, onSubmit, onCancel, isReadOnly }: P
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6">
-          <ModuleField label="CI *" name="ci" type="number" register={register} disabled={isReadOnly || !!initialData} error={errors.ci} rules={{ required: "El CI es obligatorio", min: { value: 10000, message: "El CI debe tener al menos 5 dígitos" }, max: { value: 99999999, message: "El CI no puede tener más de 8 dígitos" } }} />
+          <ModuleField
+            label="CI *"
+            name="ci"
+            type="text"
+            inputMode="numeric"
+            register={register}
+            disabled={isReadOnly}
+            error={errors.ci}
+            rules={{
+              required: "El CI es obligatorio",
+              validate: (value: string) => {
+                if (!/^\d+$/.test(value)) return "El CI solo debe contener números";
+                if (value.length < 5) return "El CI debe tener al menos 5 dígitos";
+                return true;
+              },
+            }}
+          />
           <ModuleField label="Nombre" name="nombre" register={register} disabled={isReadOnly} error={errors.nombre} rules={{ required: "El nombre es obligatorio" }} />
           <ModuleField label="Correo *" name="correo" type="email" register={register} disabled={isReadOnly} error={errors.correo} rules={{ required: "El correo es obligatorio" }} />
           <ModuleField label="Ciudad" name="ciudad" register={register} disabled={isReadOnly} />

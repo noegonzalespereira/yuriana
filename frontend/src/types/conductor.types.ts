@@ -17,7 +17,7 @@ export interface Conductor {
   sueldo?: number;
   estado_operativo: EstadoOperativo;
   estado_laboral: EstadoLaboral;
-  persona: Persona;
+  persona: Omit<Persona, 'ci'> & { ci: string };
   
   // Propiedades enriquecidas por el backend (getEstadoDocumentosPorEntidad)
   estado?: 'vigente' | 'por_vencer' | 'vencido' | 'sin_documentos';

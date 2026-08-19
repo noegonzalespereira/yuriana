@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min } from "class-validator";
+import { IsEmail, IsNotEmpty, IsNumber,Matches,MinLength, IsOptional, IsString, Max, Min } from "class-validator";
 import { Transform } from "class-transformer";
 
 const TELEFONO_MIN = 10000000; // 8 dígitos
@@ -6,10 +6,15 @@ const TELEFONO_MAX = 999999999999999; // 15 dígitos
 const TELEFONO_MSG = 'El teléfono debe tener entre 8 y 15 dígitos (ej: 68626895)';
 
 export class CreatePersonaDto {
-    @IsNotEmpty({ message: 'La cédula es obligatoria' })
-    @IsNumber()
-    @Min(10000, { message: 'El CI debe tener al menos 5 dígitos' })
-    ci!: number;
+    @IsOptional()
+    @IsString()
+    @Matches(/^\d+$/, {
+    message: 'El CI/NIT solo debe contener números',
+    })
+    @MinLength(5, {
+    message: 'El CI debe tener al menos 5 dígitos',
+    })
+    ci?: string;
 
     @IsNotEmpty({ message: 'El nombre es obligario'})
     @IsString()

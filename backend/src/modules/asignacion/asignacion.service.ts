@@ -25,7 +25,7 @@ export class AsignacionService {
 
   async create(createAsignaciondto: CreateAsignacionDto, userId: number){
     const conductor = await this.conductorService.findOne(
-      createAsignaciondto.ci_conductor,
+      String(createAsignaciondto.ci_conductor),
     );
 
     if (conductor.estado_laboral !== EstadoLaboral.ACTIVO) {

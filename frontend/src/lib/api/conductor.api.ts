@@ -56,10 +56,10 @@ export const createConductor = async (data: any) => {
   return apiFetch("/conductor", { method: "POST", body: JSON.stringify(data) });
 };
 
-export const updateConductor = async (ci: number, data: any) => {
+export const updateConductor = async (ci: string, data: any) => {
   return apiFetch(`/conductor/${ci}`, { method: "PATCH", body: JSON.stringify(data) });
 };
 
-export const deleteConductor = async (ci: number) => {
+export const deleteConductor = async (ci: string) => {
   return apiFetch(`/conductor/${ci}`, { method: "DELETE" });
 };

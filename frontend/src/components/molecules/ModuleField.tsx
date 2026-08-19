@@ -6,6 +6,7 @@ interface ModuleFieldProps {
   register: any;
   rules?: object;
   type?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
   disabled?: boolean;
   placeholder?: string;
   error?: any;
@@ -18,6 +19,7 @@ export const ModuleField = ({
   register,
   rules,
   type = "text",
+  inputMode,
   disabled,
   placeholder,
   error,
@@ -43,6 +45,7 @@ export const ModuleField = ({
         <input
           {...register(name, rules)}
           type={type}
+          inputMode={inputMode}
           disabled={disabled}
           placeholder={placeholder}
           className={`w-full bg-[var(--yuriana-input-bg)] border ${

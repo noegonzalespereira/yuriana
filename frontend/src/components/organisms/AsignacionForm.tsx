@@ -18,6 +18,7 @@ export const AsignacionForm = ({ initialData, isReadOnly = false, onSubmit, onCa
   // Si viene data inicial, nos vamos directo al paso 4 (Resumen/Inspección)
   const [step, setStep] = useState<number>(initialData ? 4 : 1);
   const [loadingLists, setLoadingLists] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [conductores, setConductores] = useState<Conductor[]>([]);
   const [unidades, setUnidades] = useState<Unidad[]>([]);
@@ -76,17 +77,22 @@ export const AsignacionForm = ({ initialData, isReadOnly = false, onSubmit, onCa
     return [];
   };
 
-  const ejecutarEnvio = () => {
+  const ejecutarEnvio = async () => {
     const ci = selectedConductor?.persona?.ci || selectedConductor?.ci_persona;
     if (!ci || !selectedTracto?.placa || !selectedRemolque?.placa) {
       toast.error("Formulario incompleto.");
       return;
     }
-    onSubmit({
-      ci_conductor: Number(ci),
-      placa_tracto: selectedTracto.placa?.toUpperCase(),
-      placa_remolque: selectedRemolque.placa?.toUpperCase()
-    });
+    try {
+      setIsSubmitting(true);
+      await onSubmit({
+        ci_conductor: Number(ci),
+        placa_tracto: selectedTracto.placa?.toUpperCase(),
+        placa_remolque: selectedRemolque.placa?.toUpperCase()
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -390,16 +396,18 @@ export const AsignacionForm = ({ initialData, isReadOnly = false, onSubmit, onCa
           {!isReadOnly && (
             <button
               type="button"
-              disabled={!selectedConductor || !selectedTracto || !selectedRemolque}
+              disabled={isSubmitting || !selectedConductor || !selectedTracto || !selectedRemolque}
               onClick={ejecutarEnvio}
               className="w-full py-3 bg-[var(--yuriana-base-yellow)] hover:shadow-md text-[var(--yuriana-base-black)] rounded-xl text-xs font-black uppercase tracking-wider transition-all disabled:bg-gray-100 disabled:text-gray-300"
             >
-              Guardar Cambios
+              {isSubmitting && <Loader2 size={14} className="animate-spin" />}
+              {isSubmitting ? "Guardando..." : "Guardar Cambios"}
             </button>
           )}
           <button
             type="button"
             onClick={onCancel}
+            disabled={isSubmitting}
             className="w-full py-3 bg-slate-700 hover:bg-slate-800 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
           >
             {isReadOnly ? "Volver al Listado" : "Cancelar"}

@@ -36,7 +36,9 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
 
   const MAX_TELEFONO = 999_999_999_999_999; // 15 dígitos
 
-  const handleLocalSubmit = (data: any) => {
+  const [saving, setSaving] = useState(false);
+
+  const handleLocalSubmit = async (data: any) => {
     const tel = data.telefono ? parseInt(data.telefono) : 0;
     const tel2 = data.telefono2 ? parseInt(data.telefono2) : undefined;
 
@@ -46,7 +48,7 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
       return toast.error("El teléfono 2 supera el límite permitido (máx. 15 dígitos)");
 
     const payload: Record<string, any> = {
-      ci: data.ci ? parseInt(data.ci) : undefined,
+      ci: data.ci?.trim() || undefined,
       nombre: data.nombre?.trim().toUpperCase(),
       correo: data.correo,
       telefono: tel,
@@ -57,7 +59,12 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
       tipo_colaborador: tipo,
     };
     if (tel2 !== undefined) payload.telefono2 = tel2;
-    onSubmit(payload);
+    try {
+      setSaving(true);
+      await onSubmit(payload);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -117,10 +124,20 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
               <ModuleField
                 label="CI / NIT"
                 name="ci"
-                type="number"
+                type="text"
+                inputMode="numeric"
                 register={register}
                 disabled={isReadOnly}
                 error={errors.ci}
+                rules={{
+                  validate: (value: string) => {
+                    if (!value) return true;
+                    if (!/^\d+$/.test(value)) return "El CI/NIT solo debe contener números";
+                    if (Number(value) <= 0) return "El CI/NIT debe ser un número positivo";
+                    if (value.length < 5) return "El CI debe tener al menos 5 dígitos";
+                    return true;
+                  },
+                }}
               />
               
               <ModuleField
@@ -212,7 +229,7 @@ export const ColaboradorForm = ({ initialData, onSubmit, onCancel, isReadOnly }:
         </div>
       </div>
 
-      <FormActions onCancel={onCancel} isReadOnly={isReadOnly} isEditing={!!initialData} entityLabel="Colaborador" />
+      <FormActions onCancel={onCancel} isReadOnly={isReadOnly} isSubmitting={saving} isEditing={!!initialData} entityLabel="Colaborador" />
     </form>
   );
 };

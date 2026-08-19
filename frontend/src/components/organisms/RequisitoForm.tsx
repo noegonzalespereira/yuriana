@@ -3,7 +3,7 @@ import { useForm, Controller } from "react-hook-form";
 import { RequisitoDocumento } from "@/types/documento.types";
 import { ModuleField } from "../molecules/ModuleField";
 import { FormActions } from "../atoms/FormActions";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface Props {
   initialData?: RequisitoDocumento | null;
@@ -14,6 +14,7 @@ interface Props {
 }
 
 export const RequisitoForm = ({ initialData, idCategoriaActiva, onSubmit, onCancel, isReadOnly }: Props) => {
+  const [saving, setSaving] = useState(false);
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm({
     defaultValues: {
       nombre_documento: "",
@@ -32,7 +33,7 @@ export const RequisitoForm = ({ initialData, idCategoriaActiva, onSubmit, onCanc
     }
   }, [initialData, reset]);
 
-  const handleLocalSubmit = (data: any) => {
+  const handleLocalSubmit = async (data: any) => {
     const payload = {
       ...data,
       // Forzamos conversión estricta al id_categoria numérico del flujo activo
@@ -41,7 +42,12 @@ export const RequisitoForm = ({ initialData, idCategoriaActiva, onSubmit, onCanc
       requiere_vencimiento: Boolean(data.requiere_vencimiento),
     };
     console.log("Payload de Requisito verificado listo:", payload);
-    onSubmit(payload);
+    try {
+      setSaving(true);
+      await onSubmit(payload);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -102,7 +108,7 @@ export const RequisitoForm = ({ initialData, idCategoriaActiva, onSubmit, onCanc
         </div>
       </div>
 
-      <FormActions onCancel={onCancel} isReadOnly={isReadOnly} entityLabel="Documento" />
+      <FormActions onCancel={onCancel} isReadOnly={isReadOnly} isSubmitting={saving} isEditing={!!initialData} entityLabel="Documento" />
     </form>
   );
 };
