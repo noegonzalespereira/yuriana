@@ -32,6 +32,7 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete }: Props) => {
       <table className="w-full text-left border-collapse min-w-[900px]">
         <thead className="bg-[var(--yuriana-base-orange)] text-white uppercase text-[9px] font-black tracking-widest">
           <tr>
+            <th className="w-12 px-3 py-2.5 text-center">#</th>
             <th className="px-4 py-2.5">CODIGO VIAJE</th>
             <th className="px-4 py-2.5">Empresa / Conductor</th>
             <th className="px-4 py-2.5">Vehículo</th>
@@ -47,13 +48,15 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete }: Props) => {
         <tbody className="divide-y divide-[var(--yuriana-input-border)] text-xs">
           {data.length === 0 ? (
             <tr>
-              <td colSpan={10} className="py-16 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">
+              <td colSpan={11} className="py-16 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">
                 No hay viajes registrados con los filtros seleccionados.
               </td>
             </tr>
           ) : (
-            data.map((item) => (
+            data.map((item, index) => (
               <tr key={item.id_servicio} className="hover:bg-orange-50/30 transition-colors">
+              <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{index + 1}</td>
+
               {/* ID Viaje */}
               <td className="px-4 py-2.5">
                 <span className="font-black text-[var(--yuriana-base-orange)]">
@@ -118,7 +121,12 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete }: Props) => {
               <td className="px-4 py-2.5 text-center">
                 {(item as any).fecha_pago ? (
                   <span className="font-bold text-emerald-600">
-                    {new Date((item as any).fecha_pago).toLocaleDateString('es-BO', { timeZone: 'UTC' })}
+                    {new Intl.DateTimeFormat('es-BO', {
+                      timeZone: 'America/La_Paz',
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                    }).format(new Date((item as any).fecha_pago))}
                   </span>
                 ) : <span className="text-slate-400">-</span>}
               </td>

@@ -1,5 +1,6 @@
 "use client";
 import { TableActions } from "@/components/atoms/TableActions";
+import { formatDateBolivia } from "@/lib/date-bolivia";
 import { GastoAdministrativo, TipoGastoAdministrativo } from "@/types/gasto.types";
 
 interface Props {
@@ -9,14 +10,7 @@ interface Props {
   onDelete: (id: number) => void;
 }
 
-const fmtFecha = (iso: string) => {
-  if (!iso) return "-";
-  return new Date(iso).toLocaleDateString("es-BO", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-};
+const fmtFecha = (iso: string) => formatDateBolivia(iso);
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("es-BO", { maximumFractionDigits: 2 }).format(n);
@@ -35,6 +29,7 @@ export const GastoAdministrativoTable = ({ data, onView, onEdit, onDelete }: Pro
       <table className="w-full text-left border-collapse">
         <thead className="bg-[var(--yuriana-base-orange)] text-white uppercase text-[10px] font-black tracking-widest">
           <tr>
+            <th className="w-12 px-3 py-2.5 text-center">#</th>
             <th className="px-4 py-2.5">Fecha</th>
             <th className="px-4 py-2.5">Tipo de Gasto</th>
             <th className="px-4 py-2.5">Descripción</th>
@@ -45,13 +40,14 @@ export const GastoAdministrativoTable = ({ data, onView, onEdit, onDelete }: Pro
         <tbody className="divide-y divide-border bg-[var(--yuriana-base-white)] font-medium text-gray-700">
           {data.length === 0 ? (
             <tr>
-              <td colSpan={5} className="text-center py-12 text-[var(--yuriana-input-placeholder)] italic text-xs">
+              <td colSpan={6} className="text-center py-12 text-[var(--yuriana-input-placeholder)] italic text-xs">
                 No se encontraron gastos administrativos.
               </td>
             </tr>
           ) : (
-            data.map((item) => (
+            data.map((item, index) => (
               <tr key={item.id_gasto_admin} className="hover:bg-slate-50/80 transition-colors text-xs">
+                <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{index + 1}</td>
                 <td className="px-4 py-2.5 text-gray-600">
                   {fmtFecha(item.gasto?.fecha)}
                 </td>

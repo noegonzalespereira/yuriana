@@ -201,6 +201,13 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
   const [saving, setSaving] = useState(false);
   const facturaInputRef = useRef<HTMLInputElement>(null);
 
+  const toDateInputBolivia = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   // ── Listas para comboboxes ───────────────────────────────────────────────
   const [listaClientes, setListaClientes] = useState<Cliente[]>([]);
   const [listaAsignaciones, setListaAsignaciones] = useState<Asignacion[]>([]);
@@ -873,7 +880,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
           <Field label="Fecha Límite Pago">
             <input type="date" className={INPUT_CLASS} disabled readOnly
               value={fechaFin && periodoLiquidacion > 0
-                ? new Date(new Date(fechaFin).getTime() + periodoLiquidacion * 86400000).toISOString().slice(0, 10)
+                ? toDateInputBolivia(new Date(new Date(fechaFin).getTime() + periodoLiquidacion * 86400000))
                 : ""
               } />
           </Field>

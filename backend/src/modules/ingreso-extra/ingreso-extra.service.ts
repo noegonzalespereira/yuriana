@@ -5,6 +5,7 @@ import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IngresoExtra } from './entities/ingreso-extra.entity';
 import { Empresa } from '../empresa/entities/empresa.entity';
+import { parseDateOnlyBolivia } from '../servicio/date-utils';
 
 @Injectable()
 export class IngresoExtraService {
@@ -21,12 +22,13 @@ export class IngresoExtraService {
     const empresa = await this.empresaRepository.findOne({ where: {} });
     if (!empresa) throw new NotFoundException('No hay empresa registrada en el sistema');
 
-    const fecha = new Date(createIngresoExtraDto.fecha);
+    const fecha = parseDateOnlyBolivia(createIngresoExtraDto.fecha) ?? new Date();
     const nuevoIngresoExtra = this.ingresoExtraRepository.create({
       ...createIngresoExtraDto,
+      fecha,
       id_empresa: empresa.id_empresa,
-      mes: (fecha.getMonth() + 1).toString().padStart(2, '0'),
-      anio: fecha.getFullYear(),
+      mes: (fecha.getUTCMonth() + 1).toString().padStart(2, '0'),
+      anio: fecha.getUTCFullYear(),
       CreatedId: userId,
     });
     return this.ingresoExtraRepository.save(nuevoIngresoExtra);
@@ -87,9 +89,10 @@ export class IngresoExtraService {
 
     const extra: any = { ...updateIngresoExtraDto, UpdatedId: userId };
     if (updateIngresoExtraDto.fecha) {
-      const fecha = new Date(updateIngresoExtraDto.fecha);
-      extra.mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
-      extra.anio = fecha.getFullYear();
+      const fecha = parseDateOnlyBolivia(updateIngresoExtraDto.fecha) ?? new Date();
+      extra.fecha = fecha;
+      extra.mes = (fecha.getUTCMonth() + 1).toString().padStart(2, '0');
+      extra.anio = fecha.getUTCFullYear();
     }
 
     Object.assign(ingresoExtra, extra);

@@ -53,16 +53,15 @@ export const ReporteAsignacion = ({ data, tipoFormato, infoEmpresa }: ReportePro
   const formatearFechaLocal = (valor: string | Date | null | undefined) => {
     if (!valor) return null;
 
-    const raw = typeof valor === "string" ? valor : valor.toISOString();
-    const isoDate = raw.includes("T") ? raw.split("T")[0] : raw;
-    const match = /^\d{4}-\d{2}-\d{2}$/.test(isoDate) ? isoDate : null;
+    const date = typeof valor === "string" ? new Date(valor) : valor;
+    const formatter = new Intl.DateTimeFormat("es-BO", {
+      timeZone: "America/La_Paz",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
 
-    if (!match) return null;
-
-    const [anio, mes, dia] = match.split("-").map(Number);
-    const fecha = new Date(anio, mes - 1, dia);
-
-    return `${String(fecha.getDate()).padStart(2, "0")}/${String(fecha.getMonth() + 1).padStart(2, "0")}/${fecha.getFullYear()}`;
+    return formatter.format(date);
   };
 
   const fechaVencimientoPoliza = formatearFechaLocal(documentoSeguroPoliza?.fecha_vencimiento) ?? "VERIFICAR EN EXPEDIENTE";

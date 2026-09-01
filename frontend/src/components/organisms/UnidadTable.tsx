@@ -47,6 +47,7 @@ export const UnidadTable = ({ data, onDelete, onEdit, onView }: Props) => {
       <table className="w-full text-left border-collapse">
         <thead className="bg-[var(--yuriana-base-orange)] text-white uppercase text-[10px] font-black tracking-widest">
           <tr>
+            <th className="w-12 px-3 py-2.5 text-center">#</th>
             <th className="px-4 py-2.5">N° Placa</th>
             <th className="px-4 py-2.5">Tipo de Unidad</th>
             <th className="px-4 py-2.5">Detalles Mecánicos</th>
@@ -63,8 +64,10 @@ export const UnidadTable = ({ data, onDelete, onEdit, onView }: Props) => {
               </td>
             </tr>
           ) : (
-            data.map((item) => (
+            data.map((item, index) => (
               <tr key={item.id_unidad} className="hover:bg-slate-50/80 transition-colors text-xs">
+                <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{index + 1}</td>
+
                 {/* PLACA */}
                 <td className="px-4 py-2.5 font-black text-gray-900 tracking-tight uppercase">
                   {item.placa}

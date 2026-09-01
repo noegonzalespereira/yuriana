@@ -14,6 +14,7 @@ import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 import { FilterServicioDto } from './dto/filter-servicio.dto';
 import { AsignacionService } from '../asignacion/asignacion.service';
 import { Asignacion, EstadoAsignacion } from '../asignacion/entities/asignacion.entity';
+import { parseDateOnlyBolivia } from './date-utils';
 
 @Injectable()
 export class ServicioService {
@@ -90,7 +91,10 @@ export class ServicioService {
       // if (dto.es_facturado === 'si' && !files?.foto_factura?.length) {
       //   throw new BadRequestException('Si el viaje está facturado, debes subir al menos una foto de factura');
       // }
-      if (dto.fecha_fin && new Date(dto.fecha_fin) < new Date(dto.fecha_inicio)) {
+      const fechaInicioDate = parseDateOnlyBolivia(dto.fecha_inicio);
+      const fechaFinDate = dto.fecha_fin ? parseDateOnlyBolivia(dto.fecha_fin) : null;
+
+      if (fechaFinDate && fechaInicioDate && fechaFinDate < fechaInicioDate) {
         throw new BadRequestException('La fecha fin no puede ser menor a la fecha inicio');
       }
       if (dto.fecha_fin && (!dto.periodo_liquidacion || Number(dto.periodo_liquidacion) <= 0)) {
@@ -105,15 +109,14 @@ export class ServicioService {
         operacion_flete_adicional,
         ...restOfDto
       } = dto;
-      const fInicio = new Date(`${dto.fecha_inicio}T00:00:00`);
+      const fInicio = fechaInicioDate ?? new Date();
       const estadoServicio = dto.fecha_fin ? EstadoServicio.FINALIZADO : EstadoServicio.EN_CURSO;
       let fLimitePago: Date | null = null;
-      if (dto.fecha_fin) {
-        const fFin = new Date(`${dto.fecha_fin}T00:00:00`);
-        fLimitePago = new Date(fFin);
-        fLimitePago.setDate(fFin.getDate() + (dto.periodo_liquidacion || 0));
+      if (dto.fecha_fin && fechaFinDate) {
+        fLimitePago = new Date(fechaFinDate);
+        fLimitePago.setUTCDate(fLimitePago.getUTCDate() + (dto.periodo_liquidacion || 0));
       }
-      const fPago = dto.fecha_pago ? new Date(`${dto.fecha_pago}T00:00:00`) : null;
+      const fPago = dto.fecha_pago ? parseDateOnlyBolivia(dto.fecha_pago) : null;
       const montoBase = Number(dto.flete);
       const montoExtra = Number(dto.flete_adicional || 0);
       const operacion: OperacionFleteAdicional = operacion_flete_adicional || OperacionFleteAdicional.SUMA;
@@ -130,6 +133,8 @@ export class ServicioService {
       // 3. CREACIÓN DE ENTIDADES
       const servicio = queryRunner.manager.create(Servicio, {
         ...restOfDto,
+        fecha_inicio: fInicio,
+        fecha_fin: fechaFinDate,
         fecha_pago: fPago,
         operacion_flete_adicional: operacion, // Se asegura que el valor (incluyendo el default 'SUMA') se guarde
         periodo_liquidacion: dto.periodo_liquidacion || 0,
@@ -139,8 +144,8 @@ export class ServicioService {
         estado_servicio: estadoServicio,
         estado_pago: (urlVoucher || fPago) ? EstadoPago.PAGADO : EstadoPago.PENDIENTE,
         comprobante_pago: urlVoucher,
-        mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
-        anio: fInicio.getFullYear(),
+        mes: (fInicio.getUTCMonth() + 1).toString().padStart(2, '0'),
+        anio: fInicio.getUTCFullYear(),
         fecha_registro: new Date(),
         CreatedId: userId,
         codigo_servicio: `TEMP-${Date.now()}`,
@@ -155,9 +160,9 @@ export class ServicioService {
           id_servicio: guardado.id_servicio,
           factura_transporte: String(dto.factura_transporte ?? ''),
           monto_factura: dto.monto_factura || fleteTotalBs,
-          fecha_emision: fInicio,
-          mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
-          anio: fInicio.getFullYear(),
+          fecha_emision: new Date(Date.UTC(fInicio.getUTCFullYear(), fInicio.getUTCMonth(), fInicio.getUTCDate(), 12, 0, 0)),
+          mes: (fInicio.getUTCMonth() + 1).toString().padStart(2, '0'),
+          anio: fInicio.getUTCFullYear(),
           CreatedId: userId,
         });
         const facturaGuardada = await queryRunner.manager.save(factura);
@@ -313,9 +318,11 @@ export class ServicioService {
         throw new BadRequestException('No se puede borrar y establecer la fecha de fin al mismo tiempo');
       }
 
-      // FIX: Interpretar la fecha como local para evitar el desfase de zona horaria.
-      const fechaInicioFinal = dto.fecha_inicio ? new Date(`${dto.fecha_inicio}T00:00:00`) : servicio.fecha_inicio;
-      const fechaFinFinal = debeBorrarFechaFin ? null : (dto.fecha_fin ? new Date(`${dto.fecha_fin}T00:00:00`) : servicio.fecha_fin);
+      const fechaInicioFinal = dto.fecha_inicio ? parseDateOnlyBolivia(dto.fecha_inicio) ?? servicio.fecha_inicio : servicio.fecha_inicio;
+      const fechaFinFinal = debeBorrarFechaFin ? null : (dto.fecha_fin ? parseDateOnlyBolivia(dto.fecha_fin) ?? servicio.fecha_fin : servicio.fecha_fin);
+
+      servicio.fecha_inicio = fechaInicioFinal;
+      servicio.fecha_fin = fechaFinFinal;
 
       if (fechaFinFinal && fechaFinFinal < fechaInicioFinal) {
         throw new BadRequestException('La fecha fin no puede ser menor a la fecha inicio');
@@ -341,25 +348,33 @@ export class ServicioService {
 
       // Si se proporciona una fecha de pago, actualizar el estado a PAGADO
       if (dto.fecha_pago) {
-        servicio.fecha_pago = new Date(`${dto.fecha_pago}T00:00:00`);
+        servicio.fecha_pago = parseDateOnlyBolivia(dto.fecha_pago) ?? new Date();
         servicio.estado_pago = EstadoPago.PAGADO;
       }
 
       if (dto.es_facturado === 'si') {
         let factura = await queryRunner.manager.findOne(Factura, { where: { id_servicio: id } });
+        const fechaBaseCalendario = dto.fecha_inicio
+          ? String(dto.fecha_inicio).slice(0, 10)
+          : servicio.fecha_inicio instanceof Date
+            ? servicio.fecha_inicio.toISOString().slice(0, 10)
+            : String(servicio.fecha_inicio).slice(0, 10);
+        const fechaEmisionBase = new Date(`${fechaBaseCalendario}T12:00:00Z`);
+
         if (!factura) {
-          const fechaInicioDate = new Date(servicio.fecha_inicio);
           factura = queryRunner.manager.create(Factura, {
             id_servicio: id,
             factura_transporte: String(dto.factura_transporte ?? ''),
             monto_factura: dto.monto_factura ?? servicio.total_flete,
-            fecha_emision: fechaInicioDate,
-            mes: (fechaInicioDate.getMonth() + 1).toString().padStart(2, '0'),
-            anio: fechaInicioDate.getFullYear(),
+            fecha_emision: fechaEmisionBase,
+            mes: (fechaEmisionBase.getUTCMonth() + 1).toString().padStart(2, '0'),
+            anio: fechaEmisionBase.getUTCFullYear(),
             CreatedId: userId,
           });
         } else {
-          // Si la factura ya existe, actualizamos sus datos si vienen en el DTO
+          factura.fecha_emision = fechaEmisionBase;
+          factura.mes = (fechaEmisionBase.getUTCMonth() + 1).toString().padStart(2, '0');
+          factura.anio = fechaEmisionBase.getUTCFullYear();
           if (dto.factura_transporte !== undefined) factura.factura_transporte = String(dto.factura_transporte);
           if (dto.monto_factura !== undefined) factura.monto_factura = dto.monto_factura;
           factura.UpdatedId = userId;
@@ -397,10 +412,10 @@ export class ServicioService {
         servicio.fecha_limite_pago = null;
         servicio.estado_servicio = EstadoServicio.EN_CURSO;
       } else if (dto.fecha_fin) {
-        servicio.fecha_fin = new Date(`${dto.fecha_fin}T00:00:00`);
+        servicio.fecha_fin = parseDateOnlyBolivia(dto.fecha_fin) ?? new Date();
         servicio.estado_servicio = EstadoServicio.FINALIZADO;
         const fLimite = new Date(servicio.fecha_fin);
-        fLimite.setDate(fLimite.getDate() + (dto.periodo_liquidacion ?? servicio.periodo_liquidacion ?? 0));
+        fLimite.setUTCDate(fLimite.getUTCDate() + (dto.periodo_liquidacion ?? servicio.periodo_liquidacion ?? 0));
         servicio.fecha_limite_pago = fLimite;
       }
 

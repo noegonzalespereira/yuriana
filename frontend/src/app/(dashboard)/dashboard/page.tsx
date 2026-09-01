@@ -26,7 +26,13 @@ const fmt = (n: number) =>
 
 const fmtFecha = (iso: string | null) => {
   if (!iso) return "-";
-  return new Date(iso).toLocaleDateString("es-BO", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const date = new Date(iso);
+  return new Intl.DateTimeFormat("es-BO", {
+    timeZone: "America/La_Paz",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
 };
 
 const ESTADO_PAGO_STYLE: Record<string, string> = {

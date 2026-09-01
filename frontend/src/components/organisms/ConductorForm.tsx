@@ -46,8 +46,18 @@ export const ConductorForm = ({ initialData, onSubmit, onCancel, isReadOnly }: P
           
           docsData.forEach(doc => {
             if (doc.fecha_vencimiento) {
-              const formattedDate = new Date(doc.fecha_vencimiento).toISOString().split('T')[0];
-              setValue(`fecha_req_${doc.id_requisito}`, formattedDate);
+              const date = new Date(doc.fecha_vencimiento);
+              const formatter = new Intl.DateTimeFormat("en-CA", {
+                timeZone: "America/La_Paz",
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+              });
+              const parts = formatter.formatToParts(date);
+              const year = parts.find((p) => p.type === "year")?.value ?? "2024";
+              const month = parts.find((p) => p.type === "month")?.value ?? "01";
+              const day = parts.find((p) => p.type === "day")?.value ?? "01";
+              setValue(`fecha_req_${doc.id_requisito}`, `${year}-${month}-${day}`);
             }
           });
         }

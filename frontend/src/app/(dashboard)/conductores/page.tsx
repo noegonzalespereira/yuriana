@@ -130,7 +130,20 @@ export default function ConductoresPage() {
           form.append("id_requisito", idReq.toString());
           form.append("id_conductor", selectedConductor.id_conductor.toString());
           if (fileObj) form.append("file", fileObj);
-          if (fechaVenc) form.append("fecha_vencimiento", new Date(fechaVenc).toISOString());
+          if (fechaVenc) {
+            const date = new Date(fechaVenc);
+            const formatter = new Intl.DateTimeFormat("en-CA", {
+              timeZone: "America/La_Paz",
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            });
+            const parts = formatter.formatToParts(date);
+            const year = parts.find((p) => p.type === "year")?.value ?? "2024";
+            const month = parts.find((p) => p.type === "month")?.value ?? "01";
+            const day = parts.find((p) => p.type === "day")?.value ?? "01";
+            form.append("fecha_vencimiento", `${year}-${month}-${day}`);
+          }
           await uploadDocumentoConductor(form);
         }
       } else {

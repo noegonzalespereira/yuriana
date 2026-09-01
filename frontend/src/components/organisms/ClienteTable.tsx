@@ -15,17 +15,18 @@ export const ClienteTable = ({ data, onDelete, onEdit, onView }: Props) => {
       <table className="w-full text-left border-collapse">
         <thead className="bg-[var(--yuriana-base-orange)] text-white uppercase text-[10px] font-black tracking-widest">
           <tr>
+            <th className="w-12 px-3 py-2.5 text-center">#</th>
             <th className="px-4 py-2.5">ID Cliente</th>
             <th className="px-4 py-2.5">Empresa</th>
             <th className="px-4 py-2.5">Cliente</th>
             <th className="px-4 py-2.5">Contacto</th>
-          
             <th className="px-4 py-2.5 text-center">Acciones</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border bg-[var(--yuriana-base-white)] font-medium text-gray-700">
-          {data.map((item) => (
+          {data.map((item, index) => (
             <tr key={item.id_cliente} className="hover:bg-slate-50/80 transition-colors text-xs">
+              <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{index + 1}</td>
               <td className="px-4 py-2.5 font-black text-[var(--yuriana-base-gray-dark)]">{item.codigo_cliente}</td>
               <td className="px-4 py-2.5">
                 <div className="flex flex-col">

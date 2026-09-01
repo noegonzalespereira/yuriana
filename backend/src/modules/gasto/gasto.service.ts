@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository, In } from 'typeorm';
+import { parseDateOnlyBolivia } from '../servicio/date-utils';
 
 // Entidades Centralizadas del Módulo
 import { Gasto } from './entities/gasto.entity';
@@ -68,8 +69,8 @@ export class GastosService {
           // LÓGICA MEJORADA: La fecha de la cabecera será la fecha más reciente de sus detalles.
           if (dto.items.length === 0) throw new BadRequestException('Debe agregar al menos un detalle de gasto.');
           
-          const fechasItems = dto.items.map(item => new Date(`${item.fecha}T00:00:00`));
-          const fechaMasReciente = new Date(Math.max.apply(null, fechasItems));
+          const fechasItems = dto.items.map(item => parseDateOnlyBolivia(item.fecha) ?? new Date());
+          const fechaMasReciente = new Date(Math.max.apply(null, fechasItems.map(date => date.getTime())));
 
           // Creamos la cabecera de la rendición del viaje
           const cabeceraGasto = queryRunner.manager.create(GastosServicio, {
@@ -89,13 +90,12 @@ export class GastosService {
 
           // Insertamos todas las filas en el Detalle relacionándolas también a la tabla general Gasto
           for (const item of dto.items) {
-            // FIX: Interpretar la fecha como local para evitar el desfase de zona horaria.
-            const fGasto = new Date(`${item.fecha}T00:00:00`);
+            const fGasto = parseDateOnlyBolivia(item.fecha) ?? new Date();
             
             const gastoMaestro = queryRunner.manager.create(Gasto, {
               fecha: fGasto,
-              mes: (fGasto.getMonth() + 1).toString().padStart(2, '0'),
-              anio: fGasto.getFullYear(),
+              mes: (fGasto.getUTCMonth() + 1).toString().padStart(2, '0'),
+              anio: fGasto.getUTCFullYear(),
               descripcion: item.descripcion,
               monto: item.monto,
               CreatedId: userId
@@ -121,13 +121,12 @@ export class GastosService {
           if (!unidadExistente) throw new NotFoundException('La unidad vehicular no existe');
 
           for (const item of dto.items) {
-            // FIX: Interpretar la fecha como local.
-            const fGasto = new Date(`${item.fecha}T00:00:00`);
+            const fGasto = parseDateOnlyBolivia(item.fecha) ?? new Date();
 
             const gastoMaestro = queryRunner.manager.create(Gasto, {
               fecha: fGasto,
-              mes: (fGasto.getMonth() + 1).toString().padStart(2, '0'),
-              anio: fGasto.getFullYear(),
+              mes: (fGasto.getUTCMonth() + 1).toString().padStart(2, '0'),
+              anio: fGasto.getUTCFullYear(),
               descripcion: item.descripcion,
               monto: item.monto,
               CreatedId: userId
@@ -148,13 +147,12 @@ export class GastosService {
 
         case TipoPestaña.ADMINISTRATIVO: {
           for (const item of dto.items) {
-            // FIX: Interpretar la fecha como local.
-            const fGasto = new Date(`${item.fecha}T00:00:00`);
+            const fGasto = parseDateOnlyBolivia(item.fecha) ?? new Date();
 
             const gastoMaestro = queryRunner.manager.create(Gasto, {
               fecha: fGasto,
-              mes: (fGasto.getMonth() + 1).toString().padStart(2, '0'),
-              anio: fGasto.getFullYear(),
+              mes: (fGasto.getUTCMonth() + 1).toString().padStart(2, '0'),
+              anio: fGasto.getUTCFullYear(),
               descripcion: item.descripcion,
               monto: item.monto,
               CreatedId: userId
@@ -174,13 +172,12 @@ export class GastosService {
 
         case TipoPestaña.GENERAL: {
           for (const item of dto.items) {
-            // FIX: Interpretar la fecha como local.
-            const fGasto = new Date(`${item.fecha}T00:00:00`);
+            const fGasto = parseDateOnlyBolivia(item.fecha) ?? new Date();
 
             const gastoMaestro = queryRunner.manager.create(Gasto, {
               fecha: fGasto,
-              mes: (fGasto.getMonth() + 1).toString().padStart(2, '0'),
-              anio: fGasto.getFullYear(),
+              mes: (fGasto.getUTCMonth() + 1).toString().padStart(2, '0'),
+              anio: fGasto.getUTCFullYear(),
               descripcion: item.descripcion,
               monto: item.monto,
               CreatedId: userId

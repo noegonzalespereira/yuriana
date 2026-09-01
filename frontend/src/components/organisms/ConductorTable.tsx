@@ -31,6 +31,7 @@ export const ConductorTable = ({ data, onDelete, onEdit, onView }: Props) => {
       <table className="w-full text-left border-collapse">
         <thead className="bg-[var(--yuriana-base-orange)] text-white uppercase text-[10px] font-black tracking-widest">
           <tr>
+            <th className="w-12 px-3 py-2.5 text-center">#</th>
             <th className="px-4 py-2.5">Conductor</th>
             <th className="px-4 py-2.5">Contacto</th>
             <th className="px-4 py-2.5">Estado Laboral</th>
@@ -47,8 +48,9 @@ export const ConductorTable = ({ data, onDelete, onEdit, onView }: Props) => {
               </td>
             </tr>
           ) : (
-            data.map((item) => (
+            data.map((item, index) => (
               <tr key={item.id_conductor} className="hover:bg-slate-50/80 transition-colors text-xs">
+                <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{index + 1}</td>
                 <td className="px-4 py-2.5">
                   <div className="flex flex-col">
                     <span className="font-bold text-[var(--yuriana-base-gray-dark)]">{item.persona.nombre}</span>

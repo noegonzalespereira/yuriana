@@ -30,8 +30,18 @@ import {
 type Vista = "list" | "form";
 
 const hoy = new Date();
-const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().slice(0, 10);
-const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).toISOString().slice(0, 10);
+const primerDiaMes = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/La_Paz",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+}).format(new Date(hoy.getFullYear(), hoy.getMonth(), 1)).replace('/', '-').replace('/', '-');
+const ultimoDiaMes = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/La_Paz",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+}).format(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0)).replace('/', '-').replace('/', '-');
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("es-BO", { maximumFractionDigits: 2 }).format(n);

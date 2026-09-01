@@ -18,9 +18,29 @@ import { FacturaItem, TotalesFacturacion, FacturacionFilters } from "@/types/fac
 const fmt = (n: number) =>
   new Intl.NumberFormat("es-BO", { maximumFractionDigits: 2 }).format(n);
 
+const parseFechaNegocio = (value: string) => {
+  if (!value) return null;
+
+  const [fechaBase] = value.split("T");
+  const [year, month, day] = (fechaBase || value).split("-").map(Number);
+
+  if (!year || !month || !day) return null;
+
+  return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+};
+
 const fmtFecha = (iso: string) => {
   if (!iso) return "-";
-  return new Date(iso).toLocaleDateString("es-BO", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+  const date = parseFechaNegocio(iso) ?? new Date(iso);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return new Intl.DateTimeFormat("es-BO", {
+    timeZone: "America/La_Paz",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
 };
 
 const tipoViajeLabel = (tipo: string) => {
@@ -34,8 +54,14 @@ const esPdf = (url: string) => /\.pdf($|\?)/i.test(url);
 const PAGE_SIZE = 10;
 
 const hoy = new Date();
-const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().slice(0, 10);
-const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).toISOString().slice(0, 10);
+const toDateInputLocal = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+const primerDiaMes = toDateInputLocal(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+const ultimoDiaMes = toDateInputLocal(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0));
 
 type ModalType = "ver" | "editar" | "eliminar" | null;
 
@@ -361,7 +387,7 @@ export default function FacturacionPage() {
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-[var(--yuriana-base-orange)] text-white">
-                {["ID Viaje", "Factura de Transporte", "Tipo Viaje", "Fecha Emisión", "Monto", "IT Individual", "Acciones"].map((col) => (
+                {["#", "ID Viaje", "Factura de Transporte", "Tipo Viaje", "Fecha Emisión", "Monto", "IT Individual", "Acciones"].map((col) => (
                   <th key={col} className="px-5 py-3.5 text-left font-black uppercase tracking-wider whitespace-nowrap">
                     {col}
                   </th>
@@ -371,13 +397,13 @@ export default function FacturacionPage() {
             <tbody>
               {loading ? ( // Ajustar colSpan para la nueva columna
                 <tr>
-                  <td colSpan={7} className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic font-medium">
+                  <td colSpan={8} className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic font-medium">
                     Cargando registros...
                   </td>
                 </tr>
               ) : registrosPagina.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic font-medium uppercase tracking-wide text-[10px]">
+                  <td colSpan={8} className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic font-medium uppercase tracking-wide text-[10px]">
                     No se encontraron registros de facturación.
                   </td>
                 </tr>
@@ -389,6 +415,7 @@ export default function FacturacionPage() {
                       i % 2 === 0 ? "bg-white" : "bg-slate-50/40"
                     }`}
                   >
+                    <td className="px-5 py-4 text-center font-bold text-slate-400">{i + 1}</td>
                     <td className="px-5 py-4 font-bold text-[var(--yuriana-base-gray-dark)]">
                       {f.servicio?.codigo_servicio ?? "-"}
                     </td>
