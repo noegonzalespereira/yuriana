@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString, IsOptional, Min } from "class-validator";
+import { IsNotEmpty, IsNumber, IsString, IsOptional, Min, IsBoolean } from "class-validator";
 import { Transform } from "class-transformer";
 
 export class CreateFacturacionDto {
@@ -20,4 +20,9 @@ export class CreateFacturacionDto {
     @IsOptional()
     @IsString()
     foto_factura?: string;
+
+    @IsOptional()
+    @IsBoolean()
+    @Transform(({ value }) => value === true || value === 'true')
+    transmitido?: boolean;
 }

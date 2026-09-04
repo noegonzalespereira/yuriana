@@ -30,12 +30,30 @@ export class CreateServicioDto {
   @Transform(toUpperTrim)
   crt?: string;
 
-  @IsString() 
+  @IsOptional()
+  @IsNumber()
+  @Transform(({ value }) => (value === '' || value === null || value === undefined ? null : parseInt(value, 10)))
+  id_embarque?: number | null;
+
+  @IsOptional()
+  @IsString()
   es_facturado!: 'si' | 'no';
   @IsOptional()
   @IsString()
   @Transform(toUpperTrim)
   factura_transporte?: string;
+
+  @IsOptional()
+  @IsString()
+  facturas?: string;
+
+  @IsOptional()
+  @IsString()
+  facturas_actualizar?: string;
+
+  @IsOptional()
+  @IsString()
+  facturas_eliminar?: string;
 
   @IsOptional()
   @IsNumber()

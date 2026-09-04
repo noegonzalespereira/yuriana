@@ -59,6 +59,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      target: dev
     restart: always
     command: npm run dev
     env_file:
@@ -70,6 +71,7 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+      - /app/.next 
     depends_on:
       - backend
     networks:

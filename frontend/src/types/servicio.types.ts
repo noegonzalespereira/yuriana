@@ -22,6 +22,14 @@ export enum Moneda {
   BOLIVIANOS = 'BOLIVIANOS',
 }
 
+export interface Embarque {
+  id_embarque: number;
+  crt: string;
+  total_unidades: number;
+  unidades_restantes: number;
+  visible: boolean;
+}
+
 export interface ServicioItem {
   id_servicio: number;
   codigo_servicio: string;
@@ -31,6 +39,8 @@ export interface ServicioItem {
   origen: string;
   destino: string;
   crt?: string;
+  id_embarque?: number | null;
+  embarque?: Embarque | null;
   id_cliente: number;
   cliente: {
     id_cliente: number;
@@ -66,13 +76,14 @@ export interface ServicioItem {
   estado_pago: EstadoPago;
   estado_servicio: EstadoServicio;
   fecha_registro: string;
-  factura?: {
+  facturas?: {
     id_factura: number;
     factura_transporte: string;
     monto_factura: number;
     foto_factura?: string;
     fotos: { id_foto_factura: number; url_foto: string }[];
-  };
+    transmitido: boolean;
+  }[];
   documentos?: {
     id_documento: number;
     url_documento: string;

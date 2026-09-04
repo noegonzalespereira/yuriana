@@ -18,12 +18,13 @@ export class ServicioController {
   @Roles('ADMIN')
   @UseInterceptors(FileFieldsInterceptor([
     { name: 'foto_factura', maxCount: 10 },
+    { name: 'facturas_fotos', maxCount: 50 },
     { name: 'documentacion_aduanera', maxCount: 10 },
     { name: 'vaucher', maxCount: 1 },
   ], { limits: { fileSize: 10 * 1024 * 1024 } }))
   create(
     @Body() dto: CreateServicioDto,
-    @UploadedFiles() files: { foto_factura?: Express.Multer.File[], documentacion_aduanera?: Express.Multer.File[], vaucher?: Express.Multer.File[] },
+    @UploadedFiles() files: { foto_factura?: Express.Multer.File[], facturas_fotos?: Express.Multer.File[], documentacion_aduanera?: Express.Multer.File[], vaucher?: Express.Multer.File[] },
     @Request() req
   ) {
     return this.servicioService.create(dto, files, req.user.id);
@@ -64,13 +65,14 @@ export class ServicioController {
   @Roles('ADMIN')
   @UseInterceptors(FileFieldsInterceptor([
     { name: 'foto_factura', maxCount: 10 },
+    { name: 'facturas_fotos', maxCount: 50 },
     { name: 'documentacion_aduanera', maxCount: 10 },
     { name: 'vaucher', maxCount: 1 },
   ], { limits: { fileSize: 10 * 1024 * 1024 } }))
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateServicioDto,
-    @UploadedFiles() files: { foto_factura?: Express.Multer.File[], documentacion_aduanera?: Express.Multer.File[], vaucher?: Express.Multer.File[] },
+    @UploadedFiles() files: { foto_factura?: Express.Multer.File[], facturas_fotos?: Express.Multer.File[], documentacion_aduanera?: Express.Multer.File[], vaucher?: Express.Multer.File[] },
     @Request() req
   ) {
     return this.servicioService.update(id, dto, files, req.user.id);

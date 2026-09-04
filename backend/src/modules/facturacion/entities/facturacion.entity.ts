@@ -1,4 +1,4 @@
-import { Column, OneToOne, OneToMany, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, JoinColumn, Entity} from "typeorm";
+import { Column, OneToMany, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, JoinColumn, Entity, ManyToOne} from "typeorm";
 import { Servicio } from "../../servicio/entities/servicio.entity";
 import { FotoFactura } from "./foto-factura.entity";
 
@@ -7,7 +7,7 @@ export class Factura {
     @PrimaryGeneratedColumn()
     id_factura!: number;
 
-    @OneToOne(() => Servicio, {onDelete: 'RESTRICT'})
+    @ManyToOne(() => Servicio, (servicio) => servicio.facturas, { onDelete: 'RESTRICT' })
     @JoinColumn({ name: 'id_servicio' })
     servicio!: Servicio;
 
@@ -25,6 +25,9 @@ export class Factura {
 
     @OneToMany(() => FotoFactura, (f) => f.factura, { cascade: true, eager: false })
     fotos!: FotoFactura[];
+
+    @Column({ default: true })
+    transmitido!: boolean;
 
     @Column({ type: 'date' })
     fecha_emision!: Date;

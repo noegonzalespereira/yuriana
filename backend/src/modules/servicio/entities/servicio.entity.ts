@@ -1,10 +1,11 @@
-import { Column,Index, Entity, ManyToOne, PrimaryGeneratedColumn, JoinColumn, CreateDateColumn, UpdateDateColumn, OneToMany, OneToOne} from "typeorm";
+import { Column,Index, Entity, ManyToOne, PrimaryGeneratedColumn, JoinColumn, CreateDateColumn, UpdateDateColumn, OneToMany} from "typeorm";
 import { Asignacion } from "../../asignacion/entities/asignacion.entity";
 import { Colaborador } from "../../colaborador/entities/colaborador.entity";
 import { CategoriaEntidad } from "../../categoria-entidad/entities/categoria-entidad.entity";
 import { Cliente } from "../../cliente/entities/cliente.entity";
 import { Documento } from "../../documento/entities/documento.entity";
 import { Factura } from "../../facturacion/entities/facturacion.entity";
+import { Embarque } from "../../embarque/entities/embarque.entity";
 
 export enum EstadoPago {
     PAGADO = 'PAGADO',
@@ -55,8 +56,18 @@ export class Servicio {
     @Column()
     destino!: string;
 
+    @Column({ type: 'varchar', nullable: true })
+    crt?: string | null;
+
+    @ManyToOne(() => Embarque, (embarque) => embarque.servicios, { nullable: true, onDelete: 'RESTRICT' })
+    @JoinColumn({ name: 'id_embarque' })
+    embarque?: Embarque | null;
+
     @Column({ nullable: true })
-    crt?: string;
+    id_embarque?: number | null;
+    
+    @OneToMany(() => Factura, (factura) => factura.servicio)
+    facturas!: Factura[];
 
     @ManyToOne(() => Cliente, {onDelete: 'RESTRICT'})
     @JoinColumn({ name: 'id_cliente' })
@@ -137,9 +148,6 @@ export class Servicio {
 
     @OneToMany(() => Documento, (documento) => documento.servicio)
     documentos!: Documento[];
-
-    @OneToOne(() => Factura, (factura) => factura.servicio)
-    factura?: Factura;
 
     @CreateDateColumn()
     createdAt!: Date;

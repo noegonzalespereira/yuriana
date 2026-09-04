@@ -15,6 +15,7 @@ import { FilterServicioDto } from './dto/filter-servicio.dto';
 import { AsignacionService } from '../asignacion/asignacion.service';
 import { Asignacion, EstadoAsignacion } from '../asignacion/entities/asignacion.entity';
 import { parseDateOnlyBolivia } from './date-utils';
+import { Embarque } from '../embarque/entities/embarque.entity';
 
 @Injectable()
 export class ServicioService {
@@ -25,6 +26,32 @@ export class ServicioService {
     private readonly dataSource: DataSource,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
+
+  private async reservarEmbarque(idEmbarque: number, queryRunner: any, userId: number): Promise<Embarque> {
+    const embarque = await queryRunner.manager.findOne(Embarque, {
+      where: { id_embarque: idEmbarque, status: true },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (!embarque || !embarque.visible || embarque.unidades_restantes <= 0) {
+      throw new ConflictException('El CRT seleccionado no tiene viajes disponibles');
+    }
+    embarque.unidades_restantes -= 1;
+    embarque.visible = embarque.unidades_restantes > 0;
+    embarque.UpdatedId = userId;
+    return queryRunner.manager.save(Embarque, embarque);
+  }
+
+  private async liberarEmbarque(idEmbarque: number, queryRunner: any, userId: number) {
+    const embarque = await queryRunner.manager.findOne(Embarque, {
+      where: { id_embarque: idEmbarque, status: true },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (!embarque) return;
+    embarque.unidades_restantes = Math.min(embarque.total_unidades, embarque.unidades_restantes + 1);
+    embarque.visible = true;
+    embarque.UpdatedId = userId;
+    await queryRunner.manager.save(Embarque, embarque);
+  }
 
  
   private async validateAsignacion(id_asignacion: number, queryRunner: any): Promise<Asignacion> {
@@ -84,8 +111,8 @@ export class ServicioService {
       const categoria = await queryRunner.manager.findOne(CategoriaEntidad, { where: { id_categoria: dto.id_categoria } });
       const esInternacional = categoria?.tipo_categoria?.toUpperCase().includes('INTERNACIONAL') ?? false;
 
-      if (esInternacional && !dto.crt?.trim()) {
-        throw new BadRequestException('El CRT es obligatorio para viajes internacionales');
+      if (esInternacional && !dto.id_embarque) {
+        throw new BadRequestException('El embarque y CRT son obligatorios para viajes internacionales');
       }
       // La validación de factura es más compleja y se maneja mejor en el frontend al finalizar.
       // if (dto.es_facturado === 'si' && !files?.foto_factura?.length) {
@@ -105,7 +132,9 @@ export class ServicioService {
       const {
         ids_requisitos_aduaneros, // Excluir del spread
         es_facturado,
+        facturas: facturasPayload,
         fecha_pago,
+        crt: _crt,
         operacion_flete_adicional,
         ...restOfDto
       } = dto;
@@ -152,30 +181,54 @@ export class ServicioService {
       });
 
       const guardado = await queryRunner.manager.save(servicio);
+      if (dto.id_embarque) {
+        const embarque = await this.reservarEmbarque(dto.id_embarque, queryRunner, userId);
+        guardado.embarque = embarque;
+        guardado.id_embarque = embarque.id_embarque;
+        guardado.crt = embarque.crt;
+        await queryRunner.manager.save(guardado);
+      }
       guardado.codigo_servicio = `YUR-${guardado.id_servicio}`;
       await queryRunner.manager.save(guardado);
 
-      if (dto.es_facturado === 'si') {
+      let facturasNuevas: any[] = [];
+      if (facturasPayload) {
+        try {
+          facturasNuevas = JSON.parse(String(facturasPayload));
+        } catch {
+          throw new BadRequestException('El formato de las facturas no es válido');
+        }
+        if (!Array.isArray(facturasNuevas)) {
+          throw new BadRequestException('El listado de facturas no es válido');
+        }
+      } else if (dto.es_facturado === 'si') {
+        facturasNuevas = [{
+          factura_transporte: dto.factura_transporte,
+          monto_factura: dto.monto_factura || fleteTotalBs,
+          transmitido: true,
+          foto_indices: (files?.foto_factura ?? []).map((_, indice) => indice),
+        }];
+      }
+
+      for (const datosFactura of facturasNuevas) {
         const factura = queryRunner.manager.create(Factura, {
           id_servicio: guardado.id_servicio,
-          factura_transporte: String(dto.factura_transporte ?? ''),
-          monto_factura: dto.monto_factura || fleteTotalBs,
+          factura_transporte: String(datosFactura.factura_transporte ?? ''),
+          monto_factura: Number(datosFactura.monto_factura ?? fleteTotalBs),
+          transmitido: datosFactura.transmitido !== false,
           fecha_emision: new Date(Date.UTC(fInicio.getUTCFullYear(), fInicio.getUTCMonth(), fInicio.getUTCDate(), 12, 0, 0)),
           mes: (fInicio.getUTCMonth() + 1).toString().padStart(2, '0'),
           anio: fInicio.getUTCFullYear(),
           CreatedId: userId,
         });
         const facturaGuardada = await queryRunner.manager.save(factura);
-
-        if (files?.foto_factura?.length) {
-          for (const file of files.foto_factura) {
-            const { url } = await this.cloudinaryService.subirArchivo(file, 'yuriana/facturas');
-            await queryRunner.manager.save(FotoFactura, {
-              id_factura: facturaGuardada.id_factura,
-              url_foto: url,
-              CreatedId: userId,
-            });
-          }
+        const archivos = facturasPayload ? files?.facturas_fotos : files?.foto_factura;
+        const indicesFotos = Array.isArray(datosFactura.foto_indices) ? datosFactura.foto_indices : [];
+        for (const indiceFoto of indicesFotos) {
+          const file = archivos?.[Number(indiceFoto)];
+          if (!file) continue;
+          const { url } = await this.cloudinaryService.subirArchivo(file, 'yuriana/facturas');
+          await queryRunner.manager.save(FotoFactura, { id_factura: facturaGuardada.id_factura, url_foto: url, CreatedId: userId });
         }
       }
 
@@ -242,8 +295,7 @@ export class ServicioService {
       .leftJoinAndSelect('servicio.documentos', 'documento') 
       .leftJoinAndSelect('documento.requisito_documento', 'requisito') // Documento -> Requisito
       .leftJoinAndSelect('requisito.categoria', 'categoriaRequisito')  // Requisito -> Categoría
-      .leftJoin('factura', 'factura', 'factura.id_servicio = servicio.id_servicio')
-      .addSelect('factura.id_factura', 'id_factura') 
+      .leftJoinAndSelect('servicio.facturas', 'factura')
       .where('servicio.status = :status', { status: true });
 
     if (filters.buscar) {
@@ -260,9 +312,9 @@ export class ServicioService {
 
     if (filters.facturado !== undefined) {
       if (filters.facturado === 'si') {
-        query.andWhere('factura.id_factura IS NOT NULL');
+        query.andWhere('factura.id_factura IS NOT NULL AND factura.status = true');
       } else {
-        query.andWhere('factura.id_factura IS NULL');
+        query.andWhere('(factura.id_factura IS NULL OR factura.status = false)');
       }
     }
 
@@ -276,7 +328,7 @@ export class ServicioService {
   async findOne(id: number): Promise<Servicio> {
     const servicio = await this.servicioRepo.findOne({
       where: { id_servicio: id, status: true },
-      relations: ['categoria', 'cliente', 'cliente.persona', 'asignacion', 'asignacion.conductor.persona', 'asignacion.tracto', 'asignacion.tracto.categoria', 'asignacion.tracto.documentos', 'asignacion.tracto.documentos.requisito_documento', 'asignacion.remolque', 'colaborador', 'colaborador.persona', 'factura', 'factura.fotos', 'documentos','documentos.requisito_documento','documentos.requisito_documento.categoria']
+      relations: ['categoria', 'cliente', 'cliente.persona', 'asignacion', 'asignacion.conductor.persona', 'asignacion.tracto', 'asignacion.tracto.categoria', 'asignacion.tracto.documentos', 'asignacion.tracto.documentos.requisito_documento', 'asignacion.remolque', 'colaborador', 'colaborador.persona', 'facturas', 'facturas.fotos', 'documentos','documentos.requisito_documento','documentos.requisito_documento.categoria', 'embarque']
     });
     if (!servicio) throw new NotFoundException('Servicio no encontrado');
     return servicio;
@@ -285,7 +337,7 @@ export class ServicioService {
   async update(
     id: number,
     dto: UpdateServicioDto,
-    files: { foto_factura?: Express.Multer.File[], documentacion_aduanera?: Express.Multer.File[], vaucher?: Express.Multer.File[] },
+    files: { foto_factura?: Express.Multer.File[], facturas_fotos?: Express.Multer.File[], documentacion_aduanera?: Express.Multer.File[], vaucher?: Express.Multer.File[] },
     userId: number) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -294,7 +346,7 @@ export class ServicioService {
     try {
       const servicio = await queryRunner.manager.findOne(Servicio, {
         where: { id_servicio: id, status: true },
-        relations: ['asignacion'],
+        relations: ['asignacion', 'embarque'],
       });
       if (!servicio) throw new NotFoundException('Servicio no encontrado');
 
@@ -311,7 +363,7 @@ export class ServicioService {
 
       const oldAsignacion = servicio.asignacion;
       const oldEstadoServicio = servicio.estado_servicio;
-      const { borrar_fecha_fin, fecha_pago, ...datosActualizar } = dto;
+      const { borrar_fecha_fin, fecha_pago, facturas, facturas_actualizar, facturas_eliminar, es_facturado, factura_transporte, monto_factura, id_embarque, crt: _crt, ...datosActualizar } = dto;
       const debeBorrarFechaFin = String(borrar_fecha_fin) === 'true';
 
       if (String(borrar_fecha_fin) === 'true' && dto.fecha_fin) {
@@ -323,6 +375,28 @@ export class ServicioService {
 
       servicio.fecha_inicio = fechaInicioFinal;
       servicio.fecha_fin = fechaFinFinal;
+
+      const nuevoIdEmbarque = id_embarque === undefined ? servicio.id_embarque : id_embarque;
+      const categoriaActualizada = dto.id_categoria
+        ? await queryRunner.manager.findOne(CategoriaEntidad, { where: { id_categoria: dto.id_categoria } })
+        : await queryRunner.manager.findOne(CategoriaEntidad, { where: { id_categoria: servicio.id_categoria } });
+      const viajeInternacional = categoriaActualizada?.tipo_categoria?.toUpperCase().includes('INTERNACIONAL') ?? false;
+      if (viajeInternacional && !nuevoIdEmbarque) {
+        throw new BadRequestException('El embarque y CRT son obligatorios para viajes internacionales');
+      }
+      if (nuevoIdEmbarque !== servicio.id_embarque) {
+        if (servicio.id_embarque) await this.liberarEmbarque(servicio.id_embarque, queryRunner, userId);
+        if (nuevoIdEmbarque) {
+          const embarque = await this.reservarEmbarque(nuevoIdEmbarque, queryRunner, userId);
+          servicio.embarque = embarque;
+          servicio.id_embarque = embarque.id_embarque;
+          servicio.crt = embarque.crt;
+        } else {
+          servicio.embarque = null;
+          servicio.id_embarque = null;
+          servicio.crt = null;
+        }
+      }
 
       if (fechaFinFinal && fechaFinFinal < fechaInicioFinal) {
         throw new BadRequestException('La fecha fin no puede ser menor a la fecha inicio');
@@ -352,41 +426,76 @@ export class ServicioService {
         servicio.estado_pago = EstadoPago.PAGADO;
       }
 
-      if (dto.es_facturado === 'si') {
-        let factura = await queryRunner.manager.findOne(Factura, { where: { id_servicio: id } });
-        const fechaBaseCalendario = dto.fecha_inicio
-          ? String(dto.fecha_inicio).slice(0, 10)
-          : servicio.fecha_inicio instanceof Date
-            ? servicio.fecha_inicio.toISOString().slice(0, 10)
-            : String(servicio.fecha_inicio).slice(0, 10);
-        const fechaEmisionBase = new Date(`${fechaBaseCalendario}T12:00:00Z`);
-
-        if (!factura) {
-          factura = queryRunner.manager.create(Factura, {
-            id_servicio: id,
-            factura_transporte: String(dto.factura_transporte ?? ''),
-            monto_factura: dto.monto_factura ?? servicio.total_flete,
-            fecha_emision: fechaEmisionBase,
-            mes: (fechaEmisionBase.getUTCMonth() + 1).toString().padStart(2, '0'),
-            anio: fechaEmisionBase.getUTCFullYear(),
-            CreatedId: userId,
-          });
-        } else {
-          factura.fecha_emision = fechaEmisionBase;
-          factura.mes = (fechaEmisionBase.getUTCMonth() + 1).toString().padStart(2, '0');
-          factura.anio = fechaEmisionBase.getUTCFullYear();
-          if (dto.factura_transporte !== undefined) factura.factura_transporte = String(dto.factura_transporte);
-          if (dto.monto_factura !== undefined) factura.monto_factura = dto.monto_factura;
-          factura.UpdatedId = userId;
+      let facturasNuevas: any[] = [];
+      if (dto.facturas) {
+        try {
+          facturasNuevas = JSON.parse(String(dto.facturas));
+        } catch {
+          throw new BadRequestException('El formato de las facturas no es válido');
         }
-        await queryRunner.manager.save(factura);
+        if (!Array.isArray(facturasNuevas)) throw new BadRequestException('El listado de facturas no es válido');
+      }
 
-        if (files?.foto_factura?.length) {
-          for (const file of files.foto_factura) {
+      const fechaBaseCalendario = dto.fecha_inicio
+        ? String(dto.fecha_inicio).slice(0, 10)
+        : servicio.fecha_inicio instanceof Date
+          ? servicio.fecha_inicio.toISOString().slice(0, 10)
+          : String(servicio.fecha_inicio).slice(0, 10);
+      const fechaEmisionBase = new Date(`${fechaBaseCalendario}T12:00:00Z`);
+      for (const datosFactura of facturasNuevas) {
+        const factura = await queryRunner.manager.save(Factura, queryRunner.manager.create(Factura, {
+          id_servicio: id,
+          factura_transporte: String(datosFactura.factura_transporte ?? ''),
+          monto_factura: Number(datosFactura.monto_factura ?? servicio.total_flete),
+          transmitido: datosFactura.transmitido !== false,
+          fecha_emision: fechaEmisionBase,
+          mes: (fechaEmisionBase.getUTCMonth() + 1).toString().padStart(2, '0'),
+          anio: fechaEmisionBase.getUTCFullYear(),
+          CreatedId: userId,
+        }));
+        const indicesFotos = Array.isArray(datosFactura.foto_indices) ? datosFactura.foto_indices : [];
+        for (const indiceFoto of indicesFotos) {
+          const file = files?.facturas_fotos?.[Number(indiceFoto)];
+          if (!file) continue;
+          const { url } = await this.cloudinaryService.subirArchivo(file, 'yuriana/facturas');
+          await queryRunner.manager.save(FotoFactura, { id_factura: factura.id_factura, url_foto: url, CreatedId: userId });
+        }
+      }
+
+      if (facturas_actualizar) {
+        let actualizaciones: any[];
+        try { actualizaciones = JSON.parse(String(facturas_actualizar)); } catch { throw new BadRequestException('El formato de actualización de facturas no es válido'); }
+        for (const datosFactura of actualizaciones) {
+          if (!datosFactura.id_factura) continue;
+          const facturaActualizada = await queryRunner.manager.findOne(Factura, { where: { id_factura: Number(datosFactura.id_factura), id_servicio: id, status: true } });
+          if (!facturaActualizada) continue;
+          await queryRunner.manager.update(Factura, { id_factura: facturaActualizada.id_factura }, {
+            factura_transporte: String(datosFactura.factura_transporte ?? ''),
+            monto_factura: Number(datosFactura.monto_factura ?? servicio.total_flete),
+            transmitido: datosFactura.transmitido !== false,
+            UpdatedId: userId,
+          });
+          const indicesFotos = Array.isArray(datosFactura.foto_indices) ? datosFactura.foto_indices : [];
+          for (const indiceFoto of indicesFotos) {
+            const file = files?.facturas_fotos?.[Number(indiceFoto)];
+            if (!file) continue;
             const { url } = await this.cloudinaryService.subirArchivo(file, 'yuriana/facturas');
-            await queryRunner.manager.save(FotoFactura, { id_factura: factura.id_factura, url_foto: url, CreatedId: userId });
+            await queryRunner.manager.save(FotoFactura, { id_factura: facturaActualizada.id_factura, url_foto: url, CreatedId: userId });
+          }
+          const fotosAEliminar = Array.isArray(datosFactura.fotos_eliminar)
+            ? datosFactura.fotos_eliminar.map(Number).filter((fotoId: number) => !isNaN(fotoId))
+            : [];
+          if (fotosAEliminar.length) {
+            await queryRunner.manager.delete(FotoFactura, fotosAEliminar.map((id_foto_factura) => ({
+              id_foto_factura,
+              id_factura: facturaActualizada.id_factura,
+            })));
           }
         }
+      }
+      if (facturas_eliminar) {
+        const ids = String(facturas_eliminar).split(',').map(Number).filter((value) => !isNaN(value));
+        if (ids.length) await queryRunner.manager.update(Factura, ids.map((id_factura) => ({ id_factura, id_servicio: id, status: true })), { status: false, UpdatedId: userId });
       }
 
       if (files?.documentacion_aduanera && dto.ids_requisitos_aduaneros) {
@@ -437,6 +546,21 @@ export class ServicioService {
       const tCambio = servicio.moneda === Moneda.DOLAR ? Number(servicio.tipo_cambio ?? 1) : 1;
       servicio.total_flete = (montoBase + montoExtraCalculado) * tCambio;
 
+      const fechaEmisionServicio = new Date(Date.UTC(
+        fechaInicioFinal.getUTCFullYear(),
+        fechaInicioFinal.getUTCMonth(),
+        fechaInicioFinal.getUTCDate(),
+        12,
+        0,
+        0,
+      ));
+      await queryRunner.manager.update(Factura, { id_servicio: id, status: true }, {
+        fecha_emision: fechaEmisionServicio,
+        mes: (fechaInicioFinal.getUTCMonth() + 1).toString().padStart(2, '0'),
+        anio: fechaInicioFinal.getUTCFullYear(),
+        UpdatedId: userId,
+      });
+
       
       const asignacionCambio = servicio.id_asignacion !== oldAsignacion.id_asignacion;
 
@@ -481,7 +605,7 @@ export class ServicioService {
     try {
       const servicio = await queryRunner.manager.findOne(Servicio, {
         where: { id_servicio: id, status: true },
-        relations: ['asignacion'],
+        relations: ['asignacion', 'embarque'],
       });
       if (!servicio) throw new NotFoundException('Servicio no encontrado');
 
@@ -491,6 +615,7 @@ export class ServicioService {
       if (servicio.estado_servicio === EstadoServicio.EN_CURSO) {
         await this.liberarEquipo(servicio.asignacion, userId, queryRunner);
       }
+      if (servicio.id_embarque) await this.liberarEmbarque(servicio.id_embarque, queryRunner, userId);
 
       servicio.status = false;
       servicio.UpdatedId = userId;

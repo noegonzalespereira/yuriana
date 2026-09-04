@@ -89,6 +89,7 @@ export default function FacturacionPage() {
   // Edit form fields
   const [editFacturaTransporte, setEditFacturaTransporte] = useState("");
   const [editMonto, setEditMonto] = useState("");
+  const [editTransmitido, setEditTransmitido] = useState(true);
 
   // Gallery edit state
   const [eliminarFotoPrincipal, setEliminarFotoPrincipal] = useState(false);
@@ -135,6 +136,7 @@ export default function FacturacionPage() {
       if (tipo === "editar") {
         setEditFacturaTransporte(data.factura_transporte ?? "");
         setEditMonto(String(data.monto_factura ?? ""));
+        setEditTransmitido(data.transmitido !== false);
         setEliminarFotoPrincipal(false);
         setFotosEliminadas([]);
         setArchivosNuevos([]);
@@ -210,6 +212,7 @@ export default function FacturacionPage() {
       const fd = new FormData();
       fd.append("factura_transporte", editFacturaTransporte.trim());
       fd.append("monto_factura", String(montoNum));
+      fd.append("transmitido", String(editTransmitido));
       if (eliminarFotoPrincipal) fd.append("eliminar_foto_principal", "true");
       if (fotosEliminadas.length > 0) fd.append("ids_fotos_eliminar", fotosEliminadas.join(","));
       archivosNuevos.forEach((f) => fd.append("fotos_nuevas", f));
@@ -660,6 +663,18 @@ export default function FacturacionPage() {
                         placeholder="0.00"
                         disabled={saving}
                       />
+                    </div>
+                    <div className="flex flex-col gap-1 col-span-2 md:col-span-1">
+                      <label className={LABEL_CLASS}>Transmitir factura *</label>
+                      <select
+                        value={editTransmitido ? "si" : "no"}
+                        onChange={(e) => setEditTransmitido(e.target.value === "si")}
+                        className={INPUT_FIELD}
+                        disabled={saving}
+                      >
+                        <option value="si">Sí</option>
+                        <option value="no">No</option>
+                      </select>
                     </div>
                   </div>
 

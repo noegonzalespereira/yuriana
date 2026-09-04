@@ -22,6 +22,7 @@ export class FacturacionService {
     const factura = this.facturaRepo.create({
       ...dto,
       foto_factura: url,
+      transmitido: dto.transmitido ?? true,
       fecha_emision: fEmision,
       mes: (fEmision.getMonth() + 1).toString().padStart(2, '0'),
       anio: fEmision.getFullYear(),
@@ -35,7 +36,7 @@ export class FacturacionService {
     const query = this.facturaRepo.createQueryBuilder('factura')
       .leftJoinAndSelect('factura.servicio', 'servicio')
       .leftJoinAndSelect('servicio.categoria', 'categoria')
-      .where('factura.status = :status', { status: true });
+      .where('factura.status = :status AND factura.transmitido = :transmitido', { status: true, transmitido: true });
 
     if (filters.fecha_inicio) {
       query.andWhere('factura.fecha_emision >= :f1', { f1: filters.fecha_inicio });

@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Info, MapPin, FileText, Ship, Users, Truck, UserCheck, DollarSign, Calendar, Package, Upload, X } from "lucide-react";
 import { toast } from "sonner";
-import { ServicioItem, Moneda, Operador } from "@/types/servicio.types";
+import { ServicioItem, Moneda, Operador, Embarque } from "@/types/servicio.types";
 import { crearServicio, editarServicio } from "@/lib/api/servicio.api";
 import { getCategorias } from "@/lib/api/requisito.api";
 import { getAsignaciones } from "@/lib/api/asignacion.api";
@@ -10,8 +10,10 @@ import { getRequisitos } from "@/lib/api/requisito.api";
 import { getClientes } from "@/lib/api/cliente.api";
 import { getColaboradores } from "@/lib/api/colaborador.api";
 import { apiFetch } from "@/lib/api";
+import { getEmbarquesDisponibles, crearEmbarque } from "@/lib/api/embarque.api";
 import { SearchableCombobox } from "@/components/molecules/SearchableCombobox";
 import { FormActions } from "@/components/atoms/FormActions";
+import { TableActions } from "@/components/atoms/TableActions";
 import type { Cliente } from "@/types/cliente.types";
 import type { Colaborador } from "@/types/colaborador.types";
 import type { Asignacion } from "@/types/asignacion.types";
@@ -144,12 +146,30 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
   const [origen, setOrigen] = useState("");
   const [destino, setDestino] = useState("");
   const [crt, setCrt] = useState("");
+  const [idEmbarque, setIdEmbarque] = useState<number | null>(null);
+  const [embarqueSeleccionado, setEmbarqueSeleccionado] = useState<Embarque | null>(null);
+  const [embarquesDisponibles, setEmbarquesDisponibles] = useState<Embarque[]>([]);
+  const [mostrarNuevoEmbarque, setMostrarNuevoEmbarque] = useState(false);
+  const [nuevoCrt, setNuevoCrt] = useState("");
+  const [nuevasUnidades, setNuevasUnidades] = useState(1);
+  const [guardandoEmbarque, setGuardandoEmbarque] = useState(false);
 
-  // ── Factura ─────────────────────────────────────────────────────────────
-  const [esFacturado, setEsFacturado] = useState<"si" | "no">("no");
+  // ── Facturas del servicio ───────────────────────────────────────────────
+  type FacturaPendiente = { factura_transporte: string; monto_factura: number; transmitido: boolean; archivos: File[] };
+  const [facturaModalAbierto, setFacturaModalAbierto] = useState(false);
   const [facturaTransporte, setFacturaTransporte] = useState("");
   const [montoFactura, setMontoFactura] = useState<number>(0);
+  const [transmitirFactura, setTransmitirFactura] = useState(true);
   const [archivosFactura, setArchivosFactura] = useState<File[]>([]);
+  const [previewsFactura, setPreviewsFactura] = useState<string[]>([]);
+  const [fotosFacturaExistentes, setFotosFacturaExistentes] = useState<{ id_foto_factura: number; url_foto: string }[]>([]);
+  const [fotosFacturaEliminadas, setFotosFacturaEliminadas] = useState<number[]>([]);
+  const [facturaEnEdicion, setFacturaEnEdicion] = useState<number | null>(null);
+  const [facturaExistenteEnEdicion, setFacturaExistenteEnEdicion] = useState<number | null>(null);
+  const [facturasExistentesEditadas, setFacturasExistentesEditadas] = useState<Record<number, { factura_transporte: string; monto_factura: number; transmitido: boolean; archivos: File[]; fotos_eliminar: number[] }>>({});
+  const [facturasExistentesEliminadas, setFacturasExistentesEliminadas] = useState<number[]>([]);
+  const [fotoFacturaAmpliada, setFotoFacturaAmpliada] = useState<string | null>(null);
+  const [facturasPendientes, setFacturasPendientes] = useState<FacturaPendiente[]>([]);
 
   // ── Documentación aduanera ───────────────────────────────────────────────
   const [requisitosAduaneros, setRequisitosAduaneros] = useState<{ id_requisito_documento: number; nombre_documento: string }[]>([]);
@@ -197,9 +217,47 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
   const [voucher, setVoucher] = useState<File | null>(null);
   const [fechaPago, setFechaPago] = useState("");
 
-  const [fotosEliminadas, setFotosEliminadas] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
   const facturaInputRef = useRef<HTMLInputElement>(null);
+
+  const limpiarBorradorFactura = () => {
+    previewsFactura.forEach((preview) => URL.revokeObjectURL(preview));
+    setFacturaTransporte("");
+    setMontoFactura(0);
+    setTransmitirFactura(true);
+    setArchivosFactura([]);
+    setPreviewsFactura([]);
+    setFotosFacturaExistentes([]);
+    setFotosFacturaEliminadas([]);
+    setFacturaEnEdicion(null);
+    setFacturaExistenteEnEdicion(null);
+  };
+
+  const abrirFacturaPendiente = (index: number) => {
+    const factura = facturasPendientes[index];
+    limpiarBorradorFactura();
+    setFacturaTransporte(factura.factura_transporte);
+    setMontoFactura(factura.monto_factura);
+    setTransmitirFactura(factura.transmitido);
+    setArchivosFactura(factura.archivos);
+    setPreviewsFactura(factura.archivos.map((archivo) => URL.createObjectURL(archivo)));
+    setFacturaEnEdicion(index);
+    setFacturaModalAbierto(true);
+  };
+
+  const abrirFacturaExistente = (factura: NonNullable<ServicioItem["facturas"]>[number]) => {
+    limpiarBorradorFactura();
+    const editada = facturasExistentesEditadas[factura.id_factura];
+    setFacturaTransporte(editada?.factura_transporte ?? factura.factura_transporte ?? "");
+    setMontoFactura(editada?.monto_factura ?? Number(factura.monto_factura ?? 0));
+    setTransmitirFactura(editada?.transmitido ?? factura.transmitido !== false);
+    setFotosFacturaExistentes(factura.fotos ?? []);
+    const archivosEditados = editada?.archivos ?? [];
+    setArchivosFactura(archivosEditados);
+    setPreviewsFactura(archivosEditados.map((archivo) => URL.createObjectURL(archivo)));
+    setFacturaExistenteEnEdicion(factura.id_factura);
+    setFacturaModalAbierto(true);
+  };
 
   const toDateInputBolivia = (date: Date) => {
     const year = date.getFullYear();
@@ -256,6 +314,11 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
       .finally(() => setLoadingListas(false));
   }, [isReadOnly, initialData]);
 
+  useEffect(() => {
+    if (isReadOnly) return;
+    getEmbarquesDisponibles().then(setEmbarquesDisponibles).catch(() => toast.error("No se pudieron cargar los CRT disponibles"));
+  }, [isReadOnly]);
+
   // ── Cargar categorías y requisitos ───────────────────────────────────────
   useEffect(() => {
     getCategorias().then((cats) => {
@@ -280,14 +343,11 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     setOrigen(initialData.origen);
     setDestino(initialData.destino);
     setCrt(initialData.crt ?? "");
-    // Prefill factura si existe
-    if (initialData.factura) {
-      setEsFacturado("si");
-      setFacturaTransporte(initialData.factura.factura_transporte ?? "");
-      setMontoFactura(Number(initialData.factura.monto_factura ?? 0));
-    } else {
-      setEsFacturado("no");
-    }
+    setIdEmbarque(initialData.id_embarque ?? initialData.embarque?.id_embarque ?? null);
+    setEmbarqueSeleccionado(initialData.embarque ?? null);
+    setFacturasPendientes([]);
+    setFacturasExistentesEditadas({});
+    setFacturasExistentesEliminadas([]);
     setMoneda(initialData.moneda);
     setTipoCambio(Number(initialData.tipo_cambio ?? 0));
     setFlete(Number(initialData.flete));
@@ -323,6 +383,33 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
       setMontoColaborador(Number((initialData.colaborador as any)?.monto ?? 0));
     }
   }, [initialData]);
+
+  const seleccionarEmbarque = (embarque: Embarque) => {
+    setIdEmbarque(embarque.id_embarque);
+    setCrt(embarque.crt);
+    setEmbarqueSeleccionado(embarque);
+  };
+
+  const guardarNuevoEmbarque = async () => {
+    if (!nuevoCrt.trim() || nuevasUnidades < 1) {
+      toast.error("Ingresa el CRT y un número de viajes válido");
+      return;
+    }
+    try {
+      setGuardandoEmbarque(true);
+      const nuevo = await crearEmbarque({ crt: nuevoCrt.trim().toUpperCase(), total_unidades: nuevasUnidades });
+      seleccionarEmbarque(nuevo);
+      setEmbarquesDisponibles((prev) => [nuevo, ...prev]);
+      setNuevoCrt("");
+      setNuevasUnidades(1);
+      setMostrarNuevoEmbarque(false);
+      toast.success("Embarque creado");
+    } catch (error: any) {
+      toast.error("No se pudo crear el embarque", { description: error.message });
+    } finally {
+      setGuardandoEmbarque(false);
+    }
+  };
 
   // ── Buscar cliente por CI ────────────────────────────────────────────────
   const buscarCliente = async () => {
@@ -379,7 +466,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
   const handleSubmit = async () => {
     if (!idCategoriaSeleccionada) return toast.error("Selecciona el tipo de viaje");
     if (!origen.trim() || !destino.trim()) return toast.error("Origen y destino son obligatorios");
-    if (esInternacional && !crt.trim()) return toast.error("El CRT es obligatorio para viajes internacionales");
+    if (esInternacional && !idEmbarque) return toast.error("El embarque y CRT son obligatorios para viajes internacionales");
     if (!idCliente) return toast.error("Busca y selecciona un cliente");
     if (!idAsignacion) return toast.error("Busca y selecciona un conductor/unidad");
     if (!fechaInicio) return toast.error("La fecha de inicio es obligatoria");
@@ -427,15 +514,9 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
       }
     }
 
-    // Validaciones al finalizar el viaje
     if (fechaFin) {
       if (!periodoLiquidacion || periodoLiquidacion <= 0)
         return toast.error("El período de liquidación es obligatorio al finalizar el viaje");
-      if (esFacturado === "si") {
-        const tieneFacturasExistentes = (initialData?.factura?.fotos?.filter(f => !fotosEliminadas.includes(f.id_foto_factura)).length ?? 0) > 0;
-        if (archivosFactura.length === 0 && !tieneFacturasExistentes)
-          return toast.error("Si el viaje está facturado, sube al menos una foto de factura");
-      }
     }
 
     const fd = new FormData();
@@ -443,13 +524,31 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     fd.append("operador",       operador);
     fd.append("origen",         origen.trim().toUpperCase());
     fd.append("destino",        destino.trim().toUpperCase());
-    if (crt) fd.append("crt",  crt.trim().toUpperCase());
-    fd.append("es_facturado",   esFacturado);
-    if (esFacturado === "si") {
-      if (facturaTransporte) fd.append("factura_transporte", facturaTransporte);
-      if (montoFactura >= 0) fd.append("monto_factura", String(montoFactura));
-      archivosFactura.forEach(f => fd.append("foto_factura", f));
+    fd.append("id_embarque", idEmbarque ? String(idEmbarque) : "");
+    if (facturasPendientes.length > 0) {
+      let indiceFoto = 0;
+      fd.append("facturas", JSON.stringify(facturasPendientes.map((factura) => ({
+        factura_transporte: factura.factura_transporte,
+        monto_factura: factura.monto_factura,
+        transmitido: factura.transmitido,
+        foto_indices: factura.archivos.map(() => indiceFoto++),
+      }))));
+      facturasPendientes.forEach((factura) => factura.archivos.forEach((archivo) => fd.append("facturas_fotos", archivo)));
     }
+    if (fotosFacturaEliminadas.length > 0) fd.append("ids_fotos_eliminar", fotosFacturaEliminadas.join(","));
+    if (Object.keys(facturasExistentesEditadas).length > 0) {
+      let indiceFoto = facturasPendientes.reduce((total, factura) => total + factura.archivos.length, 0);
+      fd.append("facturas_actualizar", JSON.stringify(Object.entries(facturasExistentesEditadas).map(([id_factura, factura]) => ({
+        id_factura: Number(id_factura),
+        factura_transporte: factura.factura_transporte,
+        monto_factura: factura.monto_factura,
+        transmitido: factura.transmitido,
+        foto_indices: factura.archivos.map(() => indiceFoto++),
+        fotos_eliminar: factura.fotos_eliminar,
+      }))));
+      Object.values(facturasExistentesEditadas).forEach((factura) => factura.archivos.forEach((archivo) => fd.append("facturas_fotos", archivo)));
+    }
+    if (facturasExistentesEliminadas.length > 0) fd.append("facturas_eliminar", facturasExistentesEliminadas.join(","));
     fd.append("id_cliente",     String(idCliente));
     fd.append("id_asignacion",  String(idAsignacion));
     if (idColaborador) fd.append("id_colaborador", String(idColaborador));
@@ -471,8 +570,6 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     if (descripcionCarga) fd.append("descripcion_carga", descripcionCarga.trim());
     if (fechaPago) fd.append("fecha_pago", fechaPago);
     if (voucher) fd.append("vaucher", voucher);
-    if (fotosEliminadas.length > 0) fd.append("ids_fotos_eliminar", fotosEliminadas.join(","));
-
     // Documentación aduanera
     const idsRequisitos: number[] = [];
     requisitosAduaneros.forEach((req) => {
@@ -550,9 +647,6 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
               })}
             </div>
           </Field>
-          <Field label="CRT" required={esInternacional} optional={!esInternacional}>
-            <input className={INPUT_CLASS} value={crt} onChange={(e) => setCrt(e.target.value)} disabled={isReadOnly} placeholder="N° CRT" />
-          </Field>
           <Field label="Origen" required>
             <input className={INPUT_CLASS} value={origen} onChange={(e) => setOrigen(e.target.value)} disabled={isReadOnly} placeholder="Ciudad de origen" />
           </Field>
@@ -562,96 +656,172 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
         </div>
       </div>
 
-      {/* Sección: Datos de Factura */}
+      {/* Sección: Embarque */}
       <div className="bg-[var(--yuriana-card-bg)] rounded-3xl border border-border shadow-xl p-8 space-y-5">
-        <SectionHeader icon={<FileText size={16} />} title="Datos de Factura" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-          <Field label="Facturado" required={tieneFechaFin} optional={!tieneFechaFin}>
-            <div className="flex gap-2 h-[34px] items-center">
-              {(["si", "no"] as const).map((v) => (
-                <button key={v} type="button" disabled={isReadOnly}
-                  onClick={() => setEsFacturado(v)}
-                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-black uppercase transition-all border ${
-                    esFacturado === v
-                      ? "bg-[var(--yuriana-base-orange)] text-white border-[var(--yuriana-base-orange)]"
-                      : "bg-[var(--yuriana-input-bg)] border-[var(--yuriana-input-border)] text-[var(--yuriana-input-placeholder)]"
-                  }`}>
-                  {v === "si" ? "✓ Sí" : "No"}
-                </button>
-              ))}
-            </div>
+        <SectionHeader icon={<Ship size={16} />} title="Embarque" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <Field label="CRT" required={esInternacional} optional={!esInternacional}>
+            <SearchableCombobox
+              options={[
+                ...embarquesDisponibles.filter((embarque) => embarque.id_embarque !== idEmbarque),
+                ...(embarqueSeleccionado ? [embarqueSeleccionado] : []),
+              ].map((embarque) => ({
+                value: embarque.id_embarque,
+                label: embarque.crt,
+                sublabel: `Viajes restantes: ${embarque.unidades_restantes} de ${embarque.total_unidades}`,
+              }))}
+              value={crt}
+              selectedOptionValue={idEmbarque ?? undefined}
+              placeholder="Buscar o seleccionar CRT..."
+              disabled={isReadOnly}
+              onSelect={(option) => {
+                const embarque = [...embarquesDisponibles, ...(embarqueSeleccionado ? [embarqueSeleccionado] : [])]
+                  .find((item) => item.id_embarque === option.value);
+                if (embarque) seleccionarEmbarque(embarque);
+              }}
+            />
           </Field>
-          {esFacturado === "si" && (
-            <>
-              <Field label="Factura Transporte" optional>
-                <input className={INPUT_CLASS} value={facturaTransporte} onChange={(e) => setFacturaTransporte(e.target.value)} disabled={isReadOnly} placeholder="N° de factura" />
-              </Field>
-              <Field label="Monto Factura Bs" optional>
-                <input type="number" min={0.01} step="any" className={INPUT_CLASS} value={montoFactura || ""} onChange={(e) => setMontoFactura(Number(e.target.value))} disabled={isReadOnly} placeholder="0" />
-              </Field>
-              {/* Multi-foto factura */}
-              <div className="flex flex-col gap-1 col-span-2 md:col-span-2">
-                <label className={LABEL_CLASS}>
-                  Facturas
-                  {tieneFechaFin && <span className="text-[var(--yuriana-input-error)] ml-0.5">*</span>}
-                  {!tieneFechaFin && <span className="text-[var(--yuriana-input-placeholder)] ml-1 normal-case font-semibold">(opcional)</span>}
-                  <span className="text-[var(--yuriana-input-placeholder)] ml-1 font-semibold normal-case">máx. 10</span>
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {/* Fotos existentes */}
-                  {initialData?.factura?.fotos?.filter(f => !fotosEliminadas.includes(f.id_foto_factura)).map((f) => (
-                    <div key={f.id_foto_factura} className="relative flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-dashed border-[var(--yuriana-base-orange)] bg-orange-50/40 min-h-[50px]">
-                      <a href={f.url_foto} target="_blank" rel="noopener noreferrer"
-                        className="text-[10px] font-bold text-[var(--yuriana-base-orange)] underline">
-                        Ver archivo
-                      </a>
-                      {!isReadOnly && (
-                        <button type="button" onClick={() => setFotosEliminadas(prev => [...prev, f.id_foto_factura])}
-                          className="absolute top-1 right-1 text-rose-400 hover:text-rose-600">
-                          <X size={10} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  {/* Nuevos archivos seleccionados */}
-                  {archivosFactura.map((f, i) => (
-                    <div key={i} className="flex items-center gap-1 px-3 py-2 rounded-xl border-2 border-dashed border-[var(--yuriana-base-orange)] bg-orange-50/40 min-h-[50px] relative">
-                      <span className="text-[10px] font-bold text-[var(--yuriana-base-orange)] max-w-[80px] truncate">{f.name}</span>
-                      {!isReadOnly && (
-                        <button type="button" onClick={() => setArchivosFactura(prev => prev.filter((_, j) => j !== i))}
-                          className="text-rose-400 hover:text-rose-600 ml-1"><X size={10} /></button>
-                      )}
-                    </div>
-                  ))}
-                  {/* Botón agregar */}
-                  {!isReadOnly && ((initialData?.factura?.fotos?.filter(f => !fotosEliminadas.includes(f.id_foto_factura)).length ?? 0) + archivosFactura.length) < 10 && (
-                    <button type="button" onClick={() => facturaInputRef.current?.click()}
-                      className="flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-xl border-2 border-dashed border-[var(--yuriana-input-border)] hover:border-[var(--yuriana-base-orange)] bg-[var(--yuriana-input-bg)] min-h-[50px] transition-all">
-                      <Upload size={14} className="text-[var(--yuriana-input-placeholder)]" />
-                      <span className="text-[9px] text-[var(--yuriana-input-placeholder)]">Agregar</span>
-                    </button>
-                  )}
-                </div>
-                <input ref={facturaInputRef} type="file" accept="image/*,.pdf" multiple className="hidden"
-                  onChange={(e) => {
-                    const seleccionados = Array.from(e.target.files ?? []);
-                    const validos = seleccionados.filter(f => {
-                      if (f.size > 10 * 1024 * 1024) {
-                        toast.error(`"${f.name}" supera el límite de 10 MB`);
-                        return false;
-                      }
-                      return true;
-                    });
-                    const total = (initialData?.factura?.fotos?.filter(f => !fotosEliminadas.includes(f.id_foto_factura)).length ?? 0) + archivosFactura.length;
-                    const disponibles = Math.max(0, 10 - total);
-                    setArchivosFactura(prev => [...prev, ...validos.slice(0, disponibles)]);
-                    e.target.value = "";
-                  }} />
-              </div>
-            </>
-          )}
+          <Field label="Viajes restantes">
+            <input className={`${INPUT_CLASS} font-black text-[var(--yuriana-base-orange)]`} value={embarqueSeleccionado ? `${embarqueSeleccionado.unidades_restantes} de ${embarqueSeleccionado.total_unidades}` : "-"} disabled readOnly />
+          </Field>
+          <div className="flex gap-2">
+            {!isReadOnly && (
+              <button type="button" onClick={() => setMostrarNuevoEmbarque(true)} className="flex-1 rounded-xl bg-[var(--yuriana-base-orange)] px-4 py-2 text-xs font-black uppercase text-white">
+                + Nuevo CRT
+              </button>
+            )}
+            {!isReadOnly && idEmbarque && !esInternacional && (
+              <button type="button" onClick={() => { setIdEmbarque(null); setCrt(""); setEmbarqueSeleccionado(null); }} className="rounded-xl bg-slate-600 px-4 py-2 text-xs font-black uppercase text-white">
+                Quitar
+              </button>
+            )}
+          </div>
         </div>
+        {esInternacional && <p className="text-[10px] font-semibold text-[var(--yuriana-input-placeholder)]">Para viajes internacionales debe seleccionar o crear un CRT.</p>}
       </div>
+
+      {mostrarNuevoEmbarque && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between"><h3 className="text-sm font-black uppercase">Nuevo embarque</h3><button type="button" onClick={() => setMostrarNuevoEmbarque(false)}><X size={18} /></button></div>
+            <div className="grid grid-cols-1 gap-4">
+              <Field label="CRT" required><input className={INPUT_CLASS} value={nuevoCrt} onChange={(event) => setNuevoCrt(event.target.value)} placeholder="N° CRT" /></Field>
+              <Field label="Número de viajes" required><input type="number" min={1} step={1} className={INPUT_CLASS} value={nuevasUnidades || ""} onChange={(event) => setNuevasUnidades(Number(event.target.value))} /></Field>
+            </div>
+            <div className="flex justify-end gap-2 border-t border-border pt-4"><button type="button" onClick={() => setMostrarNuevoEmbarque(false)} className="rounded-xl bg-slate-600 px-5 py-2 text-xs font-black uppercase text-white">Cancelar</button><button type="button" onClick={guardarNuevoEmbarque} disabled={guardandoEmbarque} className="rounded-xl bg-[var(--yuriana-base-yellow)] px-5 py-2 text-xs font-black uppercase text-[var(--yuriana-base-black)]">{guardandoEmbarque ? "Guardando..." : "Crear embarque"}</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* Sección: Facturas del servicio */}
+      <div className="bg-[var(--yuriana-card-bg)] rounded-3xl border border-border shadow-xl p-8 space-y-5">
+        <div className="flex items-center justify-between gap-3">
+          <SectionHeader icon={<FileText size={16} />} title="Facturas del servicio" />
+          {!isReadOnly && <button type="button" onClick={() => setFacturaModalAbierto(true)} className="px-4 py-2 rounded-xl bg-[var(--yuriana-base-orange)] text-white text-xs font-black uppercase">+ Crear factura</button>}
+        </div>
+        {(initialData?.facturas?.length ?? 0) + facturasPendientes.length === 0 ? (
+          <p className="text-xs text-[var(--yuriana-input-placeholder)] italic">No hay facturas agregadas a este servicio.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-[var(--yuriana-input-border)]">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-orange-50 text-[var(--yuriana-base-gray-dark)] uppercase text-[10px] font-black">
+                <tr><th className="px-3 py-2">N° Factura</th><th className="px-3 py-2 text-right">Monto Bs</th><th className="px-3 py-2">Transmitida</th><th className="px-3 py-2">Fotos</th><th className="px-3 py-2 text-center">Acciones</th></tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {initialData?.facturas?.filter((factura) => !facturasExistentesEliminadas.includes(factura.id_factura)).map((factura) => {
+                  const editada = facturasExistentesEditadas[factura.id_factura];
+                  return (
+                  <tr key={factura.id_factura}>
+                    <td className="px-3 py-2 font-bold">{editada?.factura_transporte ?? factura.factura_transporte ?? "-"}</td>
+                    <td className="px-3 py-2 text-right">{new Intl.NumberFormat("es-BO", { maximumFractionDigits: 2 }).format(editada?.monto_factura ?? Number(factura.monto_factura))}</td>
+                    <td className="px-3 py-2">{(editada?.transmitido ?? factura.transmitido) ? "Sí" : "No"}</td>
+                    <td className="px-3 py-2">
+                      {factura.fotos?.length ? (
+                        <div className="flex flex-wrap gap-2">
+                          {factura.fotos.map((foto, fotoIndex) => (
+                            <button key={foto.id_foto_factura} type="button" onClick={() => setFotoFacturaAmpliada(foto.url_foto)} className="group relative h-10 w-10 overflow-hidden rounded-lg border border-[var(--yuriana-input-border)] bg-slate-50" title={`Ver foto ${fotoIndex + 1}`}>
+                              <img src={foto.url_foto} alt={`Factura ${fotoIndex + 1}`} className="h-full w-full object-cover transition-transform group-hover:scale-110" />
+                            </button>
+                          ))}
+                        </div>
+                      ) : "-"}
+                    </td>
+                    <td className="px-3 py-2"><TableActions onEdit={!isReadOnly ? () => abrirFacturaExistente(factura) : undefined} onDelete={!isReadOnly ? () => setFacturasExistentesEliminadas((prev) => [...prev, factura.id_factura]) : undefined} size={16} /></td>
+                  </tr>
+                  );
+                })}
+                {facturasPendientes.map((factura, index) => (
+                  <tr key={`nueva-${index}`}>
+                    <td className="px-3 py-2 font-bold">{factura.factura_transporte || "-"}</td>
+                    <td className="px-3 py-2 text-right">{new Intl.NumberFormat("es-BO", { maximumFractionDigits: 2 }).format(factura.monto_factura)}</td>
+                    <td className="px-3 py-2">{factura.transmitido ? "Sí" : "No"}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <span>{factura.archivos.length || "-"}</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2"><TableActions onEdit={!isReadOnly ? () => abrirFacturaPendiente(index) : undefined} onDelete={!isReadOnly ? () => setFacturasPendientes((prev) => prev.filter((_, itemIndex) => itemIndex !== index)) : undefined} size={16} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {facturaModalAbierto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between"><h3 className="text-sm font-black uppercase">{facturaExistenteEnEdicion !== null ? "Editar factura" : "Crear factura"}</h3><button type="button" onClick={() => { limpiarBorradorFactura(); setFacturaModalAbierto(false); }}><X size={18} /></button></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="Factura Transporte" required><input className={INPUT_CLASS} value={facturaTransporte} onChange={(e) => setFacturaTransporte(e.target.value)} placeholder="N° de factura" /></Field>
+              <Field label="Monto Factura Bs" required><input type="number" min={0.01} step="any" className={INPUT_CLASS} value={montoFactura || ""} onChange={(e) => setMontoFactura(Number(e.target.value))} placeholder="0" /></Field>
+              <Field label="Transmitir" required><select className={INPUT_CLASS} value={transmitirFactura ? "si" : "no"} onChange={(e) => setTransmitirFactura(e.target.value === "si")}><option value="si">Sí</option><option value="no">No</option></select></Field>
+              <Field label={`Fotos Factura (máx. 5) · ${fotosFacturaExistentes.filter((foto) => !fotosFacturaEliminadas.includes(foto.id_foto_factura)).length + archivosFactura.length}/5`} optional>
+                <input ref={facturaInputRef} type="file" accept="image/*,.pdf" multiple className={INPUT_CLASS} onChange={(e) => {
+                  const seleccionados = Array.from(e.target.files ?? []).filter((file) => file.size <= 10 * 1024 * 1024);
+                  const fotosExistentesVisibles = fotosFacturaExistentes.filter((foto) => !fotosFacturaEliminadas.includes(foto.id_foto_factura));
+                  const disponibles = Math.max(0, 5 - fotosExistentesVisibles.length - archivosFactura.length);
+                  const nuevos = seleccionados.slice(0, disponibles);
+                  setArchivosFactura((prev) => [...prev, ...nuevos]);
+                  setPreviewsFactura((prev) => [...prev, ...nuevos.map((file) => URL.createObjectURL(file))]);
+                  e.target.value = "";
+                }} disabled={fotosFacturaExistentes.filter((foto) => !fotosFacturaEliminadas.includes(foto.id_foto_factura)).length + archivosFactura.length >= 5} />
+              </Field>
+            </div>
+            {(fotosFacturaExistentes.length > 0 || archivosFactura.length > 0) && <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 pt-2">
+              {fotosFacturaExistentes.filter((foto) => !fotosFacturaEliminadas.includes(foto.id_foto_factura)).map((foto) => (
+                <div key={foto.id_foto_factura} className="relative group rounded-xl border border-[var(--yuriana-input-border)] bg-slate-50 p-1.5">
+                  <button type="button" onClick={() => setFotoFacturaAmpliada(foto.url_foto)} className="block aspect-square w-full overflow-hidden rounded-lg bg-white cursor-zoom-in">
+                    <img src={foto.url_foto} alt="Foto existente de factura" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                  </button>
+                  <button type="button" onClick={() => setFotosFacturaEliminadas((prev) => [...prev, foto.id_foto_factura])} className="absolute -right-2 -top-2 rounded-full bg-rose-500 p-1.5 text-white shadow-md hover:bg-rose-700" title="Eliminar foto"><X size={12} /></button>
+                  <p className="mt-1 text-center text-[9px] text-slate-500">Existente</p>
+                </div>
+              ))}
+              {archivosFactura.map((archivo, index) => (
+                <div key={`${archivo.name}-${index}`} className="relative group rounded-xl border border-[var(--yuriana-input-border)] bg-slate-50 p-1.5">
+                  <div className="aspect-square overflow-hidden rounded-lg bg-white flex items-center justify-center">
+                    {archivo.type.startsWith("image/") ? <button type="button" onClick={() => setFotoFacturaAmpliada(previewsFactura[index])} className="h-full w-full cursor-zoom-in"><img src={previewsFactura[index]} alt={archivo.name} className="h-full w-full object-cover" /></button> : <FileText size={24} className="text-[var(--yuriana-base-orange)]" />}
+                  </div>
+                  <button type="button" onClick={() => { URL.revokeObjectURL(previewsFactura[index]); setArchivosFactura((prev) => prev.filter((_, itemIndex) => itemIndex !== index)); setPreviewsFactura((prev) => prev.filter((_, itemIndex) => itemIndex !== index)); }} className="absolute -right-2 -top-2 rounded-full bg-rose-500 p-1.5 text-white shadow-md opacity-90 hover:opacity-100 hover:bg-rose-700" title="Eliminar foto"><X size={12} /></button>
+                  <p className="mt-1 truncate px-1 text-[9px] text-slate-500" title={archivo.name}>{archivo.name}</p>
+                </div>
+              ))}
+            </div>}
+            <div className="flex justify-end gap-2 border-t border-border pt-4"><button type="button" onClick={() => { limpiarBorradorFactura(); setFacturaModalAbierto(false); }} className="px-5 py-2 rounded-xl bg-slate-600 hover:bg-slate-700 text-white text-xs font-black uppercase">Cancelar</button><button type="button" onClick={() => { if (!facturaTransporte.trim() || montoFactura <= 0) return toast.error("Completa el número y monto de la factura"); const factura = { factura_transporte: facturaTransporte.trim(), monto_factura: montoFactura, transmitido: transmitirFactura, archivos: archivosFactura }; if (facturaExistenteEnEdicion !== null) setFacturasExistentesEditadas((prev) => ({ ...prev, [facturaExistenteEnEdicion]: { factura_transporte: factura.factura_transporte, monto_factura: factura.monto_factura, transmitido: factura.transmitido, archivos: factura.archivos, fotos_eliminar: fotosFacturaEliminadas } })); else setFacturasPendientes((prev) => facturaEnEdicion === null ? [...prev, factura] : prev.map((item, index) => index === facturaEnEdicion ? factura : item)); limpiarBorradorFactura(); setFacturaModalAbierto(false); }} className="px-5 py-2 rounded-xl bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-[var(--yuriana-base-black)] text-xs font-black uppercase shadow-md">{facturaExistenteEnEdicion !== null ? "Actualizar factura" : facturaEnEdicion === null ? "Guardar factura" : "Actualizar factura"}</button></div>
+          </div>
+        </div>
+      )}
+
+      {fotoFacturaAmpliada && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 p-6" onClick={() => setFotoFacturaAmpliada(null)}>
+          <div className="relative max-h-[90vh] max-w-4xl" onClick={(event) => event.stopPropagation()}>
+            <img src={fotoFacturaAmpliada} alt="Factura ampliada" className="max-h-[85vh] max-w-full rounded-2xl object-contain shadow-2xl" />
+            <button type="button" onClick={() => setFotoFacturaAmpliada(null)} className="absolute -right-3 -top-3 rounded-full bg-white p-2 text-slate-700 shadow-lg hover:bg-rose-50 hover:text-rose-600" title="Cerrar vista ampliada"><X size={16} /></button>
+          </div>
+        </div>
+      )}
 
       {/* Sección: Documentación Aduanera (solo Internacional) */}
       {esInternacional && (

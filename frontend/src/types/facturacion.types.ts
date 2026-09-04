@@ -2,6 +2,7 @@ export interface FacturaItem {
   id_factura: number;
   factura_transporte: string;
   monto_factura: number;
+  transmitido: boolean;
   foto_factura?: string;
   fotos?: { id_foto_factura: number; url_foto: string }[];
   fecha_emision: string;

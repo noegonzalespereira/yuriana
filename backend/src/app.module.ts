@@ -21,6 +21,7 @@ import { IngresoExtraModule } from './modules/ingreso-extra/ingreso-extra.module
 import { DocumentoModule } from './modules/documento/documento.module';
 import { CategoriaEntidadModule } from './modules/categoria-entidad/categoria-entidad.module';
 import { RequisitoDocumentoModule } from './modules/requisito-documento/requisito-documento.module';
+import { EmbarqueModule } from './modules/embarque/embarque.module';
 
 @Module({
   imports: [
@@ -59,7 +60,7 @@ import { RequisitoDocumentoModule } from './modules/requisito-documento/requisit
     UnidadModule, EmpresaModule, AsignacionModule, 
     ServicioModule, GastoModule,  
     FacturacionModule, IngresoExtraModule, DocumentoModule, 
-    CategoriaEntidadModule, RequisitoDocumentoModule],
+    CategoriaEntidadModule, RequisitoDocumentoModule, EmbarqueModule],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -1,5 +1,6 @@
-# Etapa 1: Build
-FROM node:20-alpine AS builder
+
+
+FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -8,21 +9,31 @@ RUN npm install
 
 COPY . .
 RUN npm run build
-# Next.js genera carpeta .next optimizada
 
-# Etapa 2: Producción
-FROM node:20-alpine AS production
+FROM node:20-bookworm-slim AS dev
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --only=production
+RUN npm install
+
+COPY . .
+
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]
+
+FROM node:20-bookworm-slim AS production
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install --omit=dev
 
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
-# Copia los archivos compilados de Next.js
 
 EXPOSE 3000
 
 CMD ["npm", "run", "start"]
-# "start" ejecuta el servidor Next.js en modo producción
