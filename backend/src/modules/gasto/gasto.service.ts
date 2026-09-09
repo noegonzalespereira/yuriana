@@ -94,8 +94,8 @@ export class GastosService {
             
             const gastoMaestro = queryRunner.manager.create(Gasto, {
               fecha: fGasto,
-              mes: (fGasto.getUTCMonth() + 1).toString().padStart(2, '0'),
-              anio: fGasto.getUTCFullYear(),
+              mes: (fGasto.getMonth() + 1).toString().padStart(2, '0'),
+              anio: fGasto.getFullYear(),
               descripcion: item.descripcion,
               monto: item.monto,
               CreatedId: userId
@@ -125,8 +125,8 @@ export class GastosService {
 
             const gastoMaestro = queryRunner.manager.create(Gasto, {
               fecha: fGasto,
-              mes: (fGasto.getUTCMonth() + 1).toString().padStart(2, '0'),
-              anio: fGasto.getUTCFullYear(),
+              mes: (fGasto.getMonth() + 1).toString().padStart(2, '0'),
+              anio: fGasto.getFullYear(),
               descripcion: item.descripcion,
               monto: item.monto,
               CreatedId: userId
@@ -151,8 +151,8 @@ export class GastosService {
 
             const gastoMaestro = queryRunner.manager.create(Gasto, {
               fecha: fGasto,
-              mes: (fGasto.getUTCMonth() + 1).toString().padStart(2, '0'),
-              anio: fGasto.getUTCFullYear(),
+              mes: (fGasto.getMonth() + 1).toString().padStart(2, '0'),
+              anio: fGasto.getFullYear(),
               descripcion: item.descripcion,
               monto: item.monto,
               CreatedId: userId
@@ -176,8 +176,8 @@ export class GastosService {
 
             const gastoMaestro = queryRunner.manager.create(Gasto, {
               fecha: fGasto,
-              mes: (fGasto.getUTCMonth() + 1).toString().padStart(2, '0'),
-              anio: fGasto.getUTCFullYear(),
+              mes: (fGasto.getMonth() + 1).toString().padStart(2, '0'),
+              anio: fGasto.getFullYear(),
               descripcion: item.descripcion,
               monto: item.monto,
               CreatedId: userId
@@ -510,8 +510,8 @@ export class GastosService {
       if (filters.fecha_inicio) operativosQuery.andWhere('g.fecha >= :f1', { f1: filters.fecha_inicio });
       if (filters.fecha_fin) operativosQuery.andWhere('g.fecha <= :f2', { f2: filters.fecha_fin });
     } else {
-      operativosQuery.andWhere('g.anio = :anio', { anio: anioParam });
-      operativosQuery.andWhere('g.mes = :mes', { mes: mesParam });
+      operativosQuery.andWhere('EXTRACT(YEAR FROM g.fecha) = :anio', { anio: anioParam });
+      operativosQuery.andWhere('EXTRACT(MONTH FROM g.fecha) = :mes', { mes: mesParam });
     }
 
     const adminQuery = this.gastoAdminRepo.createQueryBuilder('ga')
@@ -529,8 +529,8 @@ export class GastosService {
       if (filters.fecha_inicio) adminQuery.andWhere('g.fecha >= :f1', { f1: filters.fecha_inicio });
       if (filters.fecha_fin) adminQuery.andWhere('g.fecha <= :f2', { f2: filters.fecha_fin });
     } else {
-      adminQuery.andWhere('g.anio = :anio', { anio: anioParam });
-      adminQuery.andWhere('g.mes = :mes', { mes: mesParam });
+      adminQuery.andWhere('EXTRACT(YEAR FROM g.fecha) = :anio', { anio: anioParam });
+      adminQuery.andWhere('EXTRACT(MONTH FROM g.fecha) = :mes', { mes: mesParam });
     }
 
     const generalQuery = this.gastoGeneralRepo.createQueryBuilder('gg')
@@ -548,8 +548,8 @@ export class GastosService {
       if (filters.fecha_inicio) generalQuery.andWhere('g.fecha >= :f1', { f1: filters.fecha_inicio });
       if (filters.fecha_fin) generalQuery.andWhere('g.fecha <= :f2', { f2: filters.fecha_fin });
     } else {
-      generalQuery.andWhere('g.anio = :anio', { anio: anioParam });
-      generalQuery.andWhere('g.mes = :mes', { mes: mesParam });
+      generalQuery.andWhere('EXTRACT(YEAR FROM g.fecha) = :anio', { anio: anioParam });
+      generalQuery.andWhere('EXTRACT(MONTH FROM g.fecha) = :mes', { mes: mesParam });
     }
 
     const [totalServiciosResult, totalOps, totalAdmin, totalGral] = await Promise.all([

@@ -26,7 +26,7 @@ const parseFechaNegocio = (value: string) => {
 
   if (!year || !month || !day) return null;
 
-  return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  return new Date(year, month - 1, day, 12, 0, 0);
 };
 
 const fmtFecha = (iso: string) => {

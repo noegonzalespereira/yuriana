@@ -14,6 +14,7 @@ import { getEmbarquesDisponibles, crearEmbarque } from "@/lib/api/embarque.api";
 import { SearchableCombobox } from "@/components/molecules/SearchableCombobox";
 import { FormActions } from "@/components/atoms/FormActions";
 import { TableActions } from "@/components/atoms/TableActions";
+import { toDateInputBolivia } from "@/lib/date-bolivia";
 import type { Cliente } from "@/types/cliente.types";
 import type { Colaborador } from "@/types/colaborador.types";
 import type { Asignacion } from "@/types/asignacion.types";
@@ -257,13 +258,6 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     setPreviewsFactura(archivosEditados.map((archivo) => URL.createObjectURL(archivo)));
     setFacturaExistenteEnEdicion(factura.id_factura);
     setFacturaModalAbierto(true);
-  };
-
-  const toDateInputBolivia = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
   };
 
   // ── Listas para comboboxes ───────────────────────────────────────────────

@@ -15,7 +15,8 @@ RUN npm run build
 
 # ---- Etapa 2: Producción ----
 FROM node:20-alpine AS production
-# Nueva imagen limpia, sin el código fuente ni devDependencies
+
+RUN apk add --no-cache tzdata
 
 WORKDIR /app
 

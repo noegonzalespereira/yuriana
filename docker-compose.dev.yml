@@ -7,7 +7,8 @@ services:
     env_file:
       - .env
     environment:
-      # MAPEAMOS CON TUS NUEVAS VARIABLES DEL .ENV
+      TZ: America/La_Paz
+      PGTZ: America/La_Paz
       POSTGRES_USER: ${DATABASE_USER}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRES_DB: ${DATABASE_NAME}
@@ -34,6 +35,7 @@ services:
     env_file:
       - .env
     environment:
+      TZ: America/La_Paz
       NODE_ENV: development
       DATABASE_HOST: postgres
       DATABASE_PORT: ${DATABASE_PORT}

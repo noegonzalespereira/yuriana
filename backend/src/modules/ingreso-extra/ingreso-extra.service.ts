@@ -27,8 +27,8 @@ export class IngresoExtraService {
       ...createIngresoExtraDto,
       fecha,
       id_empresa: empresa.id_empresa,
-      mes: (fecha.getUTCMonth() + 1).toString().padStart(2, '0'),
-      anio: fecha.getUTCFullYear(),
+      mes: (fecha.getMonth() + 1).toString().padStart(2, '0'),
+      anio: fecha.getFullYear(),
       CreatedId: userId,
     });
     return this.ingresoExtraRepository.save(nuevoIngresoExtra);
@@ -56,12 +56,12 @@ export class IngresoExtraService {
     const [extrasResult, fletesResult] = await Promise.all([
       this.ingresoExtraRepository.createQueryBuilder('ie')
         .select('SUM(ie.monto)', 'total')
-        .where('ie.status = true AND ie.mes = :mes AND ie.anio = :anio', { mes: mesParam, anio: anioParam })
+        .where('ie.status = true AND EXTRACT(MONTH FROM ie.fecha) = :mes AND EXTRACT(YEAR FROM ie.fecha) = :anio', { mes: mesParam, anio: anioParam })
         .getRawOne(),
       this.dataSource.createQueryBuilder()
         .select('SUM(s.total_flete)', 'total')
         .from('servicio', 's')
-        .where('s.status = true AND s.mes = :mes AND s.anio = :anio', { mes: mesParam, anio: anioParam })
+        .where('s.status = true AND EXTRACT(MONTH FROM s.fecha_inicio) = :mes AND EXTRACT(YEAR FROM s.fecha_inicio) = :anio', { mes: mesParam, anio: anioParam })
         .getRawOne(),
     ]);
 
@@ -91,8 +91,8 @@ export class IngresoExtraService {
     if (updateIngresoExtraDto.fecha) {
       const fecha = parseDateOnlyBolivia(updateIngresoExtraDto.fecha) ?? new Date();
       extra.fecha = fecha;
-      extra.mes = (fecha.getUTCMonth() + 1).toString().padStart(2, '0');
-      extra.anio = fecha.getUTCFullYear();
+      extra.mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
+      extra.anio = fecha.getFullYear();
     }
 
     Object.assign(ingresoExtra, extra);

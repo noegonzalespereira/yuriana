@@ -1,6 +1,7 @@
 "use client";
 import { TableActions } from "@/components/atoms/TableActions";
 import { ServicioItem, EstadoPago, EstadoServicio } from "@/types/servicio.types";
+import { formatDateBolivia } from "@/lib/date-bolivia";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("es-BO", { maximumFractionDigits: 2 }).format(n);
@@ -121,12 +122,7 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete }: Props) => {
               <td className="px-4 py-2.5 text-center">
                 {(item as any).fecha_pago ? (
                   <span className="font-bold text-emerald-600">
-                    {new Intl.DateTimeFormat('es-BO', {
-                      timeZone: 'America/La_Paz',
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                    }).format(new Date((item as any).fecha_pago))}
+                    {formatDateBolivia((item as any).fecha_pago)}
                   </span>
                 ) : <span className="text-slate-400">-</span>}
               </td>

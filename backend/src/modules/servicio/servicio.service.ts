@@ -143,7 +143,7 @@ export class ServicioService {
       let fLimitePago: Date | null = null;
       if (dto.fecha_fin && fechaFinDate) {
         fLimitePago = new Date(fechaFinDate);
-        fLimitePago.setUTCDate(fLimitePago.getUTCDate() + (dto.periodo_liquidacion || 0));
+        fLimitePago.setDate(fLimitePago.getDate() + (dto.periodo_liquidacion || 0));
       }
       const fPago = dto.fecha_pago ? parseDateOnlyBolivia(dto.fecha_pago) : null;
       const montoBase = Number(dto.flete);
@@ -173,8 +173,8 @@ export class ServicioService {
         estado_servicio: estadoServicio,
         estado_pago: (urlVoucher || fPago) ? EstadoPago.PAGADO : EstadoPago.PENDIENTE,
         comprobante_pago: urlVoucher,
-        mes: (fInicio.getUTCMonth() + 1).toString().padStart(2, '0'),
-        anio: fInicio.getUTCFullYear(),
+mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
+          anio: fInicio.getFullYear(),
         fecha_registro: new Date(),
         CreatedId: userId,
         codigo_servicio: `TEMP-${Date.now()}`,
@@ -216,9 +216,9 @@ export class ServicioService {
           factura_transporte: String(datosFactura.factura_transporte ?? ''),
           monto_factura: Number(datosFactura.monto_factura ?? fleteTotalBs),
           transmitido: datosFactura.transmitido !== false,
-          fecha_emision: new Date(Date.UTC(fInicio.getUTCFullYear(), fInicio.getUTCMonth(), fInicio.getUTCDate(), 12, 0, 0)),
-          mes: (fInicio.getUTCMonth() + 1).toString().padStart(2, '0'),
-          anio: fInicio.getUTCFullYear(),
+          fecha_emision: new Date(fInicio.getFullYear(), fInicio.getMonth(), fInicio.getDate(), 12, 0, 0),
+          mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
+          anio: fInicio.getFullYear(),
           CreatedId: userId,
         });
         const facturaGuardada = await queryRunner.manager.save(factura);
@@ -439,9 +439,9 @@ export class ServicioService {
       const fechaBaseCalendario = dto.fecha_inicio
         ? String(dto.fecha_inicio).slice(0, 10)
         : servicio.fecha_inicio instanceof Date
-          ? servicio.fecha_inicio.toISOString().slice(0, 10)
+          ? `${servicio.fecha_inicio.getFullYear()}-${(servicio.fecha_inicio.getMonth() + 1).toString().padStart(2, '0')}-${servicio.fecha_inicio.getDate().toString().padStart(2, '0')}`
           : String(servicio.fecha_inicio).slice(0, 10);
-      const fechaEmisionBase = new Date(`${fechaBaseCalendario}T12:00:00Z`);
+      const fechaEmisionBase = new Date(`${fechaBaseCalendario}T12:00:00`);
       for (const datosFactura of facturasNuevas) {
         const factura = await queryRunner.manager.save(Factura, queryRunner.manager.create(Factura, {
           id_servicio: id,
@@ -449,8 +449,8 @@ export class ServicioService {
           monto_factura: Number(datosFactura.monto_factura ?? servicio.total_flete),
           transmitido: datosFactura.transmitido !== false,
           fecha_emision: fechaEmisionBase,
-          mes: (fechaEmisionBase.getUTCMonth() + 1).toString().padStart(2, '0'),
-          anio: fechaEmisionBase.getUTCFullYear(),
+          mes: (fechaEmisionBase.getMonth() + 1).toString().padStart(2, '0'),
+          anio: fechaEmisionBase.getFullYear(),
           CreatedId: userId,
         }));
         const indicesFotos = Array.isArray(datosFactura.foto_indices) ? datosFactura.foto_indices : [];
@@ -524,7 +524,7 @@ export class ServicioService {
         servicio.fecha_fin = parseDateOnlyBolivia(dto.fecha_fin) ?? new Date();
         servicio.estado_servicio = EstadoServicio.FINALIZADO;
         const fLimite = new Date(servicio.fecha_fin);
-        fLimite.setUTCDate(fLimite.getUTCDate() + (dto.periodo_liquidacion ?? servicio.periodo_liquidacion ?? 0));
+        fLimite.setDate(fLimite.getDate() + (dto.periodo_liquidacion ?? servicio.periodo_liquidacion ?? 0));
         servicio.fecha_limite_pago = fLimite;
       }
 
@@ -546,18 +546,18 @@ export class ServicioService {
       const tCambio = servicio.moneda === Moneda.DOLAR ? Number(servicio.tipo_cambio ?? 1) : 1;
       servicio.total_flete = (montoBase + montoExtraCalculado) * tCambio;
 
-      const fechaEmisionServicio = new Date(Date.UTC(
-        fechaInicioFinal.getUTCFullYear(),
-        fechaInicioFinal.getUTCMonth(),
-        fechaInicioFinal.getUTCDate(),
+      const fechaEmisionServicio = new Date(
+        fechaInicioFinal.getFullYear(),
+        fechaInicioFinal.getMonth(),
+        fechaInicioFinal.getDate(),
         12,
         0,
         0,
-      ));
+      );
       await queryRunner.manager.update(Factura, { id_servicio: id, status: true }, {
         fecha_emision: fechaEmisionServicio,
-        mes: (fechaInicioFinal.getUTCMonth() + 1).toString().padStart(2, '0'),
-        anio: fechaInicioFinal.getUTCFullYear(),
+        mes: (fechaInicioFinal.getMonth() + 1).toString().padStart(2, '0'),
+        anio: fechaInicioFinal.getFullYear(),
         UpdatedId: userId,
       });
 
@@ -659,13 +659,13 @@ export class ServicioService {
 
     const [porCobrar, cobrado, retrasado] = await Promise.all([
       this.servicioRepo.createQueryBuilder('s').select('COALESCE(SUM(s.total_flete), 0)', 'total')
-        .where('s.status = true AND s.estado_pago IN (:...estados) AND s.mes = :mes AND s.anio = :anio', { estados: ['PENDIENTE', 'RETRASADO'], mes: mesParam, anio: anioParam })
+        .where('s.status = true AND s.estado_pago IN (:...estados) AND EXTRACT(MONTH FROM s.fecha_inicio) = :mes AND EXTRACT(YEAR FROM s.fecha_inicio) = :anio', { estados: ['PENDIENTE', 'RETRASADO'], mes: mesParam, anio: anioParam })
         .getRawOne(),
       this.servicioRepo.createQueryBuilder('s').select('COALESCE(SUM(s.total_flete), 0)', 'total')
-        .where('s.status = true AND s.estado_pago = :estado AND s.mes = :mes AND s.anio = :anio', { estado: EstadoPago.PAGADO, mes: mesParam, anio: anioParam })
+        .where('s.status = true AND s.estado_pago = :estado AND EXTRACT(MONTH FROM s.fecha_inicio) = :mes AND EXTRACT(YEAR FROM s.fecha_inicio) = :anio', { estado: EstadoPago.PAGADO, mes: mesParam, anio: anioParam })
         .getRawOne(),
       this.servicioRepo.createQueryBuilder('s').select('COALESCE(SUM(s.total_flete), 0)', 'total')
-        .where('s.status = true AND s.estado_pago = :estado AND s.mes = :mes AND s.anio = :anio', { estado: EstadoPago.RETRASADO, mes: mesParam, anio: anioParam })
+        .where('s.status = true AND s.estado_pago = :estado AND EXTRACT(MONTH FROM s.fecha_inicio) = :mes AND EXTRACT(YEAR FROM s.fecha_inicio) = :anio', { estado: EstadoPago.RETRASADO, mes: mesParam, anio: anioParam })
         .getRawOne(),
     ]);
 

@@ -3,6 +3,7 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import { Asignacion } from "@/types/asignacion.types";
 import { Empresa } from "@/types/empresa.types";
+import { formatDateBolivia } from "@/lib/date-bolivia";
 
 const styles = StyleSheet.create({
   page: { padding: 40, backgroundColor: "#FFFFFF", fontFamily: "Helvetica", fontSize: 9, color: "#000000" },
@@ -50,21 +51,7 @@ export const ReporteAsignacion = ({ data, tipoFormato, infoEmpresa }: ReportePro
     );
   }) ?? (tracto.documentos ?? []).find((doc) => !!doc.fecha_vencimiento);
 
-  const formatearFechaLocal = (valor: string | Date | null | undefined) => {
-    if (!valor) return null;
-
-    const date = typeof valor === "string" ? new Date(valor) : valor;
-    const formatter = new Intl.DateTimeFormat("es-BO", {
-      timeZone: "America/La_Paz",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-
-    return formatter.format(date);
-  };
-
-  const fechaVencimientoPoliza = formatearFechaLocal(documentoSeguroPoliza?.fecha_vencimiento) ?? "VERIFICAR EN EXPEDIENTE";
+  const fechaVencimientoPoliza = formatDateBolivia(documentoSeguroPoliza?.fecha_vencimiento) ?? "VERIFICAR EN EXPEDIENTE";
 
   // Valores dinámicos de la empresa con caídas seguras (fallbacks) por si no hay registros aún
   const nombreEmpresa = infoEmpresa?.nombre || "YURIANA S.R.L.";

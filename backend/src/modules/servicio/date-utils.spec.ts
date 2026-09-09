@@ -5,9 +5,9 @@ describe('parseDateOnlyBolivia', () => {
     const result = parseDateOnlyBolivia('2026-08-01');
 
     expect(result).not.toBeNull();
-    expect(result!.getUTCFullYear()).toBe(2026);
-    expect(result!.getUTCMonth()).toBe(7);
-    expect(result!.getUTCDate()).toBe(1);
+    expect(result!.getFullYear()).toBe(2026);
+    expect(result!.getMonth()).toBe(7);
+    expect(result!.getDate()).toBe(1);
   });
 
   it('should derive the correct month and year for Bolivia dates', () => {
