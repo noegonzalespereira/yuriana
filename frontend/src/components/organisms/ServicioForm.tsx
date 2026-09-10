@@ -133,6 +133,12 @@ interface Props {
   onSuccess: (item: ServicioItem) => void;
 }
 
+const fmtFechaFactura = (iso?: string | null) => {
+  if (!iso) return "-";
+  const [year, month, day] = iso.split("-").map(Number);
+  return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
+};
+
 export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSuccess }: Props) => {
   const isEdit = !!initialData;
 
@@ -156,10 +162,11 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
   const [guardandoEmbarque, setGuardandoEmbarque] = useState(false);
 
   // ── Facturas del servicio ───────────────────────────────────────────────
-  type FacturaPendiente = { factura_transporte: string; monto_factura: number; transmitido: boolean; archivos: File[] };
+  type FacturaPendiente = { factura_transporte: string; monto_factura: number; transmitido: boolean; archivos: File[]; fecha_emision: string; };
   const [facturaModalAbierto, setFacturaModalAbierto] = useState(false);
   const [facturaTransporte, setFacturaTransporte] = useState("");
   const [montoFactura, setMontoFactura] = useState<number>(0);
+  const [fechaEmision, setFechaEmision] = useState("");
   const [transmitirFactura, setTransmitirFactura] = useState(true);
   const [archivosFactura, setArchivosFactura] = useState<File[]>([]);
   const [previewsFactura, setPreviewsFactura] = useState<string[]>([]);
@@ -167,7 +174,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
   const [fotosFacturaEliminadas, setFotosFacturaEliminadas] = useState<number[]>([]);
   const [facturaEnEdicion, setFacturaEnEdicion] = useState<number | null>(null);
   const [facturaExistenteEnEdicion, setFacturaExistenteEnEdicion] = useState<number | null>(null);
-  const [facturasExistentesEditadas, setFacturasExistentesEditadas] = useState<Record<number, { factura_transporte: string; monto_factura: number; transmitido: boolean; archivos: File[]; fotos_eliminar: number[] }>>({});
+  const [facturasExistentesEditadas, setFacturasExistentesEditadas] = useState<Record<number, { factura_transporte: string; monto_factura: number; transmitido: boolean; archivos: File[]; fotos_eliminar: number[]; fecha_emision: string }>>({});
   const [facturasExistentesEliminadas, setFacturasExistentesEliminadas] = useState<number[]>([]);
   const [fotoFacturaAmpliada, setFotoFacturaAmpliada] = useState<string | null>(null);
   const [facturasPendientes, setFacturasPendientes] = useState<FacturaPendiente[]>([]);
@@ -225,6 +232,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     previewsFactura.forEach((preview) => URL.revokeObjectURL(preview));
     setFacturaTransporte("");
     setMontoFactura(0);
+    setFechaEmision("");
     setTransmitirFactura(true);
     setArchivosFactura([]);
     setPreviewsFactura([]);
@@ -239,6 +247,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     limpiarBorradorFactura();
     setFacturaTransporte(factura.factura_transporte);
     setMontoFactura(factura.monto_factura);
+    setFechaEmision(factura.fecha_emision);
     setTransmitirFactura(factura.transmitido);
     setArchivosFactura(factura.archivos);
     setPreviewsFactura(factura.archivos.map((archivo) => URL.createObjectURL(archivo)));
@@ -251,6 +260,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     const editada = facturasExistentesEditadas[factura.id_factura];
     setFacturaTransporte(editada?.factura_transporte ?? factura.factura_transporte ?? "");
     setMontoFactura(editada?.monto_factura ?? Number(factura.monto_factura ?? 0));
+    setFechaEmision(editada?.fecha_emision ?? factura.fecha_emision ?? "");
     setTransmitirFactura(editada?.transmitido ?? factura.transmitido !== false);
     setFotosFacturaExistentes(factura.fotos ?? []);
     const archivosEditados = editada?.archivos ?? [];
@@ -525,6 +535,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
         factura_transporte: factura.factura_transporte,
         monto_factura: factura.monto_factura,
         transmitido: factura.transmitido,
+        fecha_emision: factura.fecha_emision,
         foto_indices: factura.archivos.map(() => indiceFoto++),
       }))));
       facturasPendientes.forEach((factura) => factura.archivos.forEach((archivo) => fd.append("facturas_fotos", archivo)));
@@ -537,6 +548,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
         factura_transporte: factura.factura_transporte,
         monto_factura: factura.monto_factura,
         transmitido: factura.transmitido,
+        fecha_emision: factura.fecha_emision,
         foto_indices: factura.archivos.map(() => indiceFoto++),
         fotos_eliminar: factura.fotos_eliminar,
       }))));
@@ -706,7 +718,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
           </div>
         </div>
       )}
-
+      
       {/* Sección: Facturas del servicio */}
       <div className="bg-[var(--yuriana-card-bg)] rounded-3xl border border-border shadow-xl p-8 space-y-5">
         <div className="flex items-center justify-between gap-3">
@@ -719,15 +731,16 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
           <div className="overflow-x-auto rounded-xl border border-[var(--yuriana-input-border)]">
             <table className="w-full text-left text-xs">
               <thead className="bg-orange-50 text-[var(--yuriana-base-gray-dark)] uppercase text-[10px] font-black">
-                <tr><th className="px-3 py-2">N° Factura</th><th className="px-3 py-2 text-right">Monto Bs</th><th className="px-3 py-2">Transmitida</th><th className="px-3 py-2">Fotos</th><th className="px-3 py-2 text-center">Acciones</th></tr>
+                <tr><th className="px-3 py-2">N° Factura</th><th className="px-3 py-2">Fecha Emisión</th><th className="px-3 py-2 text-right">Monto Bs</th><th className="px-3 py-2">Transmitida</th><th className="px-3 py-2">Fotos</th></tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {initialData?.facturas?.filter((factura) => !facturasExistentesEliminadas.includes(factura.id_factura)).map((factura) => {
                   const editada = facturasExistentesEditadas[factura.id_factura];
                   return (
                   <tr key={factura.id_factura}>
-                    <td className="px-3 py-2 font-bold">{editada?.factura_transporte ?? factura.factura_transporte ?? "-"}</td>
-                    <td className="px-3 py-2 text-right">{new Intl.NumberFormat("es-BO", { maximumFractionDigits: 2 }).format(editada?.monto_factura ?? Number(factura.monto_factura))}</td>
+<td className="px-3 py-2 font-bold">{editada?.factura_transporte ?? factura.factura_transporte ?? "-"}</td>
+                     <td className="px-3 py-2">{fmtFechaFactura(editada?.fecha_emision ?? factura.fecha_emision)}</td>
+                     <td className="px-3 py-2 text-right">{new Intl.NumberFormat("es-BO", { maximumFractionDigits: 2 }).format(editada?.monto_factura ?? Number(factura.monto_factura))}</td>
                     <td className="px-3 py-2">{(editada?.transmitido ?? factura.transmitido) ? "Sí" : "No"}</td>
                     <td className="px-3 py-2">
                       {factura.fotos?.length ? (
@@ -740,21 +753,21 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
                         </div>
                       ) : "-"}
                     </td>
-                    <td className="px-3 py-2"><TableActions onEdit={!isReadOnly ? () => abrirFacturaExistente(factura) : undefined} onDelete={!isReadOnly ? () => setFacturasExistentesEliminadas((prev) => [...prev, factura.id_factura]) : undefined} size={16} /></td>
                   </tr>
                   );
                 })}
                 {facturasPendientes.map((factura, index) => (
                   <tr key={`nueva-${index}`}>
-                    <td className="px-3 py-2 font-bold">{factura.factura_transporte || "-"}</td>
-                    <td className="px-3 py-2 text-right">{new Intl.NumberFormat("es-BO", { maximumFractionDigits: 2 }).format(factura.monto_factura)}</td>
+<td className="px-3 py-2 font-bold">{factura.factura_transporte || "-"}</td>
+                     <td className="px-3 py-2">{fmtFechaFactura(factura.fecha_emision)}</td>
+                     <td className="px-3 py-2 text-right">{new Intl.NumberFormat("es-BO", { maximumFractionDigits: 2 }).format(factura.monto_factura)}</td>
                     <td className="px-3 py-2">{factura.transmitido ? "Sí" : "No"}</td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
                         <span>{factura.archivos.length || "-"}</span>
                       </div>
                     </td>
-                    <td className="px-3 py-2"><TableActions onEdit={!isReadOnly ? () => abrirFacturaPendiente(index) : undefined} onDelete={!isReadOnly ? () => setFacturasPendientes((prev) => prev.filter((_, itemIndex) => itemIndex !== index)) : undefined} size={16} /></td>
+                    
                   </tr>
                 ))}
               </tbody>
@@ -770,6 +783,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Field label="Factura Transporte" required><input className={INPUT_CLASS} value={facturaTransporte} onChange={(e) => setFacturaTransporte(e.target.value)} placeholder="N° de factura" /></Field>
               <Field label="Monto Factura Bs" required><input type="number" min={0.01} step="any" className={INPUT_CLASS} value={montoFactura || ""} onChange={(e) => setMontoFactura(Number(e.target.value))} placeholder="0" /></Field>
+               <Field label="Fecha Emisión" required><input type="date" className={INPUT_CLASS} value={fechaEmision} onChange={(e) => setFechaEmision(e.target.value)} /></Field>
               <Field label="Transmitir" required><select className={INPUT_CLASS} value={transmitirFactura ? "si" : "no"} onChange={(e) => setTransmitirFactura(e.target.value === "si")}><option value="si">Sí</option><option value="no">No</option></select></Field>
               <Field label={`Fotos Factura (máx. 5) · ${fotosFacturaExistentes.filter((foto) => !fotosFacturaEliminadas.includes(foto.id_foto_factura)).length + archivosFactura.length}/5`} optional>
                 <input ref={facturaInputRef} type="file" accept="image/*,.pdf" multiple className={INPUT_CLASS} onChange={(e) => {
@@ -803,7 +817,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
                 </div>
               ))}
             </div>}
-            <div className="flex justify-end gap-2 border-t border-border pt-4"><button type="button" onClick={() => { limpiarBorradorFactura(); setFacturaModalAbierto(false); }} className="px-5 py-2 rounded-xl bg-slate-600 hover:bg-slate-700 text-white text-xs font-black uppercase">Cancelar</button><button type="button" onClick={() => { if (!facturaTransporte.trim() || montoFactura <= 0) return toast.error("Completa el número y monto de la factura"); const factura = { factura_transporte: facturaTransporte.trim(), monto_factura: montoFactura, transmitido: transmitirFactura, archivos: archivosFactura }; if (facturaExistenteEnEdicion !== null) setFacturasExistentesEditadas((prev) => ({ ...prev, [facturaExistenteEnEdicion]: { factura_transporte: factura.factura_transporte, monto_factura: factura.monto_factura, transmitido: factura.transmitido, archivos: factura.archivos, fotos_eliminar: fotosFacturaEliminadas } })); else setFacturasPendientes((prev) => facturaEnEdicion === null ? [...prev, factura] : prev.map((item, index) => index === facturaEnEdicion ? factura : item)); limpiarBorradorFactura(); setFacturaModalAbierto(false); }} className="px-5 py-2 rounded-xl bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-[var(--yuriana-base-black)] text-xs font-black uppercase shadow-md">{facturaExistenteEnEdicion !== null ? "Actualizar factura" : facturaEnEdicion === null ? "Guardar factura" : "Actualizar factura"}</button></div>
+            <div className="flex justify-end gap-2 border-t border-border pt-4"><button type="button" onClick={() => { limpiarBorradorFactura(); setFacturaModalAbierto(false); }} className="px-5 py-2 rounded-xl bg-slate-600 hover:bg-slate-700 text-white text-xs font-black uppercase">Cancelar</button><button type="button" onClick={() => { if (!facturaTransporte.trim() || montoFactura <= 0 || !fechaEmision) return toast.error("Completa el número, monto y fecha de emisión de la factura"); const facturaNueva = { factura_transporte: facturaTransporte.trim(), monto_factura: montoFactura, transmitido: transmitirFactura, fecha_emision: fechaEmision, archivos: archivosFactura }; if (facturaExistenteEnEdicion !== null) setFacturasExistentesEditadas((prev) => ({ ...prev, [facturaExistenteEnEdicion]: { ...prev[facturaExistenteEnEdicion], ...facturaNueva } })); else setFacturasPendientes((prev) => facturaEnEdicion === null ? [...prev, facturaNueva] : prev.map((item, index) => index === facturaEnEdicion ? facturaNueva : item)); limpiarBorradorFactura(); setFacturaModalAbierto(false); }} className="px-5 py-2 rounded-xl bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-[var(--yuriana-base-black)] text-xs font-black uppercase shadow-md">{facturaExistenteEnEdicion !== null ? "Actualizar factura" : facturaEnEdicion === null ? "Guardar factura" : "Actualizar factura"}</button></div>
           </div>
         </div>
       )}

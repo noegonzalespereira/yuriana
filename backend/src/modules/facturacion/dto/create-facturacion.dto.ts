@@ -19,6 +19,10 @@ export class CreateFacturacionDto {
 
     @IsOptional()
     @IsString()
+    fecha_emision?: string;
+
+    @IsOptional()
+    @IsString()
     foto_factura?: string;
 
     @IsOptional()

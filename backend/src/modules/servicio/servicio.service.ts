@@ -211,14 +211,15 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
       }
 
       for (const datosFactura of facturasNuevas) {
+        const fechaEmisionDate = datosFactura.fecha_emision ? (parseDateOnlyBolivia(datosFactura.fecha_emision) ?? new Date()) : new Date();
         const factura = queryRunner.manager.create(Factura, {
           id_servicio: guardado.id_servicio,
           factura_transporte: String(datosFactura.factura_transporte ?? ''),
           monto_factura: Number(datosFactura.monto_factura ?? fleteTotalBs),
           transmitido: datosFactura.transmitido !== false,
-          fecha_emision: new Date(fInicio.getFullYear(), fInicio.getMonth(), fInicio.getDate(), 12, 0, 0),
-          mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
-          anio: fInicio.getFullYear(),
+          fecha_emision: fechaEmisionDate,
+          mes: (fechaEmisionDate.getMonth() + 1).toString().padStart(2, '0'),
+          anio: fechaEmisionDate.getFullYear(),
           CreatedId: userId,
         });
         const facturaGuardada = await queryRunner.manager.save(factura);
@@ -296,6 +297,7 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
       .leftJoinAndSelect('documento.requisito_documento', 'requisito') // Documento -> Requisito
       .leftJoinAndSelect('requisito.categoria', 'categoriaRequisito')  // Requisito -> Categoría
       .leftJoinAndSelect('servicio.facturas', 'factura')
+      .andWhere('factura.status = :status', { status: true })
       .where('servicio.status = :status', { status: true });
 
     if (filters.buscar) {
@@ -331,6 +333,12 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
       relations: ['categoria', 'cliente', 'cliente.persona', 'asignacion', 'asignacion.conductor.persona', 'asignacion.tracto', 'asignacion.tracto.categoria', 'asignacion.tracto.documentos', 'asignacion.tracto.documentos.requisito_documento', 'asignacion.remolque', 'colaborador', 'colaborador.persona', 'facturas', 'facturas.fotos', 'documentos','documentos.requisito_documento','documentos.requisito_documento.categoria', 'embarque']
     });
     if (!servicio) throw new NotFoundException('Servicio no encontrado');
+    
+    // Filtrar solo facturas con status true (activas)
+    if (servicio.facturas) {
+      servicio.facturas = servicio.facturas.filter(factura => factura.status === true);
+    }
+    
     return servicio;
   }
 
@@ -448,7 +456,7 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
           factura_transporte: String(datosFactura.factura_transporte ?? ''),
           monto_factura: Number(datosFactura.monto_factura ?? servicio.total_flete),
           transmitido: datosFactura.transmitido !== false,
-          fecha_emision: fechaEmisionBase,
+          fecha_emision: datosFactura.fecha_emision ?? fechaEmisionBase,
           mes: (fechaEmisionBase.getMonth() + 1).toString().padStart(2, '0'),
           anio: fechaEmisionBase.getFullYear(),
           CreatedId: userId,
@@ -473,6 +481,7 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
             factura_transporte: String(datosFactura.factura_transporte ?? ''),
             monto_factura: Number(datosFactura.monto_factura ?? servicio.total_flete),
             transmitido: datosFactura.transmitido !== false,
+            fecha_emision: datosFactura.fecha_emision ? (parseDateOnlyBolivia(datosFactura.fecha_emision) ?? facturaActualizada.fecha_emision) : facturaActualizada.fecha_emision,
             UpdatedId: userId,
           });
           const indicesFotos = Array.isArray(datosFactura.foto_indices) ? datosFactura.foto_indices : [];

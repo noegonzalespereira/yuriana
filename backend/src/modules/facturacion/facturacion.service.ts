@@ -6,6 +6,7 @@ import { Factura } from '../facturacion/entities/facturacion.entity';
 import { FotoFactura } from '../facturacion/entities/foto-factura.entity';
 import { Repository, In } from 'typeorm';
 import { CloudinaryService } from '../../cloudinary/cloudinary.service';
+import { parseDateOnlyBolivia } from '../servicio/date-utils';
 
 @Injectable()
 export class FacturacionService {
@@ -16,7 +17,7 @@ export class FacturacionService {
   ) {}
 
   async create(dto: CreateFacturacionDto, file: Express.Multer.File, userId: number) {
-    const fEmision = new Date();
+    const fEmision: Date = dto.fecha_emision ? parseDateOnlyBolivia(dto.fecha_emision) ?? new Date() : new Date();
     const { url } = await this.cloudinaryService.subirArchivo(file, 'yuriana/facturas');
 
     const factura = this.facturaRepo.create({
@@ -116,11 +117,9 @@ export class FacturacionService {
       }
     }
 
-    // 5. Actualizar campos del DTO (excluir los campos de control de fotos)
-    // Se usa update() en lugar de save() para evitar que TypeORM cascade sobre
-    // fotos y trate de nullificar las recién agregadas que no están en memoria.
-    const { ids_fotos_eliminar, eliminar_foto_principal, ...camposDto } = dto;
-    await this.facturaRepo.update(id, { ...camposDto, UpdatedId: userId });
+
+    const { ids_fotos_eliminar, eliminar_foto_principal, fecha_emision, ...camposDto } = dto;
+    await this.facturaRepo.update(id, { ...camposDto, fecha_emision: dto.fecha_emision ? (parseDateOnlyBolivia(dto.fecha_emision) ?? new Date()) : factura.fecha_emision as Date, UpdatedId: userId });
 
     return await this.findOne(id);
   }

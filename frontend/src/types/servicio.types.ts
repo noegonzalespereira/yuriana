@@ -80,6 +80,7 @@ export interface ServicioItem {
     id_factura: number;
     factura_transporte: string;
     monto_factura: number;
+    fecha_emision?: string;
     foto_factura?: string;
     fotos: { id_foto_factura: number; url_foto: string }[];
     transmitido: boolean;

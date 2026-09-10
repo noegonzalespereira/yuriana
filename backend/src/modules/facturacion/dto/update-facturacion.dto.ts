@@ -10,4 +10,8 @@ export class UpdateFacturacionDto extends PartialType(CreateFacturacionDto) {
   @IsOptional()
   @IsString()
   eliminar_foto_principal?: string;
+
+  @IsOptional()
+  @IsString()
+  fecha_emision?: string;
 }

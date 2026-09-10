@@ -14,34 +14,12 @@ import {
 import { getCategorias } from "@/lib/api/requisito.api";
 import { DateRangeFilter } from "@/components/molecules/DateRangeFilter";
 import { FacturaItem, TotalesFacturacion, FacturacionFilters } from "@/types/facturacion.types";
+import { formatDateBolivia } from "@/lib/date-bolivia";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("es-BO", { maximumFractionDigits: 2 }).format(n);
 
-const parseFechaNegocio = (value: string) => {
-  if (!value) return null;
-
-  const [fechaBase] = value.split("T");
-  const [year, month, day] = (fechaBase || value).split("-").map(Number);
-
-  if (!year || !month || !day) return null;
-
-  return new Date(year, month - 1, day, 12, 0, 0);
-};
-
-const fmtFecha = (iso: string) => {
-  if (!iso) return "-";
-
-  const date = parseFechaNegocio(iso) ?? new Date(iso);
-  if (Number.isNaN(date.getTime())) return "-";
-
-  return new Intl.DateTimeFormat("es-BO", {
-    timeZone: "America/La_Paz",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
-};
+const fmtFecha = (iso: string) => formatDateBolivia(iso);
 
 const tipoViajeLabel = (tipo: string) => {
   if (tipo?.includes("INTERNACIONAL")) return "Internacional";
@@ -89,6 +67,7 @@ export default function FacturacionPage() {
   // Edit form fields
   const [editFacturaTransporte, setEditFacturaTransporte] = useState("");
   const [editMonto, setEditMonto] = useState("");
+  const [editFechaEmision, setEditFechaEmision] = useState("");
   const [editTransmitido, setEditTransmitido] = useState(true);
 
   // Gallery edit state
@@ -136,6 +115,7 @@ export default function FacturacionPage() {
       if (tipo === "editar") {
         setEditFacturaTransporte(data.factura_transporte ?? "");
         setEditMonto(String(data.monto_factura ?? ""));
+        setEditFechaEmision(data.fecha_emision ?? "");
         setEditTransmitido(data.transmitido !== false);
         setEliminarFotoPrincipal(false);
         setFotosEliminadas([]);
@@ -154,6 +134,7 @@ export default function FacturacionPage() {
     previewsNuevos.forEach((p) => URL.revokeObjectURL(p));
     setModalType(null);
     setSelectedFactura(null);
+    setEditFechaEmision("");
     setEliminarFotoPrincipal(false);
     setFotosEliminadas([]);
     setArchivosNuevos([]);
@@ -212,6 +193,7 @@ export default function FacturacionPage() {
       const fd = new FormData();
       fd.append("factura_transporte", editFacturaTransporte.trim());
       fd.append("monto_factura", String(montoNum));
+      fd.append("fecha_emision", editFechaEmision);
       fd.append("transmitido", String(editTransmitido));
       if (eliminarFotoPrincipal) fd.append("eliminar_foto_principal", "true");
       if (fotosEliminadas.length > 0) fd.append("ids_fotos_eliminar", fotosEliminadas.join(","));
@@ -634,12 +616,6 @@ export default function FacturacionPage() {
                         {selectedFactura.servicio?.codigo_servicio ?? "-"}
                       </p>
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <label className={LABEL_CLASS}>Fecha Emisión</label>
-                      <p className="text-xs font-semibold text-[var(--yuriana-input-text)]">
-                        {fmtFecha(selectedFactura.fecha_emision)}
-                      </p>
-                    </div>
                     <div className="flex flex-col gap-1 col-span-2 md:col-span-1">
                       <label className={LABEL_CLASS}>N° Factura de Transporte *</label>
                       <input
@@ -664,18 +640,28 @@ export default function FacturacionPage() {
                         disabled={saving}
                       />
                     </div>
-                    <div className="flex flex-col gap-1 col-span-2 md:col-span-1">
-                      <label className={LABEL_CLASS}>Transmitir factura *</label>
-                      <select
-                        value={editTransmitido ? "si" : "no"}
-                        onChange={(e) => setEditTransmitido(e.target.value === "si")}
-                        className={INPUT_FIELD}
-                        disabled={saving}
-                      >
-                        <option value="si">Sí</option>
-                        <option value="no">No</option>
-                      </select>
-                    </div>
+<div className="flex flex-col gap-1 col-span-2 md:col-span-1">
+                       <label className={LABEL_CLASS}>Fecha Emisión *</label>
+                       <input
+                         type="date"
+                         value={editFechaEmision}
+                         onChange={(e) => setEditFechaEmision(e.target.value)}
+                         className={INPUT_FIELD}
+                         disabled={saving}
+                       />
+                     </div>
+                     <div className="flex flex-col gap-1 col-span-2 md:col-span-1">
+                       <label className={LABEL_CLASS}>Transmitir factura *</label>
+                       <select
+                         value={editTransmitido ? "si" : "no"}
+                         onChange={(e) => setEditTransmitido(e.target.value === "si")}
+                         className={INPUT_FIELD}
+                         disabled={saving}
+                       >
+                         <option value="si">Sí</option>
+                         <option value="no">No</option>
+                       </select>
+                     </div>
                   </div>
 
                   {/* Gallery edit */}
