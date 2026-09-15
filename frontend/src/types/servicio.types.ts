@@ -48,13 +48,23 @@ export interface ServicioItem {
     razon_social?: string;
     persona: { nombre: string; ci?: number };
   };
-  id_asignacion: number;
-  asignacion: {
+  id_asignacion?: number | null;
+  asignacion?: {
     id_asignacion: number;
     conductor: { persona: { ci: number; nombre: string } };
     tracto: { placa: string; categoria?: { tipo_categoria: string } };
     remolque?: { placa: string };
-  };
+  } | null;
+  id_asignacion_otros?: number | null;
+  asignacion_otros?: {
+    id_asig_otros: number;
+    ci: string;
+    nombre: string;
+    placa: string;
+    telefono: string;
+    empresa: string;
+    estado?: string;
+  } | null;
   id_colaborador?: number;
   colaborador?: {
     agencia?: string;

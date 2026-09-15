@@ -1,5 +1,6 @@
 import { Column,Index, Entity, ManyToOne, PrimaryGeneratedColumn, JoinColumn, CreateDateColumn, UpdateDateColumn, OneToMany} from "typeorm";
 import { Asignacion } from "../../asignacion/entities/asignacion.entity";
+import { AsignacionOtros } from "../../asignacion-otros/entities/asignacion-otros.entity";
 import { Colaborador } from "../../colaborador/entities/colaborador.entity";
 import { CategoriaEntidad } from "../../categoria-entidad/entities/categoria-entidad.entity";
 import { Cliente } from "../../cliente/entities/cliente.entity";
@@ -78,10 +79,17 @@ export class Servicio {
 
     @ManyToOne(() => Asignacion, {onDelete: 'RESTRICT'})
     @JoinColumn({ name: 'id_asignacion' })
-    asignacion!: Asignacion;
+    asignacion?: Asignacion | null;
     
-    @Column()
-    id_asignacion!: number;
+    @Column({ type: 'int', nullable: true })
+    id_asignacion?: number | null;
+
+    @Column({ type: 'int', nullable: true })
+    id_asignacion_otros?: number | null;
+
+    @ManyToOne(() => AsignacionOtros, { onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'id_asignacion_otros' })
+    asignacion_otros?: AsignacionOtros | null;
 
     @ManyToOne(() => Colaborador, { nullable: true, onDelete: 'RESTRICT' })
     @JoinColumn({ name: 'id_colaborador' })

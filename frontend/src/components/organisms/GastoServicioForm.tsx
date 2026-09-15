@@ -5,6 +5,7 @@ import { SearchableCombobox } from "@/components/molecules/SearchableCombobox";
 import { FormActions } from "@/components/atoms/FormActions";
 import { toast } from "sonner";
 import { TipoGastoServicio, ItemGastoForm, ServicioResumen, GastosServicio } from "@/types/gasto.types";
+import { ServicioItem } from "@/types/servicio.types";
 import { guardarGastoServicio } from "@/lib/api/gasto.api";
 import { getServicios } from "@/lib/api/servicio.api";
 
@@ -45,8 +46,8 @@ const fmt = (n: number, decimals = 2) =>
   new Intl.NumberFormat("es-BO", { maximumFractionDigits: decimals }).format(n);
 
 export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, onSuccess }: Props) => {
-  const [servicios, setServicios] = useState<ServicioResumen[]>([]);
-  const [selectedServicio, setSelectedServicio] = useState<ServicioResumen | null>(null);
+  const [servicios, setServicios] = useState<ServicioItem[]>([]);
+  const [selectedServicio, setSelectedServicio] = useState<ServicioItem | null>(null);
 
   const [moneda, setMoneda] = useState("UYU");
   const [tipoCambio, setTipoCambio] = useState<number>(0.17);
@@ -165,8 +166,6 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
     }
   };
 
-  const conductor = selectedServicio?.asignacion?.conductor?.persona;
-
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       {/* Header card */}
@@ -203,7 +202,7 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
                 }}
               />
             </div>
-            <ReadField label="Tipo viaje" value={selectedServicio?.categoria?.nombre ?? "-"} />
+            <ReadField label="Tipo viaje" value={selectedServicio?.categoria?.tipo_categoria ?? "-"} />
             <ReadField label="Origen" value={selectedServicio?.origen ?? ""} />
             <ReadField label="Destino" value={selectedServicio?.destino ?? ""} />
           </div>
@@ -212,11 +211,11 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
         {/* ── Datos del conductor ── */}
         <div>
           <SectionHeader icon={<Users size={16} />} title="Datos del Conductor" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <ReadField label="CI" value={conductor?.ci?.toString() ?? "-"} />
-            <ReadField label="Nombre" value={conductor?.nombre ?? "--"} />
-            <ReadField label="Teléfono" value={conductor?.telefono ?? "-"} />
-            <ReadField label="Correo" value={conductor?.correo ?? "-"} />
+<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <ReadField label="CI" value={(selectedServicio?.asignacion?.conductor?.persona?.ci?.toString() ?? selectedServicio?.asignacion_otros?.ci) || "-"} />
+            <ReadField label="Nombre" value={(selectedServicio?.asignacion?.conductor?.persona?.nombre ?? selectedServicio?.asignacion_otros?.nombre) || "--"} />
+            <ReadField label="Teléfono" value={selectedServicio?.asignacion_otros?.telefono || "-"} />
+            <ReadField label="Correo" value="-" />
           </div>
         </div>
 

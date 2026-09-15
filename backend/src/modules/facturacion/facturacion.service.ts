@@ -79,11 +79,13 @@ export class FacturacionService {
     userId: number,
   ): Promise<Factura> {
     const factura = await this.findOne(id);
+    let fotoFacturaActualizada: string | null | undefined;
 
     // 1. Eliminar foto principal si se solicitó
     if (dto.eliminar_foto_principal === 'true' && factura.foto_factura) {
       await this.cloudinaryService.eliminarArchivo(factura.foto_factura);
       factura.foto_factura = undefined;
+      fotoFacturaActualizada = null;
     }
 
     // 2. Reemplazar foto principal si se subió una nueva
@@ -94,6 +96,7 @@ export class FacturacionService {
       }
       const { url } = await this.cloudinaryService.subirArchivo(fotoPrincipalFile, 'yuriana/facturas');
       factura.foto_factura = url;
+      fotoFacturaActualizada = url;
     }
 
     // 3. Eliminar fotos adicionales seleccionadas
@@ -119,7 +122,12 @@ export class FacturacionService {
 
 
     const { ids_fotos_eliminar, eliminar_foto_principal, fecha_emision, ...camposDto } = dto;
-    await this.facturaRepo.update(id, { ...camposDto, fecha_emision: dto.fecha_emision ? (parseDateOnlyBolivia(dto.fecha_emision) ?? new Date()) : factura.fecha_emision as Date, UpdatedId: userId });
+    await this.facturaRepo.update(id, {
+      ...camposDto,
+      ...(fotoFacturaActualizada !== undefined ? { foto_factura: fotoFacturaActualizada as string } : {}),
+      fecha_emision: dto.fecha_emision ? (parseDateOnlyBolivia(dto.fecha_emision) ?? new Date()) : factura.fecha_emision as Date,
+      UpdatedId: userId,
+    });
 
     return await this.findOne(id);
   }

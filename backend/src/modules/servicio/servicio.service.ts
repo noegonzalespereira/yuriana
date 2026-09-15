@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, Brackets } from 'typeorm';
-import { Servicio, EstadoPago, EstadoServicio, Moneda, OperacionFleteAdicional } from './entities/servicio.entity';
+import { Servicio, EstadoPago, EstadoServicio, Moneda, Operador, OperacionFleteAdicional } from './entities/servicio.entity';
 import { CategoriaEntidad } from '../categoria-entidad/entities/categoria-entidad.entity';
 import { CreateServicioDto } from './dto/create-servicio.dto';
 import { UpdateServicioDto } from './dto/update-servicio.dto';
@@ -14,6 +14,8 @@ import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 import { FilterServicioDto } from './dto/filter-servicio.dto';
 import { AsignacionService } from '../asignacion/asignacion.service';
 import { Asignacion, EstadoAsignacion } from '../asignacion/entities/asignacion.entity';
+import { AsignacionOtros } from '../asignacion-otros/entities/asignacion-otros.entity';
+import { EstadoAsignacionOtros } from '../asignacion-otros/entities/asignacion-otros.entity';
 import { parseDateOnlyBolivia } from './date-utils';
 import { Embarque } from '../embarque/entities/embarque.entity';
 
@@ -99,7 +101,12 @@ export class ServicioService {
 
     try {
       // 1. VALIDACIONES DE ENTRADA
-      const asignacion = await this.validateAsignacion(dto.id_asignacion, queryRunner);
+      let asignacion: Asignacion | null = null;
+      
+      // Si el operador es YURIANA, validar y ocupar equipo. Si es OTROS, id_asignacion será null.
+      if (dto.operador !== Operador.OTROS && dto.id_asignacion) {
+        asignacion = await this.validateAsignacion(dto.id_asignacion, queryRunner);
+      }
 
       if (dto.fecha_pago && !files?.vaucher?.[0]) {
         throw new BadRequestException('Si registra una fecha de pago, debe subir el comprobante (voucher).');
@@ -181,6 +188,19 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
       });
 
       const guardado = await queryRunner.manager.save(servicio);
+      // Si el operador es OTROS, crear registro en asignacion_otros
+      if (dto.operador === Operador.OTROS) {
+        const asignacionOtros = queryRunner.manager.create(AsignacionOtros, {
+          ci: dto.ci_conductor,
+          nombre: dto.nombre_conductor,
+          placa: dto.placa_unidad,
+          telefono: dto.telefono_unidad || '',
+          empresa: dto.empresa_conductor || '',
+          estado: EstadoAsignacionOtros.ACTIVA,
+        });
+        const asignacionOtrosGuardado = await queryRunner.manager.save(AsignacionOtros, asignacionOtros) as AsignacionOtros;
+        guardado.id_asignacion_otros = asignacionOtrosGuardado.id_asig_otros;
+      }
       if (dto.id_embarque) {
         const embarque = await this.reservarEmbarque(dto.id_embarque, queryRunner, userId);
         guardado.embarque = embarque;
@@ -254,7 +274,8 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
       }
 
       // 4. EFECTO DOMINÓ: Actualización de estados de equipo
-      if (estadoServicio === EstadoServicio.EN_CURSO) {
+      // Solo ocupar equipo si el operador es YURIANA y hay asignacion
+      if (estadoServicio === EstadoServicio.EN_CURSO && dto.operador !== Operador.OTROS && asignacion) {
         await this.ocuparEquipo(asignacion, userId, queryRunner);
       } 
 
@@ -292,6 +313,7 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
       .leftJoinAndSelect('asignacion.conductor', 'conductor')
       .leftJoinAndSelect('conductor.persona', 'personaConductor')
       .leftJoinAndSelect('asignacion.tracto', 'tracto')
+      .leftJoinAndSelect('servicio.asignacion_otros', 'asignacion_otros')
       .leftJoinAndSelect('servicio.colaborador', 'colaborador')
       .leftJoinAndSelect('servicio.documentos', 'documento') 
       .leftJoinAndSelect('documento.requisito_documento', 'requisito') // Documento -> Requisito
@@ -330,7 +352,7 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
   async findOne(id: number): Promise<Servicio> {
     const servicio = await this.servicioRepo.findOne({
       where: { id_servicio: id, status: true },
-      relations: ['categoria', 'cliente', 'cliente.persona', 'asignacion', 'asignacion.conductor.persona', 'asignacion.tracto', 'asignacion.tracto.categoria', 'asignacion.tracto.documentos', 'asignacion.tracto.documentos.requisito_documento', 'asignacion.remolque', 'colaborador', 'colaborador.persona', 'facturas', 'facturas.fotos', 'documentos','documentos.requisito_documento','documentos.requisito_documento.categoria', 'embarque']
+      relations: ['categoria', 'cliente', 'cliente.persona', 'asignacion', 'asignacion.conductor.persona', 'asignacion.tracto', 'asignacion.tracto.categoria', 'asignacion.tracto.documentos', 'asignacion.tracto.documentos.requisito_documento', 'asignacion.remolque', 'asignacion_otros', 'colaborador', 'colaborador.persona', 'facturas', 'facturas.fotos', 'documentos','documentos.requisito_documento','documentos.requisito_documento.categoria', 'embarque']
     });
     if (!servicio) throw new NotFoundException('Servicio no encontrado');
     
@@ -371,7 +393,7 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
 
       const oldAsignacion = servicio.asignacion;
       const oldEstadoServicio = servicio.estado_servicio;
-      const { borrar_fecha_fin, fecha_pago, facturas, facturas_actualizar, facturas_eliminar, es_facturado, factura_transporte, monto_factura, id_embarque, crt: _crt, ...datosActualizar } = dto;
+      const { borrar_fecha_fin, fecha_pago, fecha_inicio: _fecha_inicio, fecha_fin: _fecha_fin, facturas, facturas_actualizar, facturas_eliminar, es_facturado, factura_transporte, monto_factura, id_embarque, crt: _crt, ...datosActualizar } = dto;
       const debeBorrarFechaFin = String(borrar_fecha_fin) === 'true';
 
       if (String(borrar_fecha_fin) === 'true' && dto.fecha_fin) {
@@ -451,14 +473,17 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
           : String(servicio.fecha_inicio).slice(0, 10);
       const fechaEmisionBase = new Date(`${fechaBaseCalendario}T12:00:00`);
       for (const datosFactura of facturasNuevas) {
+        const fechaEmisionFactura = datosFactura.fecha_emision
+          ? (parseDateOnlyBolivia(datosFactura.fecha_emision) ?? fechaEmisionBase)
+          : fechaEmisionBase;
         const factura = await queryRunner.manager.save(Factura, queryRunner.manager.create(Factura, {
           id_servicio: id,
           factura_transporte: String(datosFactura.factura_transporte ?? ''),
           monto_factura: Number(datosFactura.monto_factura ?? servicio.total_flete),
           transmitido: datosFactura.transmitido !== false,
-          fecha_emision: datosFactura.fecha_emision ?? fechaEmisionBase,
-          mes: (fechaEmisionBase.getMonth() + 1).toString().padStart(2, '0'),
-          anio: fechaEmisionBase.getFullYear(),
+          fecha_emision: fechaEmisionFactura,
+          mes: (fechaEmisionFactura.getMonth() + 1).toString().padStart(2, '0'),
+          anio: fechaEmisionFactura.getFullYear(),
           CreatedId: userId,
         }));
         const indicesFotos = Array.isArray(datosFactura.foto_indices) ? datosFactura.foto_indices : [];
@@ -477,11 +502,16 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
           if (!datosFactura.id_factura) continue;
           const facturaActualizada = await queryRunner.manager.findOne(Factura, { where: { id_factura: Number(datosFactura.id_factura), id_servicio: id, status: true } });
           if (!facturaActualizada) continue;
+          const fechaEmisionActualizada = datosFactura.fecha_emision
+            ? (parseDateOnlyBolivia(datosFactura.fecha_emision) ?? facturaActualizada.fecha_emision)
+            : facturaActualizada.fecha_emision;
           await queryRunner.manager.update(Factura, { id_factura: facturaActualizada.id_factura }, {
             factura_transporte: String(datosFactura.factura_transporte ?? ''),
             monto_factura: Number(datosFactura.monto_factura ?? servicio.total_flete),
             transmitido: datosFactura.transmitido !== false,
-            fecha_emision: datosFactura.fecha_emision ? (parseDateOnlyBolivia(datosFactura.fecha_emision) ?? facturaActualizada.fecha_emision) : facturaActualizada.fecha_emision,
+            fecha_emision: fechaEmisionActualizada,
+            mes: (fechaEmisionActualizada.getMonth() + 1).toString().padStart(2, '0'),
+            anio: fechaEmisionActualizada.getFullYear(),
             UpdatedId: userId,
           });
           const indicesFotos = Array.isArray(datosFactura.foto_indices) ? datosFactura.foto_indices : [];
@@ -555,45 +585,86 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
       const tCambio = servicio.moneda === Moneda.DOLAR ? Number(servicio.tipo_cambio ?? 1) : 1;
       servicio.total_flete = (montoBase + montoExtraCalculado) * tCambio;
 
-      const fechaEmisionServicio = new Date(
-        fechaInicioFinal.getFullYear(),
-        fechaInicioFinal.getMonth(),
-        fechaInicioFinal.getDate(),
-        12,
-        0,
-        0,
-      );
-      await queryRunner.manager.update(Factura, { id_servicio: id, status: true }, {
-        fecha_emision: fechaEmisionServicio,
-        mes: (fechaInicioFinal.getMonth() + 1).toString().padStart(2, '0'),
-        anio: fechaInicioFinal.getFullYear(),
-        UpdatedId: userId,
-      });
+      const asignacionCambio = servicio.id_asignacion !== (oldAsignacion?.id_asignacion ?? 0);
 
-      
-      const asignacionCambio = servicio.id_asignacion !== oldAsignacion.id_asignacion;
-
+      // Manejar cambio según el tipo de operador
       if (asignacionCambio) {
-        const newAsignacion = await this.validateAsignacion(servicio.id_asignacion, queryRunner);
-        servicio.asignacion = newAsignacion;
+        if (dto.operador === Operador.OTROS) {
+          // Para OTROS: limpiar asignacion YURIANA y manejar asignacion_otros
+          if (oldAsignacion && oldAsignacion.id_asignacion) {
+            servicio.id_asignacion = null;
+            servicio.asignacion = null;
+          }
+          // Actualizar o crear asignacion_otros
+          const asignacionOtrosExistente = await queryRunner.manager.findOne(AsignacionOtros, {
+            where: { id_asig_otros: servicio.id_asignacion_otros! }
+          }) as AsignacionOtros;
+          if (asignacionOtrosExistente) {
+            asignacionOtrosExistente.ci = dto.ci_conductor || asignacionOtrosExistente.ci;
+            asignacionOtrosExistente.nombre = dto.nombre_conductor || asignacionOtrosExistente.nombre;
+            asignacionOtrosExistente.placa = dto.placa_unidad || asignacionOtrosExistente.placa;
+            asignacionOtrosExistente.telefono = dto.telefono_unidad || asignacionOtrosExistente.telefono;
+            asignacionOtrosExistente.empresa = dto.empresa_conductor || asignacionOtrosExistente.empresa;
+            asignacionOtrosExistente.UpdatedId = userId;
+            await queryRunner.manager.save(AsignacionOtros, asignacionOtrosExistente);
+            servicio.id_asignacion_otros = asignacionOtrosExistente.id_asig_otros;
+          } else {
+            const nuevoAsigOtros = queryRunner.manager.create(AsignacionOtros, {
+              ci: dto.ci_conductor,
+              nombre: dto.nombre_conductor,
+              placa: dto.placa_unidad,
+              telefono: dto.telefono_unidad || '',
+              empresa: dto.empresa_conductor || '',
+              estado: EstadoAsignacionOtros.ACTIVA,
+              UpdatedId: userId,
+            });
+            const guardadoOtros = await queryRunner.manager.save(AsignacionOtros, nuevoAsigOtros) as AsignacionOtros;
+            servicio.id_asignacion_otros = guardadoOtros.id_asig_otros;
+          }
+          // Para OTROS, no ocupar equipo - id_asignacion ya es null
+        } else {
+          // Para YURIANA: flujo normal de validación y ocupación
+          const newAsignacion = await this.validateAsignacion(servicio.id_asignacion ?? 0, queryRunner);
+          servicio.asignacion = newAsignacion;
+
+          // Liberar equipo antiguo si estaba en EN_CURSO y cambió la asignación
+          if (oldAsignacion && oldEstadoServicio === EstadoServicio.EN_CURSO) {
+            await this.liberarEquipo(oldAsignacion, userId, queryRunner);
+          }
+          // Ocupar nuevo equipo si el servicio está EN_CURSO
+          if (servicio.estado_servicio === EstadoServicio.EN_CURSO) {
+            await this.ocuparEquipo(servicio.asignacion, userId, queryRunner);
+          }
+        }
+} else {
+        // Assignment unchanged - manejar según operador
+        if (dto.operador === Operador.OTROS) {
+          // Si ya tenía asignacion_otros, actualizar datos
+          if (servicio.id_asignacion_otros) {
+            const asignacionOtros = await queryRunner.manager.findOne(AsignacionOtros, {
+where: { id_asig_otros: servicio.id_asignacion_otros ?? undefined }
+            }) as AsignacionOtros;
+            if (asignacionOtros) {
+              asignacionOtros.ci = dto.ci_conductor || asignacionOtros.ci;
+              asignacionOtros.nombre = dto.nombre_conductor || asignacionOtros.nombre;
+              asignacionOtros.placa = dto.placa_unidad || asignacionOtros.placa;
+              asignacionOtros.telefono = dto.telefono_unidad || asignacionOtros.telefono;
+              asignacionOtros.empresa = dto.empresa_conductor || asignacionOtros.empresa;
+              asignacionOtros.UpdatedId = userId;
+              await queryRunner.manager.save(AsignacionOtros, asignacionOtros);
+            }
+          }
+        } else {
+          // YURIANA sin cambios en asignación - manejar estados de equipo
+          if (oldAsignacion && oldEstadoServicio === EstadoServicio.EN_CURSO && servicio.estado_servicio === EstadoServicio.FINALIZADO) {
+            await this.liberarEquipo(oldAsignacion, userId, queryRunner);
+          } else if (oldAsignacion && oldEstadoServicio === EstadoServicio.FINALIZADO && servicio.estado_servicio === EstadoServicio.EN_CURSO) {
+            await this.ocuparEquipo(oldAsignacion, userId, queryRunner);
+          }
+        }
       }
 
       await queryRunner.manager.save(servicio);
-
-      if (asignacionCambio) {
-        if (oldEstadoServicio === EstadoServicio.EN_CURSO) {
-          await this.liberarEquipo(oldAsignacion, userId, queryRunner);
-        }
-        if (servicio.estado_servicio === EstadoServicio.EN_CURSO) {
-          await this.ocuparEquipo(servicio.asignacion, userId, queryRunner); // Ahora 'servicio.asignacion' es el nuevo.
-        }
-      } else {
-        if (oldEstadoServicio === EstadoServicio.EN_CURSO && servicio.estado_servicio === EstadoServicio.FINALIZADO) {
-          await this.liberarEquipo(oldAsignacion, userId, queryRunner);
-        } else if (oldEstadoServicio === EstadoServicio.FINALIZADO && servicio.estado_servicio === EstadoServicio.EN_CURSO) {
-          await this.ocuparEquipo(oldAsignacion, userId, queryRunner);
-        }
-      }
 
       await queryRunner.commitTransaction();
 
@@ -621,7 +692,7 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
       if (servicio.estado_pago === EstadoPago.RETRASADO) {
         throw new BadRequestException('No se puede eliminar un viaje con el pago retrasado');
       }
-      if (servicio.estado_servicio === EstadoServicio.EN_CURSO) {
+      if (servicio.estado_servicio === EstadoServicio.EN_CURSO && servicio.asignacion) {
         await this.liberarEquipo(servicio.asignacion, userId, queryRunner);
       }
       if (servicio.id_embarque) await this.liberarEmbarque(servicio.id_embarque, queryRunner, userId);

@@ -65,9 +65,10 @@ export class CreateServicioDto {
   @Transform(({ value }) => (value ? parseInt(value) : value))
   id_cliente!: number;
 
+  @IsOptional()
   @IsNumber()
   @Transform(({ value }) => (value ? parseInt(value) : value))
-  id_asignacion!: number;
+  id_asignacion?: number | null;
 
   @IsOptional()
   @IsNumber()
@@ -124,11 +125,29 @@ export class CreateServicioDto {
   
 
   @IsOptional()
-  @Transform(({ value }) => {
-    if (typeof value === 'string') return value.split(',').map(id => parseInt(id));
-    return value;
-  })
-  ids_requisitos_aduaneros?: number[];
+  @IsString()
+  ci_conductor?: string;
+
+  @IsOptional()
+  @IsString()
+  nombre_conductor?: string;
+
+  @IsOptional()
+  @IsString()
+  placa_unidad?: string;
+
+  @IsOptional()
+  @IsString()
+  telefono_unidad?: string;
+
+  @IsOptional()
+  @IsString()
+  @Transform(toUpperTrim)
+  empresa_conductor?: string;
+
+  @IsOptional()
+  @IsString()
+  ids_requisitos_aduaneros?: string;
 
   
 

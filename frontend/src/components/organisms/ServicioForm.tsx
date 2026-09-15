@@ -198,6 +198,10 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
   const [placaTracto, setPlacaTracto] = useState("");
   const [tipoUnidad, setTipoUnidad] = useState("");
 
+  // Campos para operador OTROS
+  const [telefonoUnidad, setTelefonoUnidad] = useState("");
+  const [empresaUnidad, setEmpresaUnidad] = useState("");
+
   // ── Colaborador ──────────────────────────────────────────────────────────
   const [ciColaborador, setCiColaborador] = useState("");
   const [idColaborador, setIdColaborador] = useState<number | null>(null);
@@ -372,11 +376,20 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     setRazonSocial(initialData.cliente?.razon_social ?? "");
 
     // Conductor/Asignación
-    setIdAsignacion(initialData.id_asignacion);
+    setIdAsignacion(initialData.id_asignacion ?? null);
     setCiConductor(String(initialData.asignacion?.conductor?.persona?.ci ?? ""));
     setNombreConductor(initialData.asignacion?.conductor?.persona?.nombre ?? "");
     setPlacaTracto(initialData.asignacion?.tracto?.placa ?? "");
-    setTipoUnidad(initialData.asignacion?.tracto?.categoria?.tipo_categoria ?? "");
+    setTipoUnidad(initialData.asignacion?.tracto?.categoria?.tipo_categoria ?? "NA");
+
+    // Campos para operador OTROS - solo si el operador es OTROS
+    if (initialData.operador === Operador.OTROS) {
+      setCiConductor(String(initialData.asignacion_otros?.ci ?? ""));
+      setNombreConductor(initialData.asignacion_otros?.nombre ?? "");
+      setPlacaTracto(initialData.asignacion_otros?.placa ?? "");
+      setTelefonoUnidad(initialData.asignacion_otros?.telefono ?? "");
+      setEmpresaUnidad(initialData.asignacion_otros?.empresa ?? "");
+    }
 
     // Colaborador
     if (initialData.colaborador) {
@@ -472,7 +485,13 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     if (!origen.trim() || !destino.trim()) return toast.error("Origen y destino son obligatorios");
     if (esInternacional && !idEmbarque) return toast.error("El embarque y CRT son obligatorios para viajes internacionales");
     if (!idCliente) return toast.error("Busca y selecciona un cliente");
-    if (!idAsignacion) return toast.error("Busca y selecciona un conductor/unidad");
+    if (operador === Operador.OTROS) {
+      if (!ciConductor.trim()) return toast.error("Ingresa el CI del conductor");
+      if (!nombreConductor.trim()) return toast.error("Ingresa el nombre del conductor");
+      if (!placaTracto.trim()) return toast.error("Ingresa la placa de la unidad");
+    } else if (!idAsignacion) {
+      return toast.error("Busca y selecciona un conductor/unidad");
+    }
     if (!fechaInicio) return toast.error("La fecha de inicio es obligatoria");
     if (flete <= 0) return toast.error("El flete debe ser mayor a 0");
     if (fleteAdicional < 0) return toast.error("El flete adicional no puede ser negativo");
@@ -556,7 +575,16 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     }
     if (facturasExistentesEliminadas.length > 0) fd.append("facturas_eliminar", facturasExistentesEliminadas.join(","));
     fd.append("id_cliente",     String(idCliente));
-    fd.append("id_asignacion",  String(idAsignacion));
+    // Si el operador es OTROS, enviar los campos del conductor y unidad (sin id_asignacion)
+    if (operador === Operador.OTROS) {
+      fd.append("ci_conductor", ciConductor);
+      fd.append("nombre_conductor", nombreConductor);
+      fd.append("placa_unidad", placaTracto);
+      fd.append("telefono_unidad", telefonoUnidad);
+      fd.append("empresa_conductor", empresaUnidad);
+    } else {
+      fd.append("id_asignacion", String(idAsignacion));
+    }
     if (idColaborador) fd.append("id_colaborador", String(idColaborador));
     fd.append("moneda",         moneda);
     if (moneda === Moneda.DOLAR && tipoCambio > 0) fd.append("tipo_cambio", String(tipoCambio));
@@ -731,7 +759,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
           <div className="overflow-x-auto rounded-xl border border-[var(--yuriana-input-border)]">
             <table className="w-full text-left text-xs">
               <thead className="bg-orange-50 text-[var(--yuriana-base-gray-dark)] uppercase text-[10px] font-black">
-                <tr><th className="px-3 py-2">N° Factura</th><th className="px-3 py-2">Fecha Emisión</th><th className="px-3 py-2 text-right">Monto Bs</th><th className="px-3 py-2">Transmitida</th><th className="px-3 py-2">Fotos</th></tr>
+                <tr><th className="px-3 py-2">N° Factura</th><th className="px-3 py-2">Fecha Emisión</th><th className="px-3 py-2 text-right">Monto Bs</th><th className="px-3 py-2">Transmitida</th><th className="px-3 py-2">Fotos</th>{!isReadOnly && !isEdit && <th className="px-3 py-2">Acciones</th>}</tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {initialData?.facturas?.filter((factura) => !facturasExistentesEliminadas.includes(factura.id_factura)).map((factura) => {
@@ -767,7 +795,13 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
                         <span>{factura.archivos.length || "-"}</span>
                       </div>
                     </td>
-                    
+                    {!isReadOnly && !isEdit && (
+                      <td className="px-3 py-2">
+                        <button type="button" onClick={() => setFacturasPendientes((prev) => prev.filter((_, itemIndex) => itemIndex !== index))} className="rounded-xl bg-slate-600 px-4 py-2 text-xs font-black uppercase text-white">
+                          Quitar
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -903,41 +937,62 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
       {/* Sección: Datos del Conductor y la Unidad */}
       <div className="bg-[var(--yuriana-card-bg)] rounded-3xl border border-border shadow-xl p-8 space-y-5">
         <SectionHeader icon={<Truck size={16} />} title="Datos del Conductor y la Unidad" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-          <Field label="Ci Conductor" required>
-            <SearchableCombobox
-              options={listaAsignaciones.map((a) => ({
-                value: a.id_asignacion,
-                label: a.conductor?.persona?.nombre ?? "",
-                sublabel: `CI: ${a.conductor?.persona?.ci ?? ""} · ${a.tracto?.placa ?? ""}`,
-              }))}
-              value={ciConductor}
-              selectedOptionValue={idAsignacion ?? undefined}
-              placeholder="Seleccionar conductor..."
-              loading={loadingListas}
-              disabled={isReadOnly}
-              onSelect={(opt) => {
-                const a = listaAsignaciones.find((x) => x.id_asignacion === opt.value);
-                if (a) {
-                  setIdAsignacion(a.id_asignacion);
-                  setCiConductor(String(a.conductor?.persona?.ci ?? ""));
-                  setNombreConductor(a.conductor?.persona?.nombre ?? "");
-                  setPlacaTracto(a.tracto?.placa ?? "");
-                  setTipoUnidad((a.tracto as any)?.categoria?.tipo_categoria ?? "");
-                }
-              }}
-            />
-          </Field>
-          <Field label="Nombre Conductor">
-            <input className={INPUT_CLASS} value={nombreConductor} disabled readOnly placeholder="-" />
-          </Field>
-          <Field label="N° de Placa">
-            <input className={INPUT_CLASS} value={placaTracto} disabled readOnly placeholder="-" />
-          </Field>
-          <Field label="Tipo de Unidad">
-            <input className={INPUT_CLASS} value={tipoUnidad} disabled readOnly placeholder="-" />
-          </Field>
-        </div>
+        {/* Mostrar u ocultar según el operador */}
+        {operador === Operador.OTROS ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
+            <Field label="CI Conductor" required>
+              <input className={INPUT_CLASS} value={ciConductor} onChange={(e) => setCiConductor(e.target.value)} disabled={isReadOnly} placeholder="CI del conductor" />
+            </Field>
+            <Field label="Nombre Conductor">
+              <input className={INPUT_CLASS} value={nombreConductor} onChange={(e) => setNombreConductor(e.target.value)} disabled={isReadOnly} placeholder="Nombre del conductor" />
+            </Field>
+            <Field label="N° Placa">
+              <input className={INPUT_CLASS} value={placaTracto} onChange={(e) => setPlacaTracto(e.target.value)} disabled={isReadOnly} placeholder="Placa de la unidad" />
+            </Field>
+            <Field label="Teléfono">
+              <input className={INPUT_CLASS} value={telefonoUnidad} onChange={(e) => setTelefonoUnidad(e.target.value)} disabled={isReadOnly} placeholder="Teléfono de la unidad" />
+            </Field>
+            <Field label="Empresa">
+              <input className={INPUT_CLASS} value={empresaUnidad} onChange={(e) => setEmpresaUnidad(e.target.value)} disabled={isReadOnly} placeholder="Empresa de la unidad" />
+            </Field>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
+            <Field label="Ci Conductor" required>
+              <SearchableCombobox
+                options={listaAsignaciones.map((a) => ({
+                  value: a.id_asignacion,
+                  label: a.conductor?.persona?.nombre ?? "",
+                  sublabel: `CI: ${a.conductor?.persona?.ci ?? ""} · ${a.tracto?.placa ?? ""}`,
+                }))}
+                value={ciConductor}
+                selectedOptionValue={idAsignacion ?? undefined}
+                placeholder="Seleccionar conductor..."
+                loading={loadingListas}
+                disabled={isReadOnly}
+                onSelect={(opt) => {
+                  const a = listaAsignaciones.find((x) => x.id_asignacion === opt.value);
+                  if (a) {
+                    setIdAsignacion(a.id_asignacion);
+                    setCiConductor(String(a.conductor?.persona?.ci ?? ""));
+                    setNombreConductor(a.conductor?.persona?.nombre ?? "");
+                    setPlacaTracto(a.tracto?.placa ?? "");
+                    setTipoUnidad((a.tracto as any)?.categoria?.tipo_categoria ?? "");
+                  }
+                }}
+              />
+            </Field>
+            <Field label="Nombre Conductor">
+              <input className={INPUT_CLASS} value={nombreConductor} disabled readOnly placeholder="-" />
+            </Field>
+            <Field label="N° de Placa">
+              <input className={INPUT_CLASS} value={placaTracto} disabled readOnly placeholder="-" />
+            </Field>
+            <Field label="Tipo de Unidad">
+              <input className={INPUT_CLASS} value={tipoUnidad} disabled readOnly placeholder="-" />
+            </Field>
+          </div>
+        )}
       </div>
 
       {/* Sección: Datos del Colaborador */}
