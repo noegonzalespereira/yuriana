@@ -18,8 +18,7 @@ export class RolesGuard implements CanActivate {
     );
     if (!rolesRequeridos) return true;
     const { user } = context.switchToHttp().getRequest();
-    // Si RolesGuard se usa alguna vez sin JwtAuthGuard antes, esto evita un
-    // error 500 confuso y devuelve un 401 claro en su lugar.
+   
     if (!user) {
       throw new UnauthorizedException('Debe iniciar sesión para acceder a este recurso');
     }
