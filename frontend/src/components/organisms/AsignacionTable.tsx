@@ -10,8 +10,8 @@ import { FileText, Globe, Loader2 } from "lucide-react";
 interface Props {
   data: Asignacion[];
   infoEmpresa: Empresa | null; // ◄ REGISTRADO: Datos de la empresa inyectados desde el Page
-  onDelete: (id: number) => void;
-  onEdit: (asignacion: Asignacion) => void;
+  onDelete?: (id: number) => void;
+  onEdit?: (asignacion: Asignacion) => void;
   onView: (asignacion: Asignacion) => void;
 }
 
@@ -128,8 +128,8 @@ export const AsignacionTable = ({ data, infoEmpresa, onDelete, onEdit, onView }:
 
                   <TableActions
                     onView={() => onView(item)}
-                    onEdit={() => onEdit(item)}
-                    onDelete={() => onDelete(item.id_asignacion)}
+                    onEdit={onEdit ? () => onEdit(item) : undefined}
+                    onDelete={onDelete ? () => onDelete(item.id_asignacion) : undefined}
                     deleteDisabled={item.estado_asignacion !== EstadoAsignacion.ACTIVA}
                     size={18}
                   />

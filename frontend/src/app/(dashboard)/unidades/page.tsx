@@ -19,10 +19,12 @@ import { Truck, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
 import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
 import { TablePagination } from "@/components/molecules/TablePagination";
 import { Unidad, EstadoUnidad } from "@/types/unidad.types";
+import { usePermisos } from "@/hooks/usePermisos";
 
 const PAGE_SIZE = 10;
 
 export default function UnidadesPage() {
+  const { puedeGestionar } = usePermisos();
   const [view, setView] = useState<'list' | 'form'>('list');
   const [loading, setLoading] = useState(true);
   const [unidades, setUnidades] = useState<Unidad[]>([]);
@@ -140,18 +142,9 @@ const handleFormSubmitUnificado = async (
         form.append("id_unidad", selectedUnidad.id_unidad.toString());
         if (fileObj) form.append("file", fileObj);
         if (fechaVenc) {
-          const date = new Date(fechaVenc);
-          const formatter = new Intl.DateTimeFormat("en-CA", {
-            timeZone: "America/La_Paz",
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-          });
-          const parts = formatter.formatToParts(date);
-          const year = parts.find((p) => p.type === "year")?.value ?? "2024";
-          const month = parts.find((p) => p.type === "month")?.value ?? "01";
-          const day = parts.find((p) => p.type === "day")?.value ?? "01";
-          form.append("fecha_vencimiento", `${year}-${month}-${day}`);
+          // fechaVenc ya viene como "YYYY-MM-DD" desde el input de fecha;
+          // se envía tal cual, sin reinterpretarla por zona horaria.
+          form.append("fecha_vencimiento", fechaVenc);
         }
         await uploadDocumentoUnidad(form);
       }
@@ -218,7 +211,7 @@ const handleFormSubmitUnificado = async (
         searchPlaceholder="Buscar unidad por placa..."
         onSearch={view === 'list' ? (val) => setFilters({ ...filters, placa: val }) : undefined}
         searchValue={view === 'list' ? filters.placa : undefined}
-        buttonLabel={view === 'list' ? "Nueva Unidad" : undefined}
+        buttonLabel={view === 'list' && puedeGestionar ? "Nueva Unidad" : undefined}
         onButtonClick={() => { setSelectedUnidad(null); setIsReadOnly(false); setView('form'); }}
       />
 
@@ -246,8 +239,8 @@ const handleFormSubmitUnificado = async (
             ) : (
               <UnidadTable
                 data={registrosPagina}
-                onDelete={handleOpenDeleteConfirmation}
-                onEdit={(u) => { setSelectedUnidad(u); setIsReadOnly(false); setView('form'); }}
+                onDelete={puedeGestionar ? handleOpenDeleteConfirmation : undefined}
+                onEdit={puedeGestionar ? (u) => { setSelectedUnidad(u); setIsReadOnly(false); setView('form'); } : undefined}
                 onView={(u) => { setSelectedUnidad(u); setIsReadOnly(true); setView('form'); }}
               />
             )}

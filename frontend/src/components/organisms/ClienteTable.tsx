@@ -4,8 +4,8 @@ import { Cliente } from "@/types/cliente.types";
 
 interface Props {
   data: Cliente[];
-  onDelete: (codigo: string) => void;
-  onEdit: (cliente: Cliente) => void;
+  onDelete?: (codigo: string) => void;
+  onEdit?: (cliente: Cliente) => void;
   onView: (cliente: Cliente) => void;
 }
 
@@ -43,7 +43,7 @@ export const ClienteTable = ({ data, onDelete, onEdit, onView }: Props) => {
               </td>
               
               <td className="px-4 py-2.5">
-                <TableActions onView={() => onView(item)} onEdit={() => onEdit(item)} onDelete={() => onDelete(item.codigo_cliente)} size={16} />
+                <TableActions onView={() => onView(item)} onEdit={onEdit ? () => onEdit(item) : undefined} onDelete={onDelete ? () => onDelete(item.codigo_cliente) : undefined} size={16} />
               </td>
             </tr>
           ))}

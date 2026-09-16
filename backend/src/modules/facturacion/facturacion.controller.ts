@@ -5,6 +5,7 @@ import { UpdateFacturacionDto } from './dto/update-facturacion.dto';
 import { RolesGuard } from '../../common/guards/role.guard';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { ROL } from '../../common/constants/roles';
 import { UseInterceptors, UploadedFiles, UploadedFile } from '@nestjs/common';
 import { FileInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -13,7 +14,7 @@ export class FacturacionController {
   constructor(private readonly facturacionService: FacturacionService) {}
 
   @Post()
-  @Roles('ADMIN')
+  @Roles(ROL.ADMIN)
   @UseInterceptors(FileInterceptor('foto_factura'))
   create(
     @Body() dto: CreateFacturacionDto,
@@ -39,7 +40,7 @@ export class FacturacionController {
   }
 
   @Patch(':id')
-  @Roles('ADMIN')
+  @Roles(ROL.ADMIN, ROL.CONTADOR)
   @UseInterceptors(FileFieldsInterceptor([
     { name: 'foto_factura', maxCount: 1 },
     { name: 'fotos_nuevas', maxCount: 10 },
@@ -54,7 +55,7 @@ export class FacturacionController {
   }
 
   @Delete(':id')
-  @Roles('ADMIN')
+  @Roles(ROL.ADMIN, ROL.CONTADOR)
   remove(@Param('id', ParseIntPipe) id: number, @Request() req) {
     return this.facturacionService.remove(id, req.user.id);
   }

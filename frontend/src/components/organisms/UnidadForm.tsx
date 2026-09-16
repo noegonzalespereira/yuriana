@@ -64,18 +64,10 @@ export const UnidadForm = ({ initialData, categoriasValidadas, onSubmit, onCance
           
           docsData.forEach(doc => {
             if (doc.fecha_vencimiento) {
-              const date = new Date(doc.fecha_vencimiento);
-              const formatter = new Intl.DateTimeFormat("en-CA", {
-                timeZone: "America/La_Paz",
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit",
-              });
-              const parts = formatter.formatToParts(date);
-              const year = parts.find((p) => p.type === "year")?.value ?? "2024";
-              const month = parts.find((p) => p.type === "month")?.value ?? "01";
-              const day = parts.find((p) => p.type === "day")?.value ?? "01";
-              setValue(`fecha_req_${doc.id_requisito}`, `${year}-${month}-${day}`);
+              // La fecha ya viene como "YYYY-MM-DD" (o "YYYY-MM-DDTHH:mm:ss...Z");
+              // tomamos los componentes tal cual, sin reinterpretarlos por zona
+              // horaria, para no producir un desfase de días.
+              setValue(`fecha_req_${doc.id_requisito}`, String(doc.fecha_vencimiento).split("T")[0]);
             }
           });
         } else {

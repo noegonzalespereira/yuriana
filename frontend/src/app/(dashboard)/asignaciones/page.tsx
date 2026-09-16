@@ -12,10 +12,12 @@ import { AlertCircle } from "lucide-react";
 import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
 import { TablePagination } from "@/components/molecules/TablePagination";
 import { Empresa } from "@/types/empresa.types";
+import { usePermisos } from "@/hooks/usePermisos";
 
 const PAGE_SIZE = 10;
 
 export default function AsignacionesPage() {
+  const { puedeGestionar } = usePermisos();
   const [view, setView] = useState<'list' | 'form'>('list');
   const [loading, setLoading] = useState(true);
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
@@ -95,7 +97,7 @@ export default function AsignacionesPage() {
         searchPlaceholder="Buscar por CI de conductor"
         onSearch={(value) => setFilters(prev => ({ ...prev, ci_conductor: value.trim() }))}
         searchValue={filters.ci_conductor}
-        buttonLabel={view === 'list' ? "Nueva Asignación" : undefined}
+        buttonLabel={view === 'list' && puedeGestionar ? "Nueva Asignación" : undefined}
         onButtonClick={() => {
           setSelectedAsignacion(null);
           setIsReadOnly(false);
@@ -125,8 +127,8 @@ export default function AsignacionesPage() {
               data={registrosPagina}
               infoEmpresa={infoEmpresa}
               onView={(asig) => { setSelectedAsignacion(asig); setIsReadOnly(true); setView('form'); }}
-              onEdit={(asig) => { setSelectedAsignacion(asig); setIsReadOnly(false); setView('form'); }}
-              onDelete={(id) => { setIdParaDesenganchar(id); setShowDesengancheModal(true); }}
+              onEdit={puedeGestionar ? (asig) => { setSelectedAsignacion(asig); setIsReadOnly(false); setView('form'); } : undefined}
+              onDelete={puedeGestionar ? (id) => { setIdParaDesenganchar(id); setShowDesengancheModal(true); } : undefined}
             />
           )}
           <TablePagination pagina={paginaActual} totalPaginas={totalPaginas} totalRegistros={asignaciones.length} registrosMostrados={registrosPagina.length} onPageChange={setPagina} />

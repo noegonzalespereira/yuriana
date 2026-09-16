@@ -485,11 +485,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     if (!origen.trim() || !destino.trim()) return toast.error("Origen y destino son obligatorios");
     if (esInternacional && !idEmbarque) return toast.error("El embarque y CRT son obligatorios para viajes internacionales");
     if (!idCliente) return toast.error("Busca y selecciona un cliente");
-    if (operador === Operador.OTROS) {
-      if (!ciConductor.trim()) return toast.error("Ingresa el CI del conductor");
-      if (!nombreConductor.trim()) return toast.error("Ingresa el nombre del conductor");
-      if (!placaTracto.trim()) return toast.error("Ingresa la placa de la unidad");
-    } else if (!idAsignacion) {
+    if (operador !== Operador.OTROS && !idAsignacion) {
       return toast.error("Busca y selecciona un conductor/unidad");
     }
     if (!fechaInicio) return toast.error("La fecha de inicio es obligatoria");
@@ -940,19 +936,19 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
         {/* Mostrar u ocultar según el operador */}
         {operador === Operador.OTROS ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-            <Field label="CI Conductor" required>
+            <Field label="CI Conductor" optional>
               <input className={INPUT_CLASS} value={ciConductor} onChange={(e) => setCiConductor(e.target.value)} disabled={isReadOnly} placeholder="CI del conductor" />
             </Field>
-            <Field label="Nombre Conductor">
+            <Field label="Nombre Conductor" optional>
               <input className={INPUT_CLASS} value={nombreConductor} onChange={(e) => setNombreConductor(e.target.value)} disabled={isReadOnly} placeholder="Nombre del conductor" />
             </Field>
-            <Field label="N° Placa">
+            <Field label="N° Placa" optional>
               <input className={INPUT_CLASS} value={placaTracto} onChange={(e) => setPlacaTracto(e.target.value)} disabled={isReadOnly} placeholder="Placa de la unidad" />
             </Field>
-            <Field label="Teléfono">
+            <Field label="Teléfono" optional>
               <input className={INPUT_CLASS} value={telefonoUnidad} onChange={(e) => setTelefonoUnidad(e.target.value)} disabled={isReadOnly} placeholder="Teléfono de la unidad" />
             </Field>
-            <Field label="Empresa">
+            <Field label="Empresa" optional>
               <input className={INPUT_CLASS} value={empresaUnidad} onChange={(e) => setEmpresaUnidad(e.target.value)} disabled={isReadOnly} placeholder="Empresa de la unidad" />
             </Field>
           </div>

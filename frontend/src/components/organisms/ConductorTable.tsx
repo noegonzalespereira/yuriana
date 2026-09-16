@@ -5,8 +5,8 @@ import { toast } from "sonner";
 
 interface Props {
   data: Conductor[];
-  onDelete: (ci: string) => void;
-  onEdit: (conductor: Conductor) => void;
+  onDelete?: (ci: string) => void;
+  onEdit?: (conductor: Conductor) => void;
   onView: (conductor: Conductor) => void;
 }
 
@@ -92,8 +92,8 @@ export const ConductorTable = ({ data, onDelete, onEdit, onView }: Props) => {
                 <td className="px-4 py-2.5">
                   <TableActions
                     onView={() => onView(item)}
-                    onEdit={() => onEdit(item)}
-                    onDelete={() => {
+                    onEdit={onEdit ? () => onEdit(item) : undefined}
+                    onDelete={onDelete ? () => {
                       if (item.estado_operativo === EstadoOperativo.VIAJE || item.estado_operativo === EstadoOperativo.ASIGNADO) {
                         toast.error("No se puede eliminar", {
                           description: `El conductor "${item.persona.nombre}" está en estado ${item.estado_operativo === EstadoOperativo.VIAJE ? "En Viaje" : "Asignado"} y no puede eliminarse.`,
@@ -101,7 +101,7 @@ export const ConductorTable = ({ data, onDelete, onEdit, onView }: Props) => {
                         return;
                       }
                       onDelete(item.persona.ci);
-                    }}
+                    } : undefined}
                     size={18}
                   />
                 </td>

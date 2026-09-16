@@ -5,6 +5,7 @@ import { UpdateRolDto } from './dto/update-rol.dto';
 import { RolesGuard } from '../../common/guards/role.guard';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles} from '../../common/decorators/roles.decorator';
+import { ROL } from '../../common/constants/roles';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('rol')
@@ -12,7 +13,7 @@ export class RolController {
   constructor(private readonly rolService: RolService) {}
 
   @Post()
-  
+  @Roles(ROL.ADMIN)
   create(@Body() createRolDto: CreateRolDto, @Request() req) {
     return this.rolService.create(createRolDto, req.user.id);
   }
@@ -28,13 +29,13 @@ export class RolController {
   }
 
   @Patch(':id')
-  @Roles('ADMIN')
+  @Roles(ROL.ADMIN)
   update(@Param('id', ParseIntPipe) id: number, @Body() updateRolDto: UpdateRolDto, @Request() req) {
     return this.rolService.update(id, updateRolDto, req.user.id);
   }
 
   @Delete(':id')
-  @Roles('ADMIN')
+  @Roles(ROL.ADMIN)
   remove(@Param('id', ParseIntPipe) id: number, @Request() req) {
     return this.rolService.remove(id, req.user.id);
   }

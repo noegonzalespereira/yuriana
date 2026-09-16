@@ -5,8 +5,8 @@ import { ColaboradorTypeBadge } from "../atoms/ColaboradorTypeBadge";
 
 interface Props {
   data: Colaborador[];
-  onDelete: (id: number) => void;
-  onEdit: (colab: Colaborador) => void;
+  onDelete?: (id: number) => void;
+  onEdit?: (colab: Colaborador) => void;
   onView: (colab: Colaborador) => void;
 }
 
@@ -47,7 +47,7 @@ export const ColaboradorTable = ({ data, onDelete, onEdit, onView }: Props) => {
               <td className="px-4 py-2.5 text-xs text-gray-600 font-medium">{item.persona.telefono}</td>
               <td className="px-4 py-2.5 font-black text-xs text-[var(--yuriana-base-gray-dark)]">{item.monto.toLocaleString()} Bs</td>
               <td className="px-4 py-2.5">
-                <TableActions onView={() => onView(item)} onEdit={() => onEdit(item)} onDelete={() => onDelete(item.id_colaborador)} size={18} />
+                <TableActions onView={() => onView(item)} onEdit={onEdit ? () => onEdit(item) : undefined} onDelete={onDelete ? () => onDelete(item.id_colaborador) : undefined} size={18} />
               </td>
             </tr>
           ))}

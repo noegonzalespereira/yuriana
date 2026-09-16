@@ -13,9 +13,11 @@ interface UserFormProps {
   roles: Rol[];
   initialData?: User | null;
   isReadOnly?: boolean;
+  /** Bloquea únicamente los campos Rol y Estado (p. ej. cuando un usuario edita su propio perfil sin ser ADMIN). */
+  lockRoleAndEstado?: boolean;
 }
 
-export const UserForm = ({ onSubmit, onCancel, roles, initialData, isReadOnly = false }: UserFormProps) => {
+export const UserForm = ({ onSubmit, onCancel, roles, initialData, isReadOnly = false, lockRoleAndEstado = false }: UserFormProps) => {
   const [saving, setSaving] = useState(false);
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
@@ -100,9 +102,9 @@ export const UserForm = ({ onSubmit, onCancel, roles, initialData, isReadOnly = 
             <label className="text-[10px] font-black text-[var(--yuriana-input-label)] uppercase tracking-widest ml-1">
               Rol de Sistema
             </label>
-            <select 
-              {...register("id_rol", { required: "El rol es mandatorio" })} 
-              disabled={isReadOnly}
+            <select
+              {...register("id_rol", { required: "El rol es mandatorio" })}
+              disabled={isReadOnly || lockRoleAndEstado}
               className="w-full bg-[var(--yuriana-input-bg)] border border-[var(--yuriana-input-border)] rounded-xl py-3 px-4 text-sm font-medium text-[var(--yuriana-input-text)] focus:border-[var(--yuriana-input-border-focus)] outline-none transition-all disabled:bg-slate-50 disabled:text-slate-500 cursor-pointer"
             >
               <option value="" disabled>Seleccione un rol</option>
@@ -140,9 +142,9 @@ export const UserForm = ({ onSubmit, onCancel, roles, initialData, isReadOnly = 
               <label className="text-[10px] font-black text-[var(--yuriana-input-label)] uppercase tracking-widest ml-1">
                 Estado del Operario
               </label>
-              <select 
-                {...register("estado")} 
-                disabled={isReadOnly}
+              <select
+                {...register("estado")}
+                disabled={isReadOnly || lockRoleAndEstado}
                 className="w-full bg-[var(--yuriana-input-bg)] border border-[var(--yuriana-input-border)] rounded-xl py-3 px-4 text-sm font-medium text-[var(--yuriana-input-text)] focus:border-[var(--yuriana-input-border-focus)] outline-none transition-all disabled:bg-slate-50 disabled:text-slate-500 cursor-pointer"
               >
                 <option value={EstadoUsuario.ACTIVO}>Activo</option>

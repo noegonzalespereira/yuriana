@@ -20,8 +20,8 @@ const ESTADO_BADGE: Record<EstadoServicio, string> = {
 interface Props {
   data: ServicioItem[];
   onView: (item: ServicioItem) => void;
-  onEdit: (item: ServicioItem) => void;
-  onDelete: (id: number) => void;
+  onEdit?: (item: ServicioItem) => void;
+  onDelete?: (id: number) => void;
 }
 
 export const ServicioTable = ({ data, onView, onEdit, onDelete }: Props) => {
@@ -143,7 +143,7 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete }: Props) => {
 
               {/* Acciones */}
               <td className="px-4 py-2.5">
-                <TableActions onView={() => onView(item)} onEdit={() => onEdit(item)} onDelete={() => onDelete(item.id_servicio)} size={14} />
+                <TableActions onView={() => onView(item)} onEdit={onEdit ? () => onEdit(item) : undefined} onDelete={onDelete ? () => onDelete(item.id_servicio) : undefined} size={14} />
               </td>
               </tr>
             ))

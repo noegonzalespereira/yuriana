@@ -3,14 +3,17 @@ import { toast } from "sonner";
 import { XCircle } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { User, Rol } from "@/types/auth.types";
+import { useAuth } from "@/context/AuthContext";
+import { usePermisos } from "@/hooks/usePermisos";
 
 // API Services
-import { 
-  getUsuarios, 
-  getUsuariosContador, 
-  deleteUsuario, 
-  createUsuario, 
-  updateUsuario 
+import {
+  getUsuarios,
+  getUsuariosContador,
+  getUsuarioById,
+  deleteUsuario,
+  createUsuario,
+  updateUsuario
 } from "@/lib/api/usuarios.api";
 import { getRoles } from "@/lib/api/roles.api";
 
@@ -21,7 +24,70 @@ import { UserTable } from "@/components/organisms/UserTable";
 import { UserFilterBar } from "@/components/molecules/UserFilterBar";
 import { UserForm } from "@/components/organisms/UserForm";
 
+function MiPerfilPage() {
+  const { user: sessionUser } = useAuth();
+  const [miUsuario, setMiUsuario] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const cargarMiUsuario = useCallback(async () => {
+    if (!sessionUser?.id) return;
+    try {
+      setLoading(true);
+      const data = await getUsuarioById(sessionUser.id);
+      setMiUsuario(data);
+    } catch (error: any) {
+      toast.error("No se pudieron cargar tus datos", { description: error.message });
+    } finally {
+      setLoading(false);
+    }
+  }, [sessionUser?.id]);
+
+  useEffect(() => { cargarMiUsuario(); }, [cargarMiUsuario]);
+
+  const handleSubmit = async (formData: any) => {
+    if (!sessionUser?.id) return;
+    try {
+      await updateUsuario(sessionUser.id, formData);
+      toast.success("Perfil actualizado correctamente.");
+      cargarMiUsuario();
+    } catch (error: any) {
+      toast.error("Error al guardar", { description: error.message || "Verifique los datos e intente de nuevo." });
+    }
+  };
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto pb-10">
+      <ModuleHeader
+        title="Mi Perfil"
+        subtitle="Consulte y edite los datos de su propia cuenta"
+      />
+      {loading || !miUsuario ? (
+        <div className="py-20 text-center text-gray-400 italic text-sm font-medium">Cargando tus datos...</div>
+      ) : (
+        <UserForm
+          roles={miUsuario.rol ? [miUsuario.rol] : []}
+          initialData={miUsuario}
+          isReadOnly={false}
+          lockRoleAndEstado
+          onSubmit={handleSubmit}
+          onCancel={() => {}}
+        />
+      )}
+    </div>
+  );
+}
+
 export default function UsuariosPage() {
+  const { isContador } = usePermisos();
+  const { isLoading } = useAuth();
+  // Evita montar la vista equivocada (y disparar sus llamadas) mientras
+  // AuthContext todavía está rehidratando la sesión desde localStorage.
+  if (isLoading) return null;
+  if (isContador) return <MiPerfilPage />;
+  return <UsuariosAdminPage />;
+}
+
+function UsuariosAdminPage() {
   // --- NAVEGACIÓN Y COMPORTAMIENTO ---
   const [view, setView] = useState<'list' | 'form'>('list');
   const [loading, setLoading] = useState(true);

@@ -26,6 +26,7 @@ import {
   EstadoServicio,
   Operador,
 } from "@/types/servicio.types";
+import { usePermisos } from "@/hooks/usePermisos";
 
 type Vista = "list" | "form";
 
@@ -79,6 +80,7 @@ const DeleteModal = ({
 );
 
 export default function ServiciosPage() {
+  const { puedeGestionar } = usePermisos();
   const [vista, setVista] = useState<Vista>("list");
   const [loading, setLoading] = useState(true);
   const [isReadOnly, setIsReadOnly] = useState(false);
@@ -205,7 +207,7 @@ export default function ServiciosPage() {
         searchPlaceholder="Buscar por código o placa"
         onSearch={vista === "list" ? (val) => setFilter("buscar", val) : undefined}
         searchValue={vista === "list" ? filters.buscar : undefined}
-        buttonLabel={vista === "list" ? "Nuevo Viaje" : undefined}
+        buttonLabel={vista === "list" && puedeGestionar ? "Nuevo Viaje" : undefined}
         onButtonClick={handleNuevo}
       />
 
@@ -307,8 +309,8 @@ export default function ServiciosPage() {
                 <ServicioTable
                   data={registrosPagina}
                   onView={handleVer}
-                  onEdit={handleEditar}
-                  onDelete={(id) => setDeleteId(id)}
+                  onEdit={puedeGestionar ? handleEditar : undefined}
+                  onDelete={puedeGestionar ? (id) => setDeleteId(id) : undefined}
                 />
               )}
               <TablePagination pagina={paginaActual} totalPaginas={totalPaginas} totalRegistros={servicios.length} registrosMostrados={registrosPagina.length} onPageChange={setPagina} />

@@ -48,7 +48,6 @@ export class GastosService {
         case TipoPestaña.SERVICIO: {
           if (!dto.codigo_servicio) throw new BadRequestException('El código del servicio (YUR-X) es requerido');
 
-          // Traducimos el código visible "YUR-4" al ID secuencial interno 4
           const idExtraido = parseInt(dto.codigo_servicio.toUpperCase().replace('YUR-', '').trim());
           if (isNaN(idExtraido)) throw new BadRequestException('Formato de código de servicio inválido');
           
@@ -66,7 +65,6 @@ export class GastosService {
           const saldoRestanteOriginal = viaticoOriginal - acumuladoGastosOriginal;
           const saldoRestanteBs = saldoRestanteOriginal * tCambio;
 
-          // LÓGICA MEJORADA: La fecha de la cabecera será la fecha más reciente de sus detalles.
           if (dto.items.length === 0) throw new BadRequestException('Debe agregar al menos un detalle de gasto.');
           
           const fechasItems = dto.items.map(item => parseDateOnlyBolivia(item.fecha) ?? new Date());

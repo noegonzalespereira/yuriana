@@ -86,10 +86,15 @@ export class UsuarioService {
     return { total, activos, inactivos };
   }
 
-  async update(id: number, updateUsuarioDto: UpdateUsuarioDto, userId: number) {
+  async update(id: number, updateUsuarioDto: UpdateUsuarioDto, userId: number, esAdmin: boolean = true) {
     const usuario = await this.findOne(id);
     if(updateUsuarioDto.password){
       updateUsuarioDto.password = await bcrypt.hash(updateUsuarioDto.password, 10);
+    }
+    if (!esAdmin) {
+      // Autoedición de un usuario no-ADMIN: no puede cambiar su propio rol ni estado.
+      delete updateUsuarioDto.id_rol;
+      delete updateUsuarioDto.estado;
     }
     Object.assign(usuario, {
       ...updateUsuarioDto, UpdatedId: userId

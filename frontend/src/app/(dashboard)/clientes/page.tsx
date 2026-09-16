@@ -9,10 +9,12 @@ import { toast } from "sonner";
 import { XCircle } from "lucide-react";
 import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
 import { TablePagination } from "@/components/molecules/TablePagination";
+import { usePermisos } from "@/hooks/usePermisos";
 
 const PAGE_SIZE = 10;
 
 export default function ClientesPage() {
+  const { puedeGestionar } = usePermisos();
   const [view, setView] = useState<'list' | 'form'>('list');
   const [data, setData] = useState<Cliente[]>([]);
   const INITIAL_FILTERS = { buscar: "" };
@@ -104,7 +106,7 @@ export default function ClientesPage() {
         searchPlaceholder="Buscar por cliente y código"
         onSearch={view === 'list' ? (val) => setFilters({ buscar: val }) : undefined}
         searchValue={view === 'list' ? filters.buscar : undefined}
-        buttonLabel={view === 'list' ? "Nuevo Cliente" : undefined}
+        buttonLabel={view === 'list' && puedeGestionar ? "Nuevo Cliente" : undefined}
         onButtonClick={() => { setSelectedCliente(null); setIsReadOnly(false); setView('form'); }}
       />
 
@@ -121,8 +123,8 @@ export default function ClientesPage() {
           ) : (
             <ClienteTable
               data={registrosPagina}
-              onDelete={handleOpenDeleteConfirmation}
-              onEdit={(c) => { setSelectedCliente(c); setIsReadOnly(false); setView('form'); }}
+              onDelete={puedeGestionar ? handleOpenDeleteConfirmation : undefined}
+              onEdit={puedeGestionar ? (c) => { setSelectedCliente(c); setIsReadOnly(false); setView('form'); } : undefined}
               onView={(c) => { setSelectedCliente(c); setIsReadOnly(true); setView('form'); }}
             />
           )}

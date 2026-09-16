@@ -15,11 +15,13 @@ import {
 } from "@/lib/api/colaborador.api";
 import { Colaborador, TipoColaborador } from "@/types/colaborador.types";
 import { TablePagination } from "@/components/molecules/TablePagination";
+import { usePermisos } from "@/hooks/usePermisos";
 
 const PAGE_SIZE = 10;
 const INITIAL_FILTERS = { nombre: "", ciudad: "", tipo_colaborador: "" };
 
 export default function ColaboradoresPage() {
+  const { puedeGestionar } = usePermisos();
   // --- ESTADOS ---
   const [view, setView] = useState<'list' | 'form'>('list');
   const [data, setData] = useState<Colaborador[]>([]);
@@ -119,7 +121,7 @@ export default function ColaboradoresPage() {
         onSearch={view === 'list' ? (v) => setFilters(prev => ({ ...prev, nombre: v })) : undefined}
         searchValue={view === 'list' ? filters.nombre : undefined}
         searchPlaceholder="Buscar por nombre"
-        buttonLabel={view === 'list' ? "Nuevo Colaborador" : undefined}
+        buttonLabel={view === 'list' && puedeGestionar ? "Nuevo Colaborador" : undefined}
         onButtonClick={handleOpenCreate}
       />
 
@@ -152,8 +154,8 @@ export default function ColaboradoresPage() {
           ) : (
             <ColaboradorTable
               data={registrosPagina}
-              onDelete={handleDelete}
-              onEdit={handleOpenEdit}
+              onDelete={puedeGestionar ? handleDelete : undefined}
+              onEdit={puedeGestionar ? handleOpenEdit : undefined}
               onView={handleOpenView}
             />
           )}

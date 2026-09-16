@@ -20,25 +20,35 @@ export class DocumentoService {
   ) {}
 
   
-  private calcularEstado(fecha_vencimiento: Date | null | undefined): {
+  private calcularEstado(fecha_vencimiento: Date | string | null | undefined): {
     estado: string;
     dias_restantes: number | null;
-  } 
-  
+  }
+
   {
     if (!fecha_vencimiento) {
       return { estado: 'vigente', dias_restantes: null };
     }
+
+    // Extraemos año/mes/día tal cual están almacenados, sin reinterpretar
+    // la fecha a través de una zona horaria (evita desfases de +/-1 día).
+    let year: number, month: number, day: number;
+    if (fecha_vencimiento instanceof Date) {
+      year = fecha_vencimiento.getUTCFullYear();
+      month = fecha_vencimiento.getUTCMonth();
+      day = fecha_vencimiento.getUTCDate();
+    } else {
+      const [y, m, d] = fecha_vencimiento.split('T')[0].split('-').map(Number);
+      year = y;
+      month = m - 1;
+      day = d;
+    }
+    const fechaVencUTC = Date.UTC(year, month, day);
+
     const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
+    const hoyUTC = Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
 
-    const fechaVenc = new Date(fecha_vencimiento);
-    fechaVenc.setHours(0, 0, 0, 0);
-
-    const dias_restantes = Math.ceil(
-      (fechaVenc.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
+    const dias_restantes = Math.round((fechaVencUTC - hoyUTC) / (1000 * 60 * 60 * 24));
 
     if (dias_restantes < 0)   return { estado: 'vencido',    dias_restantes };
     if (dias_restantes <= 15) return { estado: 'por_vencer', dias_restantes };
@@ -107,8 +117,10 @@ export class DocumentoService {
       );
     }
 
+    // Interpretamos la fecha como local (Bolivia) para evitar el desfase
+    // que produce el parseo UTC de una fecha "YYYY-MM-DD" sin hora.
     const fecha_vencimiento = requisito.requiere_vencimiento
-      ? new Date(createDocumentoDto.fecha_vencimiento!)
+      ? new Date(`${createDocumentoDto.fecha_vencimiento!}T00:00:00`)
       : null;
 
     const carpeta = this.obtenerCarpeta(createDocumentoDto);
@@ -306,9 +318,11 @@ export class DocumentoService {
       tipo_documento = file.mimetype;
     }
 
-    // Sincronizamos la fecha de vencimiento solo si el DTO la incluye
+    // Sincronizamos la fecha de vencimiento solo si el DTO la incluye.
+    // Interpretamos la fecha como local (Bolivia) para evitar el desfase
+    // que produce el parseo UTC de una fecha "YYYY-MM-DD" sin hora.
     const fecha_vencimiento = updateDocumentoDto.fecha_vencimiento
-      ? new Date(updateDocumentoDto.fecha_vencimiento)
+      ? new Date(`${updateDocumentoDto.fecha_vencimiento}T00:00:00`)
       : documento.fecha_vencimiento;
 
     Object.assign(documento, {

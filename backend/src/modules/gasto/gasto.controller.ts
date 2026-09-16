@@ -5,6 +5,7 @@ import { FilterGastoDto } from './dto/filter-gasto.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/role.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { ROL } from '../../common/constants/roles';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('gastos')
@@ -12,7 +13,7 @@ export class GastoController {
   constructor(private readonly gastosService: GastosService) {}
 
   @Post('guardar-pantalla')
-  @Roles('ADMIN')
+  @Roles(ROL.ADMIN, ROL.CONTADOR)
   async guardarPantallaCompleta(
     @Body() dto: CreateGastoBulkDto,
     @Request() req
@@ -61,7 +62,7 @@ export class GastoController {
   }
 
   @Patch('editar/:pestana/:id')
-  @Roles('ADMIN')
+  @Roles(ROL.ADMIN, ROL.CONTADOR)
   async editarRegistroGasto(
     @Param('pestana') pestana: TipoPestaña,
     @Param('id') id: string,
@@ -72,7 +73,7 @@ export class GastoController {
   }
 
   @Delete('eliminar/:pestana/:id')
-  @Roles('ADMIN')
+  @Roles(ROL.ADMIN, ROL.CONTADOR)
   async eliminarRegistroGasto(
     @Param('pestana') pestana: TipoPestaña,
     @Param('id') id: string,

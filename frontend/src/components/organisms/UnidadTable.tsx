@@ -6,8 +6,8 @@ import { toast } from "sonner";
 
 interface Props {
   data: Unidad[];
-  onDelete: (placa: string) => void;
-  onEdit: (unidad: Unidad) => void;
+  onDelete?: (placa: string) => void;
+  onEdit?: (unidad: Unidad) => void;
   onView: (unidad: Unidad) => void;
 }
 
@@ -113,8 +113,8 @@ export const UnidadTable = ({ data, onDelete, onEdit, onView }: Props) => {
                 <td className="px-4 py-2.5">
                   <TableActions
                     onView={() => onView(item)}
-                    onEdit={() => onEdit(item)}
-                    onDelete={() => {
+                    onEdit={onEdit ? () => onEdit(item) : undefined}
+                    onDelete={onDelete ? () => {
                       if (item.estado_unidad === EstadoUnidad.ASIGNADO || item.estado_unidad === EstadoUnidad.EN_VIAJE) {
                         toast.error("No se puede eliminar", {
                           description: `La unidad "${item.placa}" está en estado ${item.estado_unidad === EstadoUnidad.ASIGNADO ? "Asignado" : "En Viaje"} y no puede eliminarse.`,
@@ -122,7 +122,7 @@ export const UnidadTable = ({ data, onDelete, onEdit, onView }: Props) => {
                         return;
                       }
                       onDelete(item.placa);
-                    }}
+                    } : undefined}
                     size={18}
                   />
                 </td>

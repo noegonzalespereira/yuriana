@@ -121,10 +121,7 @@ export class ServicioService {
       if (esInternacional && !dto.id_embarque) {
         throw new BadRequestException('El embarque y CRT son obligatorios para viajes internacionales');
       }
-      // La validación de factura es más compleja y se maneja mejor en el frontend al finalizar.
-      // if (dto.es_facturado === 'si' && !files?.foto_factura?.length) {
-      //   throw new BadRequestException('Si el viaje está facturado, debes subir al menos una foto de factura');
-      // }
+     
       const fechaInicioDate = parseDateOnlyBolivia(dto.fecha_inicio);
       const fechaFinDate = dto.fecha_fin ? parseDateOnlyBolivia(dto.fecha_fin) : null;
 
@@ -137,7 +134,7 @@ export class ServicioService {
 
       // 2. PREPARACIÓN DE DATOS Y ESTADOS
       const {
-        ids_requisitos_aduaneros, // Excluir del spread
+        ids_requisitos_aduaneros, 
         es_facturado,
         facturas: facturasPayload,
         fecha_pago,
@@ -191,9 +188,9 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
       // Si el operador es OTROS, crear registro en asignacion_otros
       if (dto.operador === Operador.OTROS) {
         const asignacionOtros = queryRunner.manager.create(AsignacionOtros, {
-          ci: dto.ci_conductor,
-          nombre: dto.nombre_conductor,
-          placa: dto.placa_unidad,
+          ci: dto.ci_conductor || '',
+          nombre: dto.nombre_conductor || '',
+          placa: dto.placa_unidad || '',
           telefono: dto.telefono_unidad || '',
           empresa: dto.empresa_conductor || '',
           estado: EstadoAsignacionOtros.ACTIVA,
@@ -610,9 +607,9 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
             servicio.id_asignacion_otros = asignacionOtrosExistente.id_asig_otros;
           } else {
             const nuevoAsigOtros = queryRunner.manager.create(AsignacionOtros, {
-              ci: dto.ci_conductor,
-              nombre: dto.nombre_conductor,
-              placa: dto.placa_unidad,
+              ci: dto.ci_conductor || '',
+              nombre: dto.nombre_conductor || '',
+              placa: dto.placa_unidad || '',
               telefono: dto.telefono_unidad || '',
               empresa: dto.empresa_conductor || '',
               estado: EstadoAsignacionOtros.ACTIVA,

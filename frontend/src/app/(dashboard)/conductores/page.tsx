@@ -19,10 +19,12 @@ import { Conductor, EstadoLaboral } from "@/types/conductor.types";
 import { Users, CheckCircle, XCircle } from "lucide-react";
 import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
 import { TablePagination } from "@/components/molecules/TablePagination";
+import { usePermisos } from "@/hooks/usePermisos";
 
 const PAGE_SIZE = 10;
 
 export default function ConductoresPage() {
+  const { puedeGestionar } = usePermisos();
   const [view, setView] = useState<'list' | 'form'>('list');
   const [loading, setLoading] = useState(true);
   const [conductores, setConductores] = useState<Conductor[]>([]);
@@ -131,18 +133,9 @@ export default function ConductoresPage() {
           form.append("id_conductor", selectedConductor.id_conductor.toString());
           if (fileObj) form.append("file", fileObj);
           if (fechaVenc) {
-            const date = new Date(fechaVenc);
-            const formatter = new Intl.DateTimeFormat("en-CA", {
-              timeZone: "America/La_Paz",
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-            });
-            const parts = formatter.formatToParts(date);
-            const year = parts.find((p) => p.type === "year")?.value ?? "2024";
-            const month = parts.find((p) => p.type === "month")?.value ?? "01";
-            const day = parts.find((p) => p.type === "day")?.value ?? "01";
-            form.append("fecha_vencimiento", `${year}-${month}-${day}`);
+            // fechaVenc ya viene como "YYYY-MM-DD" desde el input de fecha;
+            // se envía tal cual, sin reinterpretarla por zona horaria.
+            form.append("fecha_vencimiento", fechaVenc);
           }
           await uploadDocumentoConductor(form);
         }
@@ -208,7 +201,7 @@ export default function ConductoresPage() {
         searchPlaceholder="Buscar por nombre o CI..."
         onSearch={view === 'list' ? (val) => setFilters({ ...filters, nombre: val }) : undefined}
         searchValue={view === 'list' ? filters.nombre : undefined}
-        buttonLabel={view === 'list' ? "Nuevo Conductor" : undefined}
+        buttonLabel={view === 'list' && puedeGestionar ? "Nuevo Conductor" : undefined}
         onButtonClick={() => { setSelectedConductor(null); setIsReadOnly(false); setView('form'); }}
       />
 
@@ -235,8 +228,8 @@ export default function ConductoresPage() {
             ) : (
               <ConductorTable
                 data={registrosPagina}
-                onDelete={handleOpenDeleteConfirmation}
-                onEdit={(c) => { setSelectedConductor(c); setIsReadOnly(false); setView('form'); }}
+                onDelete={puedeGestionar ? handleOpenDeleteConfirmation : undefined}
+                onEdit={puedeGestionar ? (c) => { setSelectedConductor(c); setIsReadOnly(false); setView('form'); } : undefined}
                 onView={(c) => { setSelectedConductor(c); setIsReadOnly(true); setView('form'); }}
               />
             )}

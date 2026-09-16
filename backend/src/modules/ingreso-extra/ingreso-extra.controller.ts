@@ -5,6 +5,7 @@ import { UpdateIngresoExtraDto } from './dto/update-ingreso-extra.dto';
 import { RolesGuard } from '../../common/guards/role.guard';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles} from '../../common/decorators/roles.decorator';
+import { ROL } from '../../common/constants/roles';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('ingreso-extra')
@@ -12,7 +13,7 @@ export class IngresoExtraController {
   constructor(private readonly ingresoExtraService: IngresoExtraService) {}
 
   @Post()
-  @Roles('ADMIN')
+  @Roles(ROL.ADMIN, ROL.CONTADOR)
   create(@Body() createIngresoExtraDto: CreateIngresoExtraDto, @Request() req) {
     return this.ingresoExtraService.create(createIngresoExtraDto, req.user.id);
   }
@@ -39,13 +40,13 @@ export class IngresoExtraController {
   }
 
   @Patch(':id')
-  @Roles('ADMIN')
+  @Roles(ROL.ADMIN, ROL.CONTADOR)
   update(@Param('id', ParseIntPipe) id: number, @Body() updateIngresoExtraDto: UpdateIngresoExtraDto, @Request() req) {
     return this.ingresoExtraService.update(id, updateIngresoExtraDto,req.user.id);
   }
 
   @Delete(':id')
-  @Roles('ADMIN')
+  @Roles(ROL.ADMIN, ROL.CONTADOR)
   remove(@Param('id', ParseIntPipe) id: number, @Request() req) {
     return this.ingresoExtraService.remove(id, req.user.id);
   }

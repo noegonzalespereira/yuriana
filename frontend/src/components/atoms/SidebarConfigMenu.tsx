@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Settings } from "lucide-react";
+import { usePermisos } from "@/hooks/usePermisos";
 
 export const SidebarConfigMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { puedeVerDocumentosConfig, puedeVerEmpresaConfig, isContador } = usePermisos();
 
   const menuItems = [
-    { label: "Documentos", href: "/configuracion/documentos" },
-    { label: "Empresa", href: "/configuracion/empresa" },
-    { label: "Usuarios", href: "/configuracion/usuarios" }, 
+    ...(puedeVerDocumentosConfig ? [{ label: "Documentos", href: "/configuracion/documentos" }] : []),
+    ...(puedeVerEmpresaConfig ? [{ label: "Empresa", href: "/configuracion/empresa" }] : []),
+    { label: isContador ? "Mi Perfil" : "Usuarios", href: "/configuracion/usuarios" },
   ];
 
   return (
