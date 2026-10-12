@@ -71,14 +71,14 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete }: Props) => {
                   {item.cliente?.persona?.nombre ?? "-"}
                 </p>
                 <p className="text-[var(--yuriana-input-placeholder)] text-[10px]">
-                  {item.asignacion?.conductor?.persona?.nombre ?? "-"}
+                  {item.asignacion?.conductor?.persona?.nombre ?? item.asignacion_otros?.nombre ?? "-"}
                 </p>
               </td>
 
               {/* Vehículo */}
               <td className="px-4 py-2.5">
                 <p className="font-bold text-[var(--yuriana-base-gray-dark)]">
-                  {item.asignacion?.tracto?.placa ?? "-"}
+                  {item.asignacion?.tracto?.placa ?? item.asignacion_otros?.placa ?? "-"}
                 </p>
                 {item.asignacion?.remolque?.placa && (
                   <p className="text-[var(--yuriana-input-placeholder)] text-[10px]">

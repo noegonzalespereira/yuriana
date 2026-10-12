@@ -757,7 +757,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
           <div className="overflow-x-auto rounded-xl border border-[var(--yuriana-input-border)]">
             <table className="w-full text-left text-xs">
               <thead className="bg-orange-50 text-[var(--yuriana-base-gray-dark)] uppercase text-[10px] font-black">
-                <tr><th className="px-3 py-2">N° Factura</th><th className="px-3 py-2">Fecha Emisión</th><th className="px-3 py-2 text-right">Monto Bs</th><th className="px-3 py-2">Transmitida</th><th className="px-3 py-2">Fotos</th>{!isReadOnly && !isEdit && <th className="px-3 py-2">Acciones</th>}</tr>
+                <tr><th className="px-3 py-2">N° Factura</th><th className="px-3 py-2">Fecha Emisión</th><th className="px-3 py-2 text-right">Monto Bs</th><th className="px-3 py-2">Transmitida</th><th className="px-3 py-2">Ver Factura</th>{!isReadOnly && !isEdit && <th className="px-3 py-2">Acciones</th>}</tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {initialData?.facturas?.filter((factura) => !facturasExistentesEliminadas.includes(factura.id_factura)).map((factura) => {

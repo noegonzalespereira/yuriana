@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { XCircle, Truck, Clock, AlertTriangle } from "lucide-react";
+import { XCircle, Truck, Clock, AlertTriangle, Download, Loader2 } from "lucide-react";
 import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
 import { FilterSelect } from "@/components/atoms/FilterSelect";
 import { TablePagination } from "@/components/molecules/TablePagination";
@@ -11,6 +11,10 @@ import { ModuleHeader } from "@/components/organisms/ModuleHeader";
 import { StatCard } from "@/components/atoms/StatCard";
 import { ServicioTable } from "@/components/organisms/ServicioTable";
 import { ServicioForm } from "@/components/organisms/ServicioForm";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import { ReporteServicios, servicioAFila } from "@/components/organisms/reportes/ReporteServicios";
+import { getEmpresa } from "@/lib/api/empresa.api";
+import { Empresa } from "@/types/empresa.types";
 import {
   getServicios,
   getContadoresServicio,
@@ -89,6 +93,8 @@ export default function ServiciosPage() {
   const [servicios, setServicios] = useState<ServicioItem[]>([]);
   const [selected, setSelected] = useState<ServicioItem | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [infoEmpresa, setInfoEmpresa] = useState<Empresa | null>(null);
+  useEffect(() => { getEmpresa().then(setInfoEmpresa).catch(() => {}); }, []);
 
   const [categoriasViaje, setCategoriasViaje] = useState<{ id_categoria: number; tipo_categoria: string }[]>([]);
 
@@ -247,6 +253,26 @@ export default function ServiciosPage() {
                   onFechaInicioChange={(val) => setFilter("fecha_inicio", val)}
                   onFechaFinChange={(val) => setFilter("fecha_fin", val)}
                 />
+                {loading || servicios.length === 0 ? (
+                  <button type="button" disabled
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--yuriana-base-orange)] text-white text-xs font-black uppercase shadow-md opacity-50 cursor-not-allowed">
+                    <Download size={14} /> Descargar reporte
+                  </button>
+                ) : (
+                  <PDFDownloadLink
+                    document={<ReporteServicios filas={servicios.map(servicioAFila)} fechaInicio={filters.fecha_inicio ?? ""} fechaFin={filters.fecha_fin ?? ""} infoEmpresa={infoEmpresa} />}
+                    fileName={`reporte-viajes_${filters.fecha_inicio ?? "inicio"}_${filters.fecha_fin ?? "fin"}.pdf`}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--yuriana-base-orange)] text-white text-xs font-black uppercase shadow-md hover:opacity-90"
+                  >
+                    {({ loading: generando }: { loading: boolean }) =>
+                      generando ? (
+                        <><Loader2 size={14} className="animate-spin" /> Generando...</>
+                      ) : (
+                        <><Download size={14} /> Descargar reporte</>
+                      )
+                    }
+                  </PDFDownloadLink>
+                )}
               </div>
 
               {/* Fila 2: filtros de select */}
