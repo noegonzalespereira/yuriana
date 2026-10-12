@@ -133,6 +133,8 @@ interface Props {
   onSuccess: (item: ServicioItem) => void;
 }
 
+const esPdfUrl = (url?: string | null) => /\.pdf($|[?#])/i.test(url ?? "");
+
 const fmtFechaFactura = (iso?: string | null) => {
   if (!iso) return "-";
   const [year, month, day] = iso.split("-").map(Number);
@@ -770,9 +772,15 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
                       {factura.fotos?.length ? (
                         <div className="flex flex-wrap gap-2">
                           {factura.fotos.map((foto, fotoIndex) => (
+                            esPdfUrl(foto.url_foto) ? (
+                              <a key={foto.id_foto_factura} href={foto.url_foto} target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--yuriana-input-border)] bg-slate-50" title={`Abrir PDF ${fotoIndex + 1}`}>
+                                <FileText size={18} className="text-[var(--yuriana-base-orange)]" />
+                              </a>
+                            ) : (
                             <button key={foto.id_foto_factura} type="button" onClick={() => setFotoFacturaAmpliada(foto.url_foto)} className="group relative h-10 w-10 overflow-hidden rounded-lg border border-[var(--yuriana-input-border)] bg-slate-50" title={`Ver foto ${fotoIndex + 1}`}>
                               <img src={foto.url_foto} alt={`Factura ${fotoIndex + 1}`} className="h-full w-full object-cover transition-transform group-hover:scale-110" />
                             </button>
+                            )
                           ))}
                         </div>
                       ) : "-"}
@@ -830,9 +838,15 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
             {(fotosFacturaExistentes.length > 0 || archivosFactura.length > 0) && <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 pt-2">
               {fotosFacturaExistentes.filter((foto) => !fotosFacturaEliminadas.includes(foto.id_foto_factura)).map((foto) => (
                 <div key={foto.id_foto_factura} className="relative group rounded-xl border border-[var(--yuriana-input-border)] bg-slate-50 p-1.5">
+                  {esPdfUrl(foto.url_foto) ? (
+                    <a href={foto.url_foto} target="_blank" rel="noopener noreferrer" className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg bg-white" title="Abrir PDF">
+                      <FileText size={24} className="text-[var(--yuriana-base-orange)]" />
+                    </a>
+                  ) : (
                   <button type="button" onClick={() => setFotoFacturaAmpliada(foto.url_foto)} className="block aspect-square w-full overflow-hidden rounded-lg bg-white cursor-zoom-in">
                     <img src={foto.url_foto} alt="Foto existente de factura" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
                   </button>
+                  )}
                   <button type="button" onClick={() => setFotosFacturaEliminadas((prev) => [...prev, foto.id_foto_factura])} className="absolute -right-2 -top-2 rounded-full bg-rose-500 p-1.5 text-white shadow-md hover:bg-rose-700" title="Eliminar foto"><X size={12} /></button>
                   <p className="mt-1 text-center text-[9px] text-slate-500">Existente</p>
                 </div>
