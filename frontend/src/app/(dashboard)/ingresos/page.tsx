@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { XCircle, TrendingUp, Truck } from "lucide-react";
 import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
 import { TablePagination } from "@/components/molecules/TablePagination";
+import { DateRangeFilter } from "@/components/molecules/DateRangeFilter";
 import { toast } from "sonner";
 
 const PAGE_SIZE = 10;
@@ -221,22 +222,13 @@ export default function IngresosPage() {
           <div className="bg-white rounded-3xl shadow-xl border border-border overflow-hidden">
             <div className="p-6 space-y-4">
               {/* Filtros */}
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="flex items-center gap-2 border border-[var(--yuriana-input-border)] rounded-xl px-4 py-2 bg-[var(--yuriana-input-bg)]">
-                  <input
-                    type="date"
-                    value={filters.fecha_inicio ?? ""}
-                    onChange={(e) => setFilters((f) => ({ ...f, fecha_inicio: e.target.value }))}
-                    className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]"
-                  />
-                  <span className="text-[var(--yuriana-input-placeholder)] text-xs">-</span>
-                  <input
-                    type="date"
-                    value={filters.fecha_fin ?? ""}
-                    onChange={(e) => setFilters((f) => ({ ...f, fecha_fin: e.target.value }))}
-                    className="text-xs outline-none bg-transparent text-[var(--yuriana-input-text)]"
-                  />
-                </div>
+              <div className="flex items-end gap-3 flex-wrap">
+                <DateRangeFilter
+                  fechaInicio={filters.fecha_inicio ?? ""}
+                  fechaFin={filters.fecha_fin ?? ""}
+                  onFechaInicioChange={(val) => setFilters((f) => ({ ...f, fecha_inicio: val }))}
+                  onFechaFinChange={(val) => setFilters((f) => ({ ...f, fecha_fin: val }))}
+                />
                 <ResetFiltersButton onClick={handleResetFilters} />
               </div>
 

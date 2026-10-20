@@ -256,7 +256,11 @@ export class GastosService {
         query.andWhere('unidad.placa ILIKE :b', { b: `%${filters.buscar}%` });
       }
       if (filters.tipo_gasto) {
-        query.andWhere('go.tipo_gasto = :tg', { tg: filters.tipo_gasto });
+        if ((Object.values(TipoGastoOperativo) as string[]).includes(filters.tipo_gasto)) {
+          query.andWhere('go.tipo_gasto = :tg', { tg: filters.tipo_gasto });
+        } else {
+          query.andWhere('1 = 0');
+        }
       }
       if (filters.fecha_inicio && filters.fecha_fin) {
         query.andWhere('gasto.fecha BETWEEN :f1 AND :f2', { f1: filters.fecha_inicio, f2: filters.fecha_fin });
@@ -277,6 +281,16 @@ export class GastosService {
     }
     if (filters.buscar) {
       queryEgresos.andWhere('gasto.descripcion ILIKE :b', { b: `%${filters.buscar}%` });
+    }
+    if (filters.tipo_gasto) {
+      const enumTipos = (pestana === TipoPestaña.ADMINISTRATIVO
+        ? Object.values(TipoGastoAdministrativo)
+        : Object.values(TipoGastoGeneral)) as string[];
+      if (enumTipos.includes(filters.tipo_gasto)) {
+        queryEgresos.andWhere(`${alias}.tipo_gasto = :tg`, { tg: filters.tipo_gasto });
+      } else {
+        queryEgresos.andWhere('1 = 0');
+      }
     }
     return await queryEgresos.orderBy('gasto.fecha', 'DESC').getMany();
   }
@@ -502,7 +516,13 @@ export class GastosService {
       operativosQuery.andWhere('unidad.placa ILIKE :b', { b: `%${filters.buscar.trim()}%` });
     }
     if (filters.tipo_gasto?.trim()) {
-      operativosQuery.andWhere('go.tipo_gasto = :tipo_gasto', { tipo_gasto: filters.tipo_gasto.trim() });
+      // Cada tabla tiene su propio enum: si el valor no le pertenece, no hay coincidencias
+      const tipo = filters.tipo_gasto.trim();
+      if ((Object.values(TipoGastoOperativo) as string[]).includes(tipo)) {
+        operativosQuery.andWhere('go.tipo_gasto = :tipo_gasto', { tipo_gasto: tipo });
+      } else {
+        operativosQuery.andWhere('1 = 0');
+      }
     }
     if (tieneRango) {
       if (filters.fecha_inicio) operativosQuery.andWhere('g.fecha >= :f1', { f1: filters.fecha_inicio });
@@ -521,7 +541,12 @@ export class GastosService {
       adminQuery.andWhere('g.descripcion ILIKE :b', { b: `%${filters.buscar.trim()}%` });
     }
     if (filters.tipo_gasto?.trim()) {
-      adminQuery.andWhere('ga.tipo_gasto = :tipo_gasto', { tipo_gasto: filters.tipo_gasto.trim() });
+      const tipo = filters.tipo_gasto.trim();
+      if ((Object.values(TipoGastoAdministrativo) as string[]).includes(tipo)) {
+        adminQuery.andWhere('ga.tipo_gasto = :tipo_gasto', { tipo_gasto: tipo });
+      } else {
+        adminQuery.andWhere('1 = 0');
+      }
     }
     if (tieneRango) {
       if (filters.fecha_inicio) adminQuery.andWhere('g.fecha >= :f1', { f1: filters.fecha_inicio });
@@ -540,7 +565,12 @@ export class GastosService {
       generalQuery.andWhere('g.descripcion ILIKE :b', { b: `%${filters.buscar.trim()}%` });
     }
     if (filters.tipo_gasto?.trim()) {
-      generalQuery.andWhere('gg.tipo_gasto = :tipo_gasto', { tipo_gasto: filters.tipo_gasto.trim() });
+      const tipo = filters.tipo_gasto.trim();
+      if ((Object.values(TipoGastoGeneral) as string[]).includes(tipo)) {
+        generalQuery.andWhere('gg.tipo_gasto = :tipo_gasto', { tipo_gasto: tipo });
+      } else {
+        generalQuery.andWhere('1 = 0');
+      }
     }
     if (tieneRango) {
       if (filters.fecha_inicio) generalQuery.andWhere('g.fecha >= :f1', { f1: filters.fecha_inicio });
