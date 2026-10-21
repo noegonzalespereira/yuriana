@@ -345,9 +345,10 @@ export default function ServiciosPage() {
           </div>
 
           {/* Totales por estado de pago */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: "Total Pagados",    value: totalPagados,    color: "text-emerald-600" },
+              { label: "Total Servicios",  value: totalPagados + totalPendientes + totalRetrasados, color: "text-[var(--yuriana-base-orange)]" },
+              { label: "Total Pagados",   value: totalPagados,    color: "text-emerald-600" },
               { label: "Total Pendientes", value: totalPendientes, color: "text-yellow-600" },
               { label: "Total Retrasados", value: totalRetrasados, color: "text-rose-600" },
             ].map(({ label, value, color }) => (
