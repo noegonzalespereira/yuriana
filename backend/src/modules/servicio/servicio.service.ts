@@ -583,44 +583,44 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
       const tCambio = servicio.moneda === Moneda.DOLAR ? Number(servicio.tipo_cambio ?? 1) : 1;
       servicio.total_flete = (montoBase + montoExtraCalculado) * tCambio;
 
-      const asignacionCambio = servicio.id_asignacion !== (oldAsignacion?.id_asignacion ?? 0);
+      if (dto.operador === Operador.OTROS) {
+        // Para OTROS no aplica la asignación de equipo: desvincular y liberar la anterior (viajes antiguos)
+        if (oldAsignacion) {
+          if (oldEstadoServicio === EstadoServicio.EN_CURSO) {
+            await this.liberarEquipo(oldAsignacion, userId, queryRunner);
+          }
+          servicio.id_asignacion = null;
+          servicio.asignacion = null;
+        }
 
-      // Manejar cambio según el tipo de operador
-      if (asignacionCambio) {
-        if (dto.operador === Operador.OTROS) {
-          // Para OTROS: limpiar asignacion YURIANA y manejar asignacion_otros
-          if (oldAsignacion && oldAsignacion.id_asignacion) {
-            servicio.id_asignacion = null;
-            servicio.asignacion = null;
-          }
-          // Actualizar o crear asignacion_otros
-          const asignacionOtrosExistente = await queryRunner.manager.findOne(AsignacionOtros, {
-            where: { id_asig_otros: servicio.id_asignacion_otros! }
-          }) as AsignacionOtros;
-          if (asignacionOtrosExistente) {
-            asignacionOtrosExistente.ci = dto.ci_conductor || asignacionOtrosExistente.ci;
-            asignacionOtrosExistente.nombre = dto.nombre_conductor || asignacionOtrosExistente.nombre;
-            asignacionOtrosExistente.placa = dto.placa_unidad || asignacionOtrosExistente.placa;
-            asignacionOtrosExistente.telefono = dto.telefono_unidad || asignacionOtrosExistente.telefono;
-            asignacionOtrosExistente.empresa = dto.empresa_conductor || asignacionOtrosExistente.empresa;
-            asignacionOtrosExistente.UpdatedId = userId;
-            await queryRunner.manager.save(AsignacionOtros, asignacionOtrosExistente);
-            servicio.id_asignacion_otros = asignacionOtrosExistente.id_asig_otros;
-          } else {
-            const nuevoAsigOtros = queryRunner.manager.create(AsignacionOtros, {
-              ci: dto.ci_conductor || '',
-              nombre: dto.nombre_conductor || '',
-              placa: dto.placa_unidad || '',
-              telefono: dto.telefono_unidad || '',
-              empresa: dto.empresa_conductor || '',
-              estado: EstadoAsignacionOtros.ACTIVA,
-              UpdatedId: userId,
-            });
-            const guardadoOtros = await queryRunner.manager.save(AsignacionOtros, nuevoAsigOtros) as AsignacionOtros;
-            servicio.id_asignacion_otros = guardadoOtros.id_asig_otros;
-          }
-          // Para OTROS, no ocupar equipo - id_asignacion ya es null
+        // Actualizar el registro existente de asignacion_otros o crearlo si es un viaje anterior al cambio
+        const asignacionOtrosExistente = servicio.id_asignacion_otros
+          ? await queryRunner.manager.findOne(AsignacionOtros, { where: { id_asig_otros: servicio.id_asignacion_otros } })
+          : null;
+        if (asignacionOtrosExistente) {
+          asignacionOtrosExistente.ci = dto.ci_conductor || asignacionOtrosExistente.ci;
+          asignacionOtrosExistente.nombre = dto.nombre_conductor || asignacionOtrosExistente.nombre;
+          asignacionOtrosExistente.placa = dto.placa_unidad || asignacionOtrosExistente.placa;
+          asignacionOtrosExistente.telefono = dto.telefono_unidad || asignacionOtrosExistente.telefono;
+          asignacionOtrosExistente.empresa = dto.empresa_conductor || asignacionOtrosExistente.empresa;
+          asignacionOtrosExistente.UpdatedId = userId;
+          await queryRunner.manager.save(AsignacionOtros, asignacionOtrosExistente);
         } else {
+          const nuevoAsigOtros = queryRunner.manager.create(AsignacionOtros, {
+            ci: dto.ci_conductor || '',
+            nombre: dto.nombre_conductor || '',
+            placa: dto.placa_unidad || '',
+            telefono: dto.telefono_unidad || '',
+            empresa: dto.empresa_conductor || '',
+            estado: EstadoAsignacionOtros.ACTIVA,
+            UpdatedId: userId,
+          });
+          const guardadoOtros = await queryRunner.manager.save(AsignacionOtros, nuevoAsigOtros) as AsignacionOtros;
+          servicio.id_asignacion_otros = guardadoOtros.id_asig_otros;
+        }
+      } else {
+        const asignacionCambio = servicio.id_asignacion !== (oldAsignacion?.id_asignacion ?? 0);
+        if (asignacionCambio) {
           // Para YURIANA: flujo normal de validación y ocupación
           const newAsignacion = await this.validateAsignacion(servicio.id_asignacion ?? 0, queryRunner);
           servicio.asignacion = newAsignacion;
@@ -632,25 +632,6 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
           // Ocupar nuevo equipo si el servicio está EN_CURSO
           if (servicio.estado_servicio === EstadoServicio.EN_CURSO) {
             await this.ocuparEquipo(servicio.asignacion, userId, queryRunner);
-          }
-        }
-} else {
-        // Assignment unchanged - manejar según operador
-        if (dto.operador === Operador.OTROS) {
-          // Si ya tenía asignacion_otros, actualizar datos
-          if (servicio.id_asignacion_otros) {
-            const asignacionOtros = await queryRunner.manager.findOne(AsignacionOtros, {
-where: { id_asig_otros: servicio.id_asignacion_otros ?? undefined }
-            }) as AsignacionOtros;
-            if (asignacionOtros) {
-              asignacionOtros.ci = dto.ci_conductor || asignacionOtros.ci;
-              asignacionOtros.nombre = dto.nombre_conductor || asignacionOtros.nombre;
-              asignacionOtros.placa = dto.placa_unidad || asignacionOtros.placa;
-              asignacionOtros.telefono = dto.telefono_unidad || asignacionOtros.telefono;
-              asignacionOtros.empresa = dto.empresa_conductor || asignacionOtros.empresa;
-              asignacionOtros.UpdatedId = userId;
-              await queryRunner.manager.save(AsignacionOtros, asignacionOtros);
-            }
           }
         } else {
           // YURIANA sin cambios en asignación - manejar estados de equipo
