@@ -4,6 +4,7 @@ import { formatDateBolivia } from "@/lib/date-bolivia";
 import { GastoOperativo, TipoGastoOperativo } from "@/types/gasto.types";
 
 interface Props {
+  offset?: number;
   data: GastoOperativo[];
   onView: (item: GastoOperativo) => void;
   onEdit: (item: GastoOperativo) => void;
@@ -21,7 +22,7 @@ const TIPO_BADGE: Record<string, string> = {
   [TipoGastoOperativo.REPUESTOS]: "bg-slate-50 text-slate-600 border-slate-200",
 };
 
-export const GastoOperativoTable = ({ data, onView, onEdit, onDelete }: Props) => {
+export const GastoOperativoTable = ({ data, onView, onEdit, onDelete, offset = 0 }: Props) => {
   return (
     <div className="w-full overflow-x-auto rounded-2xl border border-border">
       <table className="w-full text-left border-collapse">
@@ -46,7 +47,7 @@ export const GastoOperativoTable = ({ data, onView, onEdit, onDelete }: Props) =
           ) : (
             data.map((item, index) => (
               <tr key={item.id_gasto_operativo} className="hover:bg-slate-50/80 transition-colors text-xs">
-                <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{index + 1}</td>
+                <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{offset + index + 1}</td>
                 <td className="px-4 py-2.5">
                   <span className="font-black text-[var(--yuriana-base-orange)] uppercase tracking-tight">
                     {item.unidad?.placa ?? "-"}

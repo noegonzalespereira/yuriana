@@ -125,6 +125,7 @@ export default function AsignacionesPage() {
           ) : (
             <AsignacionTable
               data={registrosPagina}
+              offset={(paginaActual - 1) * PAGE_SIZE}
               infoEmpresa={infoEmpresa}
               onView={(asig) => { setSelectedAsignacion(asig); setIsReadOnly(true); setView('form'); }}
               onEdit={puedeGestionar ? (asig) => { setSelectedAsignacion(asig); setIsReadOnly(false); setView('form'); } : undefined}

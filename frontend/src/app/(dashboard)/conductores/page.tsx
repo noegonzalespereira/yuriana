@@ -228,6 +228,7 @@ export default function ConductoresPage() {
             ) : (
               <ConductorTable
                 data={registrosPagina}
+                offset={(paginaActual - 1) * PAGE_SIZE}
                 onDelete={puedeGestionar ? handleOpenDeleteConfirmation : undefined}
                 onEdit={puedeGestionar ? (c) => { setSelectedConductor(c); setIsReadOnly(false); setView('form'); } : undefined}
                 onView={(c) => { setSelectedConductor(c); setIsReadOnly(true); setView('form'); }}

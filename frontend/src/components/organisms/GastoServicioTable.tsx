@@ -4,6 +4,7 @@ import { formatDateBolivia } from "@/lib/date-bolivia";
 import { GastosServicio } from "@/types/gasto.types";
 
 interface Props {
+  offset?: number;
   data: GastosServicio[];
   onView: (item: GastosServicio) => void;
   onEdit: (item: GastosServicio) => void;
@@ -15,7 +16,7 @@ const fmt = (n: number) =>
 
 const fmtFecha = (iso?: string | null) => formatDateBolivia(iso ?? "");
 
-export const GastoServicioTable = ({ data, onView, onEdit, onDelete }: Props) => {
+export const GastoServicioTable = ({ data, onView, onEdit, onDelete, offset = 0 }: Props) => {
   return (
     <div className="w-full overflow-x-auto rounded-2xl border border-border">
       <table className="w-full text-left border-collapse">
@@ -44,7 +45,7 @@ export const GastoServicioTable = ({ data, onView, onEdit, onDelete }: Props) =>
 
               return (
                 <tr key={item.id_gasto_servicio} className="hover:bg-slate-50/80 transition-colors text-xs">
-                  <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{index + 1}</td>
+                  <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{offset + index + 1}</td>
                   <td className="px-4 py-2.5 text-gray-600">
                     {fmtFecha(fechaRegistro)}
                   </td>

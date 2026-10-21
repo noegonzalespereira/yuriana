@@ -4,6 +4,7 @@ import { formatDateBolivia } from "@/lib/date-bolivia";
 import { IngresoExtra } from "@/types/ingreso-extra.types";
 
 interface Props {
+  offset?: number;
   data: IngresoExtra[];
   onView: (item: IngresoExtra) => void;
   onEdit: (item: IngresoExtra) => void;
@@ -15,7 +16,7 @@ const fmtFecha = (iso: string) => formatDateBolivia(iso);
 const fmt = (n: number) =>
   new Intl.NumberFormat("es-BO", { maximumFractionDigits: 2 }).format(n);
 
-export const IngresoExtraTable = ({ data, onView, onEdit, onDelete }: Props) => {
+export const IngresoExtraTable = ({ data, onView, onEdit, onDelete, offset = 0 }: Props) => {
   return (
     <div className="w-full overflow-x-auto rounded-2xl border border-border">
       <table className="w-full text-left border-collapse">
@@ -40,7 +41,7 @@ export const IngresoExtraTable = ({ data, onView, onEdit, onDelete }: Props) => 
           ) : (
             data.map((item, index) => (
               <tr key={item.id_ingreso_extra} className="hover:bg-slate-50/80 transition-colors text-xs">
-                <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{index + 1}</td>
+                <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{offset + index + 1}</td>
                 <td className="px-4 py-2.5 text-gray-600">{fmtFecha(item.fecha)}</td>
                 <td className="px-4 py-2.5 text-gray-700 max-w-xs truncate">{item.descripcion}</td>
                 <td className="px-4 py-2.5">

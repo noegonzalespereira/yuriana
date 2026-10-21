@@ -515,7 +515,7 @@ export default function GastosPage() {
                     <div className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">Cargando registros...</div>
                   ) : (
                     <>
-                      <GastoServicioTable data={gastosServicio.slice(pageStart, pageEnd)} onView={handleVerServicio} onEdit={handleEditarServicio} onDelete={(id) => setDeleteServicioId(id)} />
+                      <GastoServicioTable data={gastosServicio.slice(pageStart, pageEnd)} offset={pageStart} onView={handleVerServicio} onEdit={handleEditarServicio} onDelete={(id) => setDeleteServicioId(id)} />
                       <TablePagination pagina={paginaActual} totalPaginas={totalPaginas} totalRegistros={gastosServicio.length} registrosMostrados={gastosServicio.slice(pageStart, pageEnd).length} onPageChange={setPagina} />
                     </>
                   )}
@@ -553,7 +553,7 @@ export default function GastosPage() {
                     <div className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">Cargando registros...</div>
                   ) : (
                     <>
-                      <GastoOperativoTable data={gastosOperativos.slice(pageStart, pageEnd)} onView={handleVerOperativo} onEdit={handleEditarOperativo} onDelete={(id) => setDeleteOperativoId(id)} />
+                      <GastoOperativoTable data={gastosOperativos.slice(pageStart, pageEnd)} offset={pageStart} onView={handleVerOperativo} onEdit={handleEditarOperativo} onDelete={(id) => setDeleteOperativoId(id)} />
                       <TablePagination pagina={paginaActual} totalPaginas={totalPaginas} totalRegistros={gastosOperativos.length} registrosMostrados={gastosOperativos.slice(pageStart, pageEnd).length} onPageChange={setPagina} />
                     </>
                   )}
@@ -593,7 +593,7 @@ export default function GastosPage() {
                     <div className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">Cargando registros...</div>
                   ) : (
                     <>
-                      <GastoAdministrativoTable data={adminFiltrados.slice(pageStart, pageEnd)} onView={handleVerAdmin} onEdit={handleEditarAdmin} onDelete={(id) => setDeleteAdminId(id)} />
+                      <GastoAdministrativoTable data={adminFiltrados.slice(pageStart, pageEnd)} offset={pageStart} onView={handleVerAdmin} onEdit={handleEditarAdmin} onDelete={(id) => setDeleteAdminId(id)} />
                       <TablePagination pagina={paginaActual} totalPaginas={totalPaginas} totalRegistros={adminFiltrados.length} registrosMostrados={adminFiltrados.slice(pageStart, pageEnd).length} onPageChange={setPagina} />
                     </>
                   )}
@@ -631,7 +631,7 @@ export default function GastosPage() {
                     <div className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">Cargando registros...</div>
                   ) : (
                     <>
-                      <GastoGeneralTable data={generalesFiltrados.slice(pageStart, pageEnd)} onView={handleVerGeneral} onEdit={handleEditarGeneral} onDelete={(id) => setDeleteGeneralId(id)} />
+                      <GastoGeneralTable data={generalesFiltrados.slice(pageStart, pageEnd)} offset={pageStart} onView={handleVerGeneral} onEdit={handleEditarGeneral} onDelete={(id) => setDeleteGeneralId(id)} />
                       <TablePagination pagina={paginaActual} totalPaginas={totalPaginas} totalRegistros={generalesFiltrados.length} registrosMostrados={generalesFiltrados.slice(pageStart, pageEnd).length} onPageChange={setPagina} />
                     </>
                   )}

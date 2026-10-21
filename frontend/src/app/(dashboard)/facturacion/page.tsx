@@ -400,7 +400,7 @@ export default function FacturacionPage() {
                       i % 2 === 0 ? "bg-white" : "bg-slate-50/40"
                     }`}
                   >
-                    <td className="px-5 py-4 text-center font-bold text-slate-400">{i + 1}</td>
+                    <td className="px-5 py-4 text-center font-bold text-slate-400">{(paginaActual - 1) * PAGE_SIZE + i + 1}</td>
                     <td className="px-5 py-4 font-bold text-[var(--yuriana-base-gray-dark)]">
                       {f.servicio?.codigo_servicio ?? "-"}
                     </td>

@@ -4,6 +4,7 @@ import { formatDateBolivia } from "@/lib/date-bolivia";
 import { GastoAdministrativo, TipoGastoAdministrativo } from "@/types/gasto.types";
 
 interface Props {
+  offset?: number;
   data: GastoAdministrativo[];
   onView: (item: GastoAdministrativo) => void;
   onEdit: (item: GastoAdministrativo) => void;
@@ -23,7 +24,7 @@ const TIPO_BADGE: Record<string, string> = {
   [TipoGastoAdministrativo.OTROS]: "bg-slate-50 text-slate-500 border-slate-200",
 };
 
-export const GastoAdministrativoTable = ({ data, onView, onEdit, onDelete }: Props) => {
+export const GastoAdministrativoTable = ({ data, onView, onEdit, onDelete, offset = 0 }: Props) => {
   return (
     <div className="w-full overflow-x-auto rounded-2xl border border-border">
       <table className="w-full text-left border-collapse">
@@ -47,7 +48,7 @@ export const GastoAdministrativoTable = ({ data, onView, onEdit, onDelete }: Pro
           ) : (
             data.map((item, index) => (
               <tr key={item.id_gasto_admin} className="hover:bg-slate-50/80 transition-colors text-xs">
-                <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{index + 1}</td>
+                <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{offset + index + 1}</td>
                 <td className="px-4 py-2.5 text-gray-600">
                   {fmtFecha(item.gasto?.fecha)}
                 </td>

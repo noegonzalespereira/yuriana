@@ -5,13 +5,14 @@ import { Unidad, EstadoUnidad } from "@/types/unidad.types";
 import { toast } from "sonner";
 
 interface Props {
+  offset?: number;
   data: Unidad[];
   onDelete?: (placa: string) => void;
   onEdit?: (unidad: Unidad) => void;
   onView: (unidad: Unidad) => void;
 }
 
-export const UnidadTable = ({ data, onDelete, onEdit, onView }: Props) => {
+export const UnidadTable = ({ data, onDelete, onEdit, onView, offset = 0 }: Props) => {
   
   // Renderizado dinámico de alertas de pólizas basado en tu backend polimórfico
   const getDocumentoBadgeStyles = (estado?: string) => {
@@ -66,7 +67,7 @@ export const UnidadTable = ({ data, onDelete, onEdit, onView }: Props) => {
           ) : (
             data.map((item, index) => (
               <tr key={item.id_unidad} className="hover:bg-slate-50/80 transition-colors text-xs">
-                <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{index + 1}</td>
+                <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{offset + index + 1}</td>
 
                 {/* PLACA */}
                 <td className="px-4 py-2.5 font-black text-gray-900 tracking-tight uppercase">

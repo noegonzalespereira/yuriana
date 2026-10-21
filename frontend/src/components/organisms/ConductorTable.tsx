@@ -4,13 +4,14 @@ import { Conductor, EstadoLaboral, EstadoOperativo } from "@/types/conductor.typ
 import { toast } from "sonner";
 
 interface Props {
+  offset?: number;
   data: Conductor[];
   onDelete?: (ci: string) => void;
   onEdit?: (conductor: Conductor) => void;
   onView: (conductor: Conductor) => void;
 }
 
-export const ConductorTable = ({ data, onDelete, onEdit, onView }: Props) => {
+export const ConductorTable = ({ data, onDelete, onEdit, onView, offset = 0 }: Props) => {
   
   // Optimizamos los badges para que usen exactamente tus variables globales de CSS
   const getDocBadge = (estado?: string) => {
@@ -50,7 +51,7 @@ export const ConductorTable = ({ data, onDelete, onEdit, onView }: Props) => {
           ) : (
             data.map((item, index) => (
               <tr key={item.id_conductor} className="hover:bg-slate-50/80 transition-colors text-xs">
-                <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{index + 1}</td>
+                <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{offset + index + 1}</td>
                 <td className="px-4 py-2.5">
                   <div className="flex flex-col">
                     <span className="font-bold text-[var(--yuriana-base-gray-dark)]">{item.persona.nombre}</span>

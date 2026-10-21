@@ -239,6 +239,7 @@ const handleFormSubmitUnificado = async (
             ) : (
               <UnidadTable
                 data={registrosPagina}
+                offset={(paginaActual - 1) * PAGE_SIZE}
                 onDelete={puedeGestionar ? handleOpenDeleteConfirmation : undefined}
                 onEdit={puedeGestionar ? (u) => { setSelectedUnidad(u); setIsReadOnly(false); setView('form'); } : undefined}
                 onView={(u) => { setSelectedUnidad(u); setIsReadOnly(true); setView('form'); }}

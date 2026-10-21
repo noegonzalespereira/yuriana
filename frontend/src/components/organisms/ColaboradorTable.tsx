@@ -4,13 +4,14 @@ import { Colaborador } from "@/types/colaborador.types";
 import { ColaboradorTypeBadge } from "../atoms/ColaboradorTypeBadge";
 
 interface Props {
+  offset?: number;
   data: Colaborador[];
   onDelete?: (id: number) => void;
   onEdit?: (colab: Colaborador) => void;
   onView: (colab: Colaborador) => void;
 }
 
-export const ColaboradorTable = ({ data, onDelete, onEdit, onView }: Props) => {
+export const ColaboradorTable = ({ data, onDelete, onEdit, onView, offset = 0 }: Props) => {
   return (
     <div className="w-full overflow-x-auto rounded-2xl border border-border">
       <table className="w-full text-left border-collapse">
@@ -28,7 +29,7 @@ export const ColaboradorTable = ({ data, onDelete, onEdit, onView }: Props) => {
         <tbody className="divide-y divide-border bg-[var(--yuriana-base-white)] font-medium text-gray-700">
           {data.map((item, index) => (
             <tr key={item.id_colaborador} className="hover:bg-slate-50/80 transition-colors">
-              <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{index + 1}</td>
+              <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{offset + index + 1}</td>
               <td className="px-4 py-2.5">
                 <div className="flex flex-col">
                   <span className="font-bold text-[var(--yuriana-base-gray-dark)] text-xs">{item.persona.nombre}</span>

@@ -8,6 +8,7 @@ import { ReporteAsignacion } from "./reportes/ReporteAsignacion";
 import { FileText, Globe, Loader2 } from "lucide-react";
 
 interface Props {
+  offset?: number;
   data: Asignacion[];
   infoEmpresa: Empresa | null; // ◄ REGISTRADO: Datos de la empresa inyectados desde el Page
   onDelete?: (id: number) => void;
@@ -15,7 +16,7 @@ interface Props {
   onView: (asignacion: Asignacion) => void;
 }
 
-export const AsignacionTable = ({ data, infoEmpresa, onDelete, onEdit, onView }: Props) => {
+export const AsignacionTable = ({ data, infoEmpresa, onDelete, onEdit, onView, offset = 0 }: Props) => {
   if (data.length === 0) {
     return (
       <div className="py-20 text-center text-[var(--yuriana-base-gray-light)] italic text-xs border border-dashed border-border rounded-3xl bg-[var(--yuriana-base-white)]">
@@ -41,7 +42,7 @@ export const AsignacionTable = ({ data, infoEmpresa, onDelete, onEdit, onView }:
         <tbody className="divide-y divide-border bg-[var(--yuriana-base-white)] font-medium">
           {data.map((item, index) => (
             <tr key={item.id_asignacion} className="hover:bg-slate-50/80 transition-colors">
-              <td className="w-12 px-4 py-3 text-center font-bold text-slate-400">{index + 1}</td>
+              <td className="w-12 px-4 py-3 text-center font-bold text-slate-400">{offset + index + 1}</td>
 
               {/* CONDUCTOR */}
               <td className="px-4 py-2.5">

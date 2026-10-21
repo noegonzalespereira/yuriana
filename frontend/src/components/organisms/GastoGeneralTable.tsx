@@ -4,6 +4,7 @@ import { formatDateBolivia } from "@/lib/date-bolivia";
 import { GastoGeneral, TipoGastoGeneral } from "@/types/gasto.types";
 
 interface Props {
+  offset?: number;
   data: GastoGeneral[];
   onView: (item: GastoGeneral) => void;
   onEdit: (item: GastoGeneral) => void;
@@ -21,7 +22,7 @@ const TIPO_BADGE: Record<string, string> = {
   [TipoGastoGeneral.OTROS]:   "bg-slate-50 text-slate-500 border-slate-200",
 };
 
-export const GastoGeneralTable = ({ data, onView, onEdit, onDelete }: Props) => {
+export const GastoGeneralTable = ({ data, onView, onEdit, onDelete, offset = 0 }: Props) => {
   return (
     <div className="w-full overflow-x-auto rounded-2xl border border-border">
       <table className="w-full text-left border-collapse">
@@ -45,7 +46,7 @@ export const GastoGeneralTable = ({ data, onView, onEdit, onDelete }: Props) => 
           ) : (
             data.map((item, index) => (
               <tr key={item.id_gasto_general} className="hover:bg-slate-50/80 transition-colors text-xs">
-                <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{index + 1}</td>
+                <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{offset + index + 1}</td>
                 <td className="px-4 py-2.5 text-gray-600">
                   {fmtFecha(item.gasto?.fecha)}
                 </td>

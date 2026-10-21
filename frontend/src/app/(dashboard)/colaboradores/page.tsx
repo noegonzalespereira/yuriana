@@ -154,6 +154,7 @@ export default function ColaboradoresPage() {
           ) : (
             <ColaboradorTable
               data={registrosPagina}
+              offset={(paginaActual - 1) * PAGE_SIZE}
               onDelete={puedeGestionar ? handleDelete : undefined}
               onEdit={puedeGestionar ? handleOpenEdit : undefined}
               onView={handleOpenView}

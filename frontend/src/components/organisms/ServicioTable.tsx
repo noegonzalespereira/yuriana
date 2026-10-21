@@ -18,13 +18,14 @@ const ESTADO_BADGE: Record<EstadoServicio, string> = {
 };
 
 interface Props {
+  offset?: number;
   data: ServicioItem[];
   onView: (item: ServicioItem) => void;
   onEdit?: (item: ServicioItem) => void;
   onDelete?: (id: number) => void;
 }
 
-export const ServicioTable = ({ data, onView, onEdit, onDelete }: Props) => {
+export const ServicioTable = ({ data, onView, onEdit, onDelete, offset = 0 }: Props) => {
   const esInternacional = (item: ServicioItem) =>
     item.categoria?.tipo_categoria?.toUpperCase().includes("INTERNACIONAL");
 
@@ -56,7 +57,7 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete }: Props) => {
           ) : (
             data.map((item, index) => (
               <tr key={item.id_servicio} className="hover:bg-orange-50/30 transition-colors">
-              <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{index + 1}</td>
+              <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{offset + index + 1}</td>
 
               {/* ID Viaje */}
               <td className="px-4 py-2.5">

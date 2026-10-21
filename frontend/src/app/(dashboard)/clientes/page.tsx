@@ -123,6 +123,7 @@ export default function ClientesPage() {
           ) : (
             <ClienteTable
               data={registrosPagina}
+              offset={(paginaActual - 1) * PAGE_SIZE}
               onDelete={puedeGestionar ? handleOpenDeleteConfirmation : undefined}
               onEdit={puedeGestionar ? (c) => { setSelectedCliente(c); setIsReadOnly(false); setView('form'); } : undefined}
               onView={(c) => { setSelectedCliente(c); setIsReadOnly(true); setView('form'); }}

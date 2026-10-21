@@ -334,6 +334,7 @@ export default function ServiciosPage() {
               ) : (
                 <ServicioTable
                   data={registrosPagina}
+                  offset={(paginaActual - 1) * PAGE_SIZE}
                   onView={handleVer}
                   onEdit={puedeGestionar ? handleEditar : undefined}
                   onDelete={puedeGestionar ? (id) => setDeleteId(id) : undefined}

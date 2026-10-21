@@ -239,6 +239,7 @@ export default function IngresosPage() {
               ) : (
                 <IngresoExtraTable
                   data={registrosPagina}
+                  offset={(paginaActual - 1) * PAGE_SIZE}
                   onView={handleVer}
                   onEdit={handleEditar}
                   onDelete={(id) => setDeleteId(id)}
