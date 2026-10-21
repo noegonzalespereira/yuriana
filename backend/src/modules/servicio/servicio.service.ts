@@ -344,7 +344,10 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
       query.andWhere('servicio.fecha_inicio BETWEEN :f1 AND :f2', { f1: filters.fecha_inicio, f2: filters.fecha_fin });
     }
 
-    return await query.orderBy('servicio.createdAt', 'DESC').getMany();
+    return await query
+      .orderBy('servicio.fecha_inicio', 'ASC')
+      .addOrderBy('servicio.createdAt', 'ASC')
+      .getMany();
   }
 
   async findOne(id: number): Promise<Servicio> {
