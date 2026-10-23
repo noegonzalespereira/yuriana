@@ -323,7 +323,9 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
       query.andWhere(new Brackets(qb => {
         qb.where('servicio.codigo_servicio ILIKE :b', { b: `%${filters.buscar}%` })
           .orWhere('tracto.placa ILIKE :b', { b: `%${filters.buscar}%` })
-          .orWhere('asignacion_otros.placa ILIKE :b', { b: `%${filters.buscar}%` });
+          .orWhere('asignacion_otros.placa ILIKE :b', { b: `%${filters.buscar}%` })
+          .orWhere('personaCliente.nombre ILIKE :b', { b: `%${filters.buscar}%` })
+          .orWhere('cliente.razon_social ILIKE :b', { b: `%${filters.buscar}%` });
       }));
     }
 
