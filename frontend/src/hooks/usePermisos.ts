@@ -27,5 +27,6 @@ export const usePermisos = () => {
     // configuración
     puedeVerDocumentosConfig: isAdmin,
     puedeVerEmpresaConfig: isAdmin,
+    puedeVerEmbarquesConfig: isAdmin,
   };
 };

@@ -352,7 +352,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
     setOperador(initialData.operador);
     setOrigen(initialData.origen);
     setDestino(initialData.destino);
-    setCrt(initialData.crt ?? "");
+    setCrt(initialData.embarque?.crt ?? initialData.crt ?? "");
     setIdEmbarque(initialData.id_embarque ?? initialData.embarque?.id_embarque ?? null);
     setEmbarqueSeleccionado(initialData.embarque ?? null);
     setFacturasPendientes([]);
@@ -738,7 +738,7 @@ export const ServicioForm = ({ initialData, isReadOnly = false, onCancel, onSucc
             <div className="flex items-center justify-between"><h3 className="text-sm font-black uppercase">Nuevo embarque</h3><button type="button" onClick={() => setMostrarNuevoEmbarque(false)}><X size={18} /></button></div>
             <div className="grid grid-cols-1 gap-4">
               <Field label="CRT" required><input className={INPUT_CLASS} value={nuevoCrt} onChange={(event) => setNuevoCrt(event.target.value)} placeholder="N° CRT" /></Field>
-              <Field label="Número de viajes" required><input type="number" min={1} step={1} className={INPUT_CLASS} value={nuevasUnidades || ""} onChange={(event) => setNuevasUnidades(Number(event.target.value))} /></Field>
+              <Field label="Número de unidades" required><input type="number" min={1} step={1} className={INPUT_CLASS} value={nuevasUnidades || ""} onChange={(event) => setNuevasUnidades(Number(event.target.value))} /></Field>
             </div>
             <div className="flex justify-end gap-2 border-t border-border pt-4"><button type="button" onClick={() => setMostrarNuevoEmbarque(false)} className="rounded-xl bg-slate-600 px-5 py-2 text-xs font-black uppercase text-white">Cancelar</button><button type="button" onClick={guardarNuevoEmbarque} disabled={guardandoEmbarque} className="rounded-xl bg-[var(--yuriana-base-yellow)] px-5 py-2 text-xs font-black uppercase text-[var(--yuriana-base-black)]">{guardandoEmbarque ? "Guardando..." : "Crear embarque"}</button></div>
           </div>

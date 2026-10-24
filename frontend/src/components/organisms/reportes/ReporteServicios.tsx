@@ -7,6 +7,7 @@ import { ServicioItem } from "@/types/servicio.types";
 export interface FilaReporteServicio {
   id: number;
   codigo: string;
+  crt: string;
   empresa: string;
   placa: string;
   ruta: string;
@@ -21,6 +22,7 @@ const fechaCorta = (iso?: string | null) => (iso ? iso.slice(0, 10) : "-");
 export const servicioAFila = (s: ServicioItem): FilaReporteServicio => ({
   id: s.id_servicio,
   codigo: s.codigo_servicio,
+  crt: s.embarque?.crt ?? s.crt ?? "-",
   empresa: s.cliente?.persona?.nombre ?? "-",
   placa: s.asignacion?.tracto?.placa ?? s.asignacion_otros?.placa ?? "-",
   ruta: `${s.origen} → ${s.destino}`,
@@ -35,12 +37,13 @@ const DARK = "#3A3F47";
 
 const COL = {
   n: "5%",
-  codigo: "12%",
-  empresa: "20%",
-  placa: "11%",
-  ruta: "20%",
+  codigo: "10%",
+  crt: "11%",
+  empresa: "17%",
+  placa: "10%",
+  ruta: "17%",
   flete: "10%",
-  fechas: "14%",
+  fechas: "12%",
   factura: "8%",
 };
 
@@ -115,6 +118,7 @@ export const ReporteServicios = ({ filas, fechaInicio, fechaFin, infoEmpresa }: 
         <View fixed style={styles.tableHead}>
           <Text style={[styles.cellHead, { width: COL.n }]}>N°</Text>
           <Text style={[styles.cellHead, { width: COL.codigo }]}>Código viaje</Text>
+          <Text style={[styles.cellHead, { width: COL.crt }]}>CRT</Text>
           <Text style={[styles.cellHead, { width: COL.empresa }]}>Empresa</Text>
           <Text style={[styles.cellHead, { width: COL.placa }]}>Vehículo</Text>
           <Text style={[styles.cellHead, { width: COL.ruta }]}>Ruta</Text>
@@ -127,6 +131,7 @@ export const ReporteServicios = ({ filas, fechaInicio, fechaFin, infoEmpresa }: 
           <View key={f.id} style={styles.row} wrap={false}>
             <Text style={[styles.cell, { width: COL.n, textAlign: "center" }]}>{i + 1}</Text>
             <Text style={[styles.cell, { width: COL.codigo, fontWeight: "bold" }]}>{f.codigo}</Text>
+            <Text style={[styles.cell, { width: COL.crt }]}>{f.crt}</Text>
             <Text style={[styles.cell, { width: COL.empresa }]}>{f.empresa}</Text>
             <Text style={[styles.cell, { width: COL.placa }]}>{f.placa}</Text>
             <Text style={[styles.cell, { width: COL.ruta }]}>{f.ruta}</Text>
@@ -140,9 +145,9 @@ export const ReporteServicios = ({ filas, fechaInicio, fechaFin, infoEmpresa }: 
         ))}
 
         <View style={styles.totalRow} wrap={false}>
-          <Text style={[styles.cell, { width: "68%", textAlign: "right", fontWeight: "bold" }]}>TOTAL</Text>
+          <Text style={[styles.cell, { width: "70%", textAlign: "right", fontWeight: "bold" }]}>TOTAL</Text>
           <Text style={[styles.cell, { width: COL.flete, textAlign: "right", fontWeight: "bold" }]}>{fmt(total)}</Text>
-          <Text style={[styles.cell, { width: "22%", borderRightWidth: 0 }]}> </Text>
+          <Text style={[styles.cell, { width: "20%", borderRightWidth: 0 }]}> </Text>
         </View>
       </Page>
     </Document>

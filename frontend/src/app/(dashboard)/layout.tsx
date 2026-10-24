@@ -11,7 +11,7 @@ export default function DashboardLayout({
       <Sidebar />
 
       {/* Contenedor de Contenido Variable */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col">
         <main className="p-4 overflow-y-auto uppercase">
           {children}
         </main>

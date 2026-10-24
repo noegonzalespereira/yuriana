@@ -202,7 +202,7 @@ export default function ServiciosPage() {
   const registrosPagina = servicios.slice((paginaActual - 1) * PAGE_SIZE, paginaActual * PAGE_SIZE);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-10">
+    <div className="space-y-6 w-full pb-10">
       <ModuleHeader
         title={headerTitle()}
         subtitle={

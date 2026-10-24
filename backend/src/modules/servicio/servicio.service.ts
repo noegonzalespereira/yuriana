@@ -202,7 +202,6 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
         const embarque = await this.reservarEmbarque(dto.id_embarque, queryRunner, userId);
         guardado.embarque = embarque;
         guardado.id_embarque = embarque.id_embarque;
-        guardado.crt = embarque.crt;
         await queryRunner.manager.save(guardado);
       }
       guardado.codigo_servicio = `YUR-${guardado.id_servicio}`;
@@ -316,6 +315,7 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
       .leftJoinAndSelect('documento.requisito_documento', 'requisito') // Documento -> Requisito
       .leftJoinAndSelect('requisito.categoria', 'categoriaRequisito')  // Requisito -> Categoría
       .leftJoinAndSelect('servicio.facturas', 'factura')
+      .leftJoinAndSelect('servicio.embarque', 'embarque')
       .andWhere('factura.status = :status', { status: true })
       .where('servicio.status = :status', { status: true });
 
@@ -325,7 +325,8 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
           .orWhere('tracto.placa ILIKE :b', { b: `%${filters.buscar}%` })
           .orWhere('asignacion_otros.placa ILIKE :b', { b: `%${filters.buscar}%` })
           .orWhere('personaCliente.nombre ILIKE :b', { b: `%${filters.buscar}%` })
-          .orWhere('cliente.razon_social ILIKE :b', { b: `%${filters.buscar}%` });
+          .orWhere('cliente.razon_social ILIKE :b', { b: `%${filters.buscar}%` })
+          .orWhere('embarque.crt ILIKE :b', { b: `%${filters.buscar}%` });
       }));
     }
 
@@ -423,11 +424,9 @@ mes: (fInicio.getMonth() + 1).toString().padStart(2, '0'),
           const embarque = await this.reservarEmbarque(nuevoIdEmbarque, queryRunner, userId);
           servicio.embarque = embarque;
           servicio.id_embarque = embarque.id_embarque;
-          servicio.crt = embarque.crt;
         } else {
           servicio.embarque = null;
           servicio.id_embarque = null;
-          servicio.crt = null;
         }
       }
 

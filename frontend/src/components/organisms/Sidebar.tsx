@@ -31,7 +31,7 @@ const menuOptions = [
 
 export const Sidebar = () => {
   return (
-    <aside className="w-56 bg-[var(--yuriana-sidebar-bg)] min-h-screen flex flex-col shadow-2xl relative z-50">
+    <aside className="w-56 shrink-0 bg-[var(--yuriana-sidebar-bg)] min-h-screen flex flex-col shadow-2xl relative z-50">
       {/* Contenedor del Logo */}
       <div className="py-5 flex justify-center">
         <DynamicLogo size={110} />

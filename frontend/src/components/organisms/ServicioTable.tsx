@@ -30,44 +30,50 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete, offset = 0 }: Pr
     item.categoria?.tipo_categoria?.toUpperCase().includes("INTERNACIONAL");
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-[var(--yuriana-input-border)] overflow-x-auto">
-      <table className="w-full text-left border-collapse min-w-[900px]">
+    <div className="rounded-2xl overflow-hidden border border-[var(--yuriana-input-border)]">
+      <table className="w-full text-left border-collapse">
         <thead className="bg-[var(--yuriana-base-orange)] text-white uppercase text-[9px] font-black tracking-widest">
           <tr>
-            <th className="w-12 px-3 py-2.5 text-center">#</th>
-            <th className="px-4 py-2.5">CODIGO VIAJE</th>
-            <th className="px-4 py-2.5">Empresa / Conductor</th>
-            <th className="px-4 py-2.5">Vehículo</th>
-            <th className="px-4 py-2.5">Ruta / Tipo</th>
-            <th className="px-4 py-2.5 text-right">Flete Total</th>
-            <th className="px-4 py-2.5">Fechas</th>
-            <th className="px-4 py-2.5 text-center">Fecha Pago</th>
-            <th className="px-4 py-2.5 text-center">Pago</th>
-            <th className="px-4 py-2.5 text-center">Estado</th>
-            <th className="px-4 py-2.5 text-center">Acciones</th>
+            <th className="w-12 px-2 py-2.5 text-center">#</th>
+            <th className="px-2 py-2.5">CODIGO VIAJE</th>
+            <th className="px-2 py-2.5">CRT</th>
+            <th className="px-2 py-2.5">Empresa / Conductor</th>
+            <th className="px-2 py-2.5">Vehículo</th>
+            <th className="px-2 py-2.5">Ruta / Tipo</th>
+            <th className="px-2 py-2.5 text-right">Flete Total</th>
+            <th className="px-2 py-2.5">Fechas</th>
+            <th className="px-2 py-2.5 text-center">Fecha Pago</th>
+            <th className="px-2 py-2.5 text-center">Pago</th>
+            <th className="px-2 py-2.5 text-center">Estado</th>
+            <th className="px-2 py-2.5 text-center">Acciones</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-[var(--yuriana-input-border)] text-xs">
           {data.length === 0 ? (
             <tr>
-              <td colSpan={11} className="py-16 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">
+              <td colSpan={12} className="py-16 text-center text-[var(--yuriana-input-placeholder)] italic text-xs font-medium">
                 No hay viajes registrados con los filtros seleccionados.
               </td>
             </tr>
           ) : (
             data.map((item, index) => (
               <tr key={item.id_servicio} className="hover:bg-orange-50/30 transition-colors">
-              <td className="w-12 px-3 py-2.5 text-center font-bold text-slate-400">{offset + index + 1}</td>
+              <td className="w-12 px-2 py-2.5 text-center font-bold text-slate-400">{offset + index + 1}</td>
 
               {/* ID Viaje */}
-              <td className="px-4 py-2.5">
+              <td className="px-2 py-2.5">
                 <span className="font-black text-[var(--yuriana-base-orange)]">
                   {item.codigo_servicio}
                 </span>
               </td>
 
+              {/* CRT */}
+              <td className="px-2 py-2.5 font-bold text-[var(--yuriana-base-gray-dark)] whitespace-nowrap">
+                {item.embarque?.crt ?? item.crt ?? "-"}
+              </td>
+
               {/* Empresa / Conductor */}
-              <td className="px-4 py-2.5">
+              <td className="px-2 py-2.5">
                 <p className="font-black text-[var(--yuriana-base-gray-dark)] text-[11px]">
                   {item.cliente?.persona?.nombre ?? "-"}
                 </p>
@@ -77,7 +83,7 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete, offset = 0 }: Pr
               </td>
 
               {/* Vehículo */}
-              <td className="px-4 py-2.5">
+              <td className="px-2 py-2.5">
                 <p className="font-bold text-[var(--yuriana-base-gray-dark)]">
                   {item.asignacion?.tracto?.placa ?? item.asignacion_otros?.placa ?? "-"}
                 </p>
@@ -89,10 +95,9 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete, offset = 0 }: Pr
               </td>
 
               {/* Ruta / Tipo */}
-              <td className="px-4 py-2.5 max-w-[160px]">
-                <p className="text-[var(--yuriana-base-gray-dark)] font-medium truncate">
-                  {item.origen} → {item.destino}
-                </p>
+              <td className="px-2 py-2.5 min-w-[130px]">
+                <p className="text-[var(--yuriana-base-gray-dark)] font-medium">{item.origen}</p>
+                <p className="text-[var(--yuriana-base-gray-dark)] font-medium">→ {item.destino}</p>
                 <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase border ${
                   esInternacional(item)
                     ? "bg-purple-100 text-purple-700 border-purple-200"
@@ -103,12 +108,12 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete, offset = 0 }: Pr
               </td>
 
               {/* Flete Total */}
-              <td className="px-4 py-2.5 text-right font-black text-[var(--yuriana-base-gray-dark)]">
+              <td className="px-2 py-2.5 text-right font-black text-[var(--yuriana-base-gray-dark)] whitespace-nowrap">
                 {fmt(Number(item.total_flete))} Bs
               </td>
 
               {/* Fechas */}
-              <td className="px-4 py-2.5">
+              <td className="px-2 py-2.5 whitespace-nowrap">
                 <p className="text-[10px] text-[var(--yuriana-input-placeholder)]">
                   Inicio: <span className="text-[var(--yuriana-base-gray-dark)] font-medium">{item.fecha_inicio?.slice(0, 10)}</span>
                 </p>
@@ -120,7 +125,7 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete, offset = 0 }: Pr
               </td>
 
               {/* Fecha Pago */}
-              <td className="px-4 py-2.5 text-center">
+              <td className="px-2 py-2.5 text-center whitespace-nowrap">
                 {(item as any).fecha_pago ? (
                   <span className="font-bold text-emerald-600">
                     {formatDateBolivia((item as any).fecha_pago)}
@@ -129,21 +134,21 @@ export const ServicioTable = ({ data, onView, onEdit, onDelete, offset = 0 }: Pr
               </td>
 
               {/* Pago */}
-              <td className="px-4 py-2.5 text-center">
+              <td className="px-2 py-2.5 text-center whitespace-nowrap">
                 <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase border ${PAGO_BADGE[item.estado_pago] ?? "bg-slate-100 text-slate-600 border-slate-200"}`}>
                   {item.estado_pago}
                 </span>
               </td>
 
               {/* Estado */}
-              <td className="px-4 py-2.5 text-center">
+              <td className="px-2 py-2.5 text-center whitespace-nowrap">
                 <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase border ${ESTADO_BADGE[item.estado_servicio] ?? "bg-slate-100 text-slate-600"}`}>
                   ● {item.estado_servicio}
                 </span>
               </td>
 
               {/* Acciones */}
-              <td className="px-4 py-2.5">
+              <td className="px-2 py-2.5">
                 <TableActions onView={() => onView(item)} onEdit={onEdit ? () => onEdit(item) : undefined} onDelete={onDelete ? () => onDelete(item.id_servicio) : undefined} size={14} />
               </td>
               </tr>

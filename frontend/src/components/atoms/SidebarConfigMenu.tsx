@@ -5,10 +5,11 @@ import { usePermisos } from "@/hooks/usePermisos";
 
 export const SidebarConfigMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { puedeVerDocumentosConfig, puedeVerEmpresaConfig, isContador } = usePermisos();
+  const { puedeVerDocumentosConfig, puedeVerEmpresaConfig, puedeVerEmbarquesConfig, isContador } = usePermisos();
 
   const menuItems = [
     ...(puedeVerDocumentosConfig ? [{ label: "Documentos", href: "/configuracion/documentos" }] : []),
+    ...(puedeVerEmbarquesConfig ? [{ label: "Embarques", href: "/configuracion/embarques" }] : []),
     ...(puedeVerEmpresaConfig ? [{ label: "Empresa", href: "/configuracion/empresa" }] : []),
     { label: isContador ? "Mi Perfil" : "Usuarios", href: "/configuracion/usuarios" },
   ];
