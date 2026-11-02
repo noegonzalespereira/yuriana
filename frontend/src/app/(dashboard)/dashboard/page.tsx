@@ -4,6 +4,10 @@ import {
   TrendingUp, TrendingDown, Clock, CheckCircle2, AlertTriangle, Truck, UserCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getEmpresa } from "@/lib/api/empresa.api";
+import { Empresa } from "@/types/empresa.types";
+import { BotonReportePDF } from "@/components/molecules/BotonReportePDF";
+import { ReporteEstadoResultados } from "@/components/organisms/reportes/ReporteEstadoResultados";
 import { ModuleHeader } from "@/components/organisms/ModuleHeader";
 import { StatCard } from "@/components/atoms/StatCard";
 import {
@@ -56,6 +60,8 @@ export default function DashboardPage() {
   const [ingresos, setIngresos] = useState<TotalesIngresos>({ totalFletes: 0, totalIngresoExtras: 0, totalIngresos: 0 });
   const [gastos, setGastos] = useState<TotalesGastos>({ totalGastosViaje: 0, totalGastosOperativos: 0, totalGastosAdministrativos: 0, totalGastosGenerales: 0, totalGastos: 0 });
   const [pagos, setPagos] = useState<TotalesPagos>({ total_por_cobrar: 0, total_cobrado: 0, total_retrasado: 0 });
+  const [infoEmpresa, setInfoEmpresa] = useState<Empresa | null>(null);
+  useEffect(() => { getEmpresa().then(setInfoEmpresa).catch(() => {}); }, []);
   const [alertas, setAlertas] = useState<DocumentoAlerta[]>([]);
   const [viajes, setViajes] = useState<ViajeReciente[]>([]);
 
@@ -154,6 +160,12 @@ export default function DashboardPage() {
               Estado de Resultados
             </h2>
             <div className="flex items-center gap-2">
+              <BotonReportePDF
+                disabled={loadingCards}
+                document={<ReporteEstadoResultados mesLabel={MESES.find((m) => m.value === mesSeleccionado)?.label ?? mesSeleccionado} anio={anioSeleccionado} ingresos={ingresos} gastos={gastos} pagos={pagos} infoEmpresa={infoEmpresa} />}
+                fileName={`estado-de-resultados_${anioSeleccionado}-${mesSeleccionado}.pdf`}
+                label="PDF"
+              />
               <select
                 value={anioSeleccionado}
                 onChange={(e) => setAnioSeleccionado(Number(e.target.value))}

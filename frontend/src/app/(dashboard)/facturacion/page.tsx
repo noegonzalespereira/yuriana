@@ -3,6 +3,10 @@ import { useState, useEffect, useCallback } from "react";
 import { Download, Receipt, TrendingUp, Eye, Pencil, Trash2, X, AlertTriangle, Loader2, Plus, FileText, Image as ImageIcon } from "lucide-react";
 import { TableActions } from "@/components/atoms/TableActions";
 import { toast } from "sonner";
+import { getEmpresa } from "@/lib/api/empresa.api";
+import { Empresa } from "@/types/empresa.types";
+import { BotonReportePDF } from "@/components/molecules/BotonReportePDF";
+import { ReporteFacturas } from "@/components/organisms/reportes/ReportesFinanzas";
 import { ModuleHeader } from "@/components/organisms/ModuleHeader";
 import { StatCard } from "@/components/atoms/StatCard";
 import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
@@ -49,6 +53,8 @@ export default function FacturacionPage() {
   const [totales, setTotales] = useState<TotalesFacturacion>({ total_facturado: 0, impuesto_it: 0 });
   const [categorias, setCategorias] = useState<{ id_categoria: number; tipo_categoria: string }[]>([]);
   const [pagina, setPagina] = useState(1);
+  const [infoEmpresa, setInfoEmpresa] = useState<Empresa | null>(null);
+  useEffect(() => { getEmpresa().then(setInfoEmpresa).catch(() => {}); }, []);
 
   const INITIAL_FILTERS: FacturacionFilters = {
     fecha_inicio: primerDiaMes,
@@ -365,6 +371,11 @@ export default function FacturacionPage() {
             />
           </div>
           <ResetFiltersButton onClick={handleResetFilters} />
+          <BotonReportePDF
+            disabled={loading || facturas.length === 0}
+            document={<ReporteFacturas data={facturas} fechaInicio={filters.fecha_inicio ?? ""} fechaFin={filters.fecha_fin ?? ""} infoEmpresa={infoEmpresa} />}
+            fileName={`reporte-facturacion_${filters.fecha_inicio ?? "inicio"}_${filters.fecha_fin ?? "fin"}.pdf`}
+          />
         </div>
 
         {/* Table */}

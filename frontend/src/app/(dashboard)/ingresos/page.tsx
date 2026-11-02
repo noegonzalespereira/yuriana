@@ -5,6 +5,10 @@ import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
 import { TablePagination } from "@/components/molecules/TablePagination";
 import { DateRangeFilter } from "@/components/molecules/DateRangeFilter";
 import { toast } from "sonner";
+import { getEmpresa } from "@/lib/api/empresa.api";
+import { Empresa } from "@/types/empresa.types";
+import { BotonReportePDF } from "@/components/molecules/BotonReportePDF";
+import { ReporteIngresosExtra } from "@/components/organisms/reportes/ReportesFinanzas";
 
 const PAGE_SIZE = 10;
 import { ModuleHeader } from "@/components/organisms/ModuleHeader";
@@ -92,6 +96,8 @@ export default function IngresosPage() {
   const [filters, setFilters] = useState<IngresoFilters>(INITIAL_FILTERS);
   const handleResetFilters = () => setFilters(INITIAL_FILTERS);
   const [pagina, setPagina] = useState(1);
+  const [infoEmpresa, setInfoEmpresa] = useState<Empresa | null>(null);
+  useEffect(() => { getEmpresa().then(setInfoEmpresa).catch(() => {}); }, []);
   useEffect(() => { setPagina(1); }, [filters]);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
@@ -230,6 +236,11 @@ export default function IngresosPage() {
                   onFechaFinChange={(val) => setFilters((f) => ({ ...f, fecha_fin: val }))}
                 />
                 <ResetFiltersButton onClick={handleResetFilters} />
+                <BotonReportePDF
+                  disabled={loading || ingresos.length === 0}
+                  document={<ReporteIngresosExtra data={ingresos} fechaInicio={filters.fecha_inicio ?? ""} fechaFin={filters.fecha_fin ?? ""} infoEmpresa={infoEmpresa} />}
+                  fileName={`reporte-ingresos-extra_${filters.fecha_inicio ?? "inicio"}_${filters.fecha_fin ?? "fin"}.pdf`}
+                />
               </div>
 
               {loading ? (

@@ -5,6 +5,13 @@ import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
 import { FilterSelect } from "@/components/atoms/FilterSelect";
 import { TablePagination } from "@/components/molecules/TablePagination";
 import { toast } from "sonner";
+import { getEmpresa } from "@/lib/api/empresa.api";
+import { Empresa } from "@/types/empresa.types";
+import { BotonReportePDF, BotonReporteBajoDemanda } from "@/components/molecules/BotonReportePDF";
+import {
+  ReporteGastosServicio, ReporteGastosOperativos, ReporteGastosAdministrativos,
+  ReporteGastosGenerales, ReporteGastosConsolidado,
+} from "@/components/organisms/reportes/ReportesFinanzas";
 import { DateRangeFilter } from "@/components/molecules/DateRangeFilter";
 
 const PAGE_SIZE = 10;
@@ -147,6 +154,8 @@ export default function GastosPage() {
   const [deleteGeneralId, setDeleteGeneralId] = useState<number | null>(null);
 
   const [pagina, setPagina] = useState(1);
+  const [infoEmpresa, setInfoEmpresa] = useState<Empresa | null>(null);
+  useEffect(() => { getEmpresa().then(setInfoEmpresa).catch(() => {}); }, []);
   useEffect(() => { setPagina(1); }, [tabActiva]);
   useEffect(() => { setPagina(1); }, [filtersServicio]);
   useEffect(() => { setPagina(1); }, [filtersOperativo]);
@@ -385,6 +394,32 @@ export default function GastosPage() {
     tabActiva === TipoPestana.OPERATIVO      ? gastosOperativos :
     tabActiva === TipoPestana.ADMINISTRATIVO ? adminFiltrados :
     generalesFiltrados;
+  // Reporte general: junta las 4 categorías con el rango de fechas de la pestaña activa
+  const generarReporteGeneral = async () => {
+    const f =
+      tabActiva === TipoPestana.SERVICIO ? filtersServicio :
+      tabActiva === TipoPestana.OPERATIVO ? filtersOperativo :
+      tabActiva === TipoPestana.ADMINISTRATIVO ? filtersAdmin : filtersGeneral;
+    const rango: GastoFilters = { fecha_inicio: f.fecha_inicio, fecha_fin: f.fecha_fin };
+    try {
+      const [servicio, operativos, administrativos, generales] = await Promise.all([
+        getGastosServicio(rango), getGastosOperativos(rango), getGastosAdministrativos(rango), getGastosGenerales(rango),
+      ]);
+      return {
+        document: (
+          <ReporteGastosConsolidado
+            servicio={servicio} operativos={operativos} administrativos={administrativos} generales={generales}
+            fechaInicio={f.fecha_inicio ?? ""} fechaFin={f.fecha_fin ?? ""} infoEmpresa={infoEmpresa}
+          />
+        ),
+        fileName: `reporte-gastos-general_${f.fecha_inicio ?? "inicio"}_${f.fecha_fin ?? "fin"}.pdf`,
+      };
+    } catch (e) {
+      toast.error("Error al generar el reporte general");
+      throw e;
+    }
+  };
+
   const totalPaginas = Math.max(1, Math.ceil(activeData.length / PAGE_SIZE));
   const paginaActual = Math.min(pagina, totalPaginas);
   const pageStart = (paginaActual - 1) * PAGE_SIZE;
@@ -489,6 +524,9 @@ export default function GastosPage() {
                   {tab.label}
                 </button>
               ))}
+              <div className="ml-auto flex items-center px-4 shrink-0">
+                <BotonReporteBajoDemanda label="Reporte general" onGenerar={generarReporteGeneral} />
+              </div>
             </div>
 
             <div className="p-6">
@@ -503,6 +541,11 @@ export default function GastosPage() {
                       onFechaFinChange={(val) => setFiltersServicio((f) => ({ ...f, fecha_fin: val }))}
                     />
                     <ResetFiltersButton onClick={handleResetFilters} />
+                    <BotonReportePDF
+                      disabled={loading || gastosServicio.length === 0}
+                      document={<ReporteGastosServicio data={gastosServicio} fechaInicio={filtersServicio.fecha_inicio ?? ""} fechaFin={filtersServicio.fecha_fin ?? ""} infoEmpresa={infoEmpresa} />}
+                      fileName={`reporte-costos-servicio_${filtersServicio.fecha_inicio ?? "inicio"}_${filtersServicio.fecha_fin ?? "fin"}.pdf`}
+                    />
                     
                       <div className="ml-auto">
                         <button type="button" onClick={handleNuevoGasto} className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black py-2 px-5 rounded-xl shadow text-xs transition-all active:scale-95">
@@ -543,6 +586,11 @@ export default function GastosPage() {
                       onChange={(v) => setFiltersOperativo((f) => ({ ...f, tipo_gasto: v }))}
                     />
                     <ResetFiltersButton onClick={handleResetFilters} />
+                    <BotonReportePDF
+                      disabled={loading || gastosOperativos.length === 0}
+                      document={<ReporteGastosOperativos data={gastosOperativos} fechaInicio={filtersOperativo.fecha_inicio ?? ""} fechaFin={filtersOperativo.fecha_fin ?? ""} infoEmpresa={infoEmpresa} />}
+                      fileName={`reporte-gastos-operativos_${filtersOperativo.fecha_inicio ?? "inicio"}_${filtersOperativo.fecha_fin ?? "fin"}.pdf`}
+                    />
                     <div className="ml-auto">
                       <button type="button" onClick={handleNuevoGasto} className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black py-2 px-5 rounded-xl shadow text-xs transition-all active:scale-95">
                         + Nuevo Gasto
@@ -583,6 +631,11 @@ export default function GastosPage() {
                       onChange={(v) => setFiltersAdmin((f) => ({ ...f, tipo_gasto: v }))}
                     />
                     <ResetFiltersButton onClick={handleResetFilters} />
+                    <BotonReportePDF
+                      disabled={loading || adminFiltrados.length === 0}
+                      document={<ReporteGastosAdministrativos data={adminFiltrados} fechaInicio={filtersAdmin.fecha_inicio ?? ""} fechaFin={filtersAdmin.fecha_fin ?? ""} infoEmpresa={infoEmpresa} />}
+                      fileName={`reporte-gastos-administrativos_${filtersAdmin.fecha_inicio ?? "inicio"}_${filtersAdmin.fecha_fin ?? "fin"}.pdf`}
+                    />
                     <div className="ml-auto">
                       <button type="button" onClick={handleNuevoGasto} className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black py-2 px-5 rounded-xl shadow text-xs transition-all active:scale-95">
                         + Nuevo Gasto
@@ -621,6 +674,11 @@ export default function GastosPage() {
                       onChange={(v) => setFiltersGeneral((f) => ({ ...f, tipo_gasto: v }))}
                     />
                     <ResetFiltersButton onClick={handleResetFilters} />
+                    <BotonReportePDF
+                      disabled={loading || generalesFiltrados.length === 0}
+                      document={<ReporteGastosGenerales data={generalesFiltrados} fechaInicio={filtersGeneral.fecha_inicio ?? ""} fechaFin={filtersGeneral.fecha_fin ?? ""} infoEmpresa={infoEmpresa} />}
+                      fileName={`reporte-gastos-generales_${filtersGeneral.fecha_inicio ?? "inicio"}_${filtersGeneral.fecha_fin ?? "fin"}.pdf`}
+                    />
                     <div className="ml-auto">
                       <button type="button" onClick={handleNuevoGasto} className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black py-2 px-5 rounded-xl shadow text-xs transition-all active:scale-95">
                         + Nuevo Gasto
