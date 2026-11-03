@@ -37,6 +37,8 @@ export class FacturacionService {
     const query = this.facturaRepo.createQueryBuilder('factura')
       .leftJoinAndSelect('factura.servicio', 'servicio')
       .leftJoinAndSelect('servicio.categoria', 'categoria')
+      .leftJoinAndSelect('servicio.cliente', 'cliente')
+      .leftJoinAndSelect('cliente.persona', 'personaCliente')
       .where('factura.status = :status AND factura.transmitido = :transmitido', { status: true, transmitido: true });
 
     if (filters.fecha_inicio) {
@@ -63,7 +65,7 @@ export class FacturacionService {
   async findOne(id: number): Promise<Factura> {
     const factura = await this.facturaRepo.findOne({
       where: { id_factura: id, status: true },
-      relations: ['servicio', 'servicio.categoria', 'fotos']
+      relations: ['servicio', 'servicio.categoria', 'servicio.cliente', 'servicio.cliente.persona', 'fotos']
     });
 
     if (!factura) {

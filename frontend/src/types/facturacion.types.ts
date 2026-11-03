@@ -11,6 +11,7 @@ export interface FacturaItem {
   servicio: {
     id_servicio: number;
     codigo_servicio: string;
+    cliente?: { razon_social?: string; persona?: { nombre: string } } | null;
     categoria: { id_categoria: number; tipo_categoria: string };
   };
 }

@@ -383,7 +383,7 @@ export default function FacturacionPage() {
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-[var(--yuriana-base-orange)] text-white">
-                {["#", "ID Viaje", "Factura de Transporte", "Tipo Viaje", "Fecha Emisión", "Monto", "IT Individual", "Acciones"].map((col) => (
+                {["#", "ID Viaje", "Cliente", "Factura de Transporte", "Tipo Viaje", "Fecha Emisión", "Monto", "IT Individual", "Acciones"].map((col) => (
                   <th key={col} className="px-5 py-3.5 text-left font-black uppercase tracking-wider whitespace-nowrap">
                     {col}
                   </th>
@@ -393,13 +393,13 @@ export default function FacturacionPage() {
             <tbody>
               {loading ? ( // Ajustar colSpan para la nueva columna
                 <tr>
-                  <td colSpan={8} className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic font-medium">
+                  <td colSpan={9} className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic font-medium">
                     Cargando registros...
                   </td>
                 </tr>
               ) : registrosPagina.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic font-medium uppercase tracking-wide text-[10px]">
+                  <td colSpan={9} className="py-20 text-center text-[var(--yuriana-input-placeholder)] italic font-medium uppercase tracking-wide text-[10px]">
                     No se encontraron registros de facturación.
                   </td>
                 </tr>
@@ -414,6 +414,9 @@ export default function FacturacionPage() {
                     <td className="px-5 py-4 text-center font-bold text-slate-400">{(paginaActual - 1) * PAGE_SIZE + i + 1}</td>
                     <td className="px-5 py-4 font-bold text-[var(--yuriana-base-gray-dark)]">
                       {f.servicio?.codigo_servicio ?? "-"}
+                    </td>
+                    <td className="px-5 py-4 font-bold text-[var(--yuriana-base-gray-dark)]">
+                      {f.servicio?.cliente?.persona?.nombre ?? "-"}
                     </td>
                     <td className="px-5 py-4 text-[var(--yuriana-input-text)]">
                       {f.factura_transporte}
