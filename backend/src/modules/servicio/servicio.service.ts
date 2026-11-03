@@ -18,6 +18,7 @@ import { AsignacionOtros } from '../asignacion-otros/entities/asignacion-otros.e
 import { EstadoAsignacionOtros } from '../asignacion-otros/entities/asignacion-otros.entity';
 import { parseDateOnlyBolivia } from './date-utils';
 import { Embarque } from '../embarque/entities/embarque.entity';
+import { DocumentoService } from '../documento/documento.service';
 
 @Injectable()
 export class ServicioService {
@@ -27,6 +28,7 @@ export class ServicioService {
     private readonly asignacionService: AsignacionService,
     private readonly dataSource: DataSource,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly documentoService: DocumentoService,
   ) {}
 
   private async reservarEmbarque(idEmbarque: number, queryRunner: any, userId: number): Promise<Embarque> {
@@ -57,13 +59,21 @@ export class ServicioService {
 
  
   private async validateAsignacion(id_asignacion: number, queryRunner: any): Promise<Asignacion> {
-    const asignacion = await queryRunner.manager.findOne(Asignacion, { where: { id_asignacion, status: true } });
+    const asignacion = await queryRunner.manager.findOne(Asignacion, {
+      where: { id_asignacion, status: true },
+      relations: ['conductor', 'conductor.persona', 'tracto', 'remolque'],
+    });
     if (!asignacion) {
       throw new NotFoundException('Asignación no encontrada');
     }
     if (asignacion.estado_asignacion === EstadoAsignacion.ASIGNADO) {
       throw new ConflictException('La asignación ya está en uso por otro servicio activo');
     }
+    await this.documentoService.asegurarDocumentosHabilitados([
+      { id: asignacion.id_conductor, tipo: 'conductor', etiqueta: `El conductor ${asignacion.conductor?.persona?.nombre ?? ''}`.trim() },
+      { id: asignacion.id_tracto, tipo: 'unidad', etiqueta: `El tracto ${asignacion.tracto?.placa ?? ''}`.trim() },
+      { id: asignacion.id_remolque, tipo: 'unidad', etiqueta: `El remolque ${asignacion.remolque?.placa ?? ''}`.trim() },
+    ]);
     return asignacion;
   }
   

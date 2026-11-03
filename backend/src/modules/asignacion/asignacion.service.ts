@@ -255,7 +255,19 @@ async findAll(filters: FilterAsignacionDto) {
   }
   query.orderBy('asignacion.createdAt', 'DESC');
   const asignaciones = await query.getMany();
-  return asignaciones;
+  return Promise.all(asignaciones.map(async (a) => {
+    const [docsConductor, docsTracto, docsRemolque] = await Promise.all([
+      this.documentoService.getEstadoDocumentosPorEntidad(a.id_conductor, 'conductor'),
+      this.documentoService.getEstadoDocumentosPorEntidad(a.id_tracto, 'unidad'),
+      this.documentoService.getEstadoDocumentosPorEntidad(a.id_remolque, 'unidad'),
+    ]);
+    return {
+      ...a,
+      conductor: { ...a.conductor, ...docsConductor },
+      tracto: { ...a.tracto, ...docsTracto },
+      remolque: { ...a.remolque, ...docsRemolque },
+    };
+  }));
 }
 async findOne(id_asignacion: number) {
   const asignacion = await this.asignacionRepository.findOne({

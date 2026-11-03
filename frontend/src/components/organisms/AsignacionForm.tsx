@@ -321,7 +321,7 @@ export const AsignacionForm = ({ initialData, isReadOnly = false, onSubmit, onCa
                                       : <Truck size={16} className="shrink-0 mt-0.5 text-gray-500" />}
                                     <div>
                                       <span className={`text-[10px] font-black uppercase tracking-wider ${a.tipo === 'vencido' ? 'text-red-600' : 'text-amber-600'}`}>
-                                        {a.tipo === 'vencido' ? 'Documento Vencido' : `Por vencer${a.dias ? ` (en ${a.dias} días)` : ''}`}
+                                        {a.tipo === 'vencido' ? 'Documento Vencido' : `Por vencer${a.dias === undefined || a.dias === null ? '' : a.dias <= 0 ? ' (vence hoy)' : ` (en ${a.dias} ${a.dias === 1 ? 'día' : 'días'})`}`}
                                       </span>
                                       <p className="font-bold text-slate-800 mt-0.5">{a.nombre}</p>
                                       <p className="text-[10px] text-gray-500 mt-0.5">{a.entidad}</p>

@@ -29,15 +29,18 @@ export class DocumentoService {
     if (!fecha_vencimiento) {
       return { estado: 'vigente', dias_restantes: null };
     }
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
+    // La columna es tipo "date" (YYYY-MM-DD): se compara por día calendario en hora de Bolivia
+    // para evitar el desfase de un día que produce interpretar la fecha como UTC.
+    const aDiaUtc = (ymd: string) => {
+      const [y, m, d] = ymd.slice(0, 10).split('-').map(Number);
+      return Date.UTC(y, m - 1, d);
+    };
+    const hoyYmd = new Date().toLocaleDateString('en-CA', { timeZone: 'America/La_Paz' });
+    const vencYmd = typeof fecha_vencimiento === 'string'
+      ? fecha_vencimiento
+      : new Date(fecha_vencimiento).toISOString();
 
-    const fechaVenc = new Date(fecha_vencimiento);
-    fechaVenc.setHours(0, 0, 0, 0);
-
-    const dias_restantes = Math.ceil(
-      (fechaVenc.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    const dias_restantes = Math.round((aDiaUtc(vencYmd) - aDiaUtc(hoyYmd)) / (1000 * 60 * 60 * 24));
 
 
     if (dias_restantes < 0)   return { estado: 'vencido',    dias_restantes };
@@ -270,7 +273,10 @@ export class DocumentoService {
         break;
       }
 
-      if (resultado.estado === 'por_vencer' && estadoFinal !== 'vencido') {
+      if (
+        resultado.estado === 'por_vencer' && estadoFinal !== 'vencido' &&
+        (dias_restantes === null || (resultado.dias_restantes ?? 0) < dias_restantes)
+      ) {
         estadoFinal = 'por_vencer';
         documento_critico = doc.requisito_documento?.nombre_documento ?? 'Documento desconocido';
         dias_restantes = resultado.dias_restantes;
@@ -278,6 +284,29 @@ export class DocumentoService {
     }
 
     return { estado: estadoFinal, documento_critico, dias_restantes };
+  }
+
+  /**
+   * Bloquea cuando alguna entidad tiene un documento vencido o que vence en
+   * `diasMinimos` días o menos.
+   */
+  async asegurarDocumentosHabilitados(
+    entidades: { id: number; tipo: 'conductor' | 'unidad'; etiqueta: string }[],
+    diasMinimos = 2,
+  ): Promise<void> {
+    const bloqueos: string[] = [];
+    for (const { id, tipo, etiqueta } of entidades) {
+      const docs = await this.getEstadoDocumentosPorEntidad(id, tipo);
+      if (docs.estado === 'vencido') {
+        bloqueos.push(`${etiqueta} tiene "${docs.documento_critico}" VENCIDO`);
+      } else if (docs.estado === 'por_vencer' && docs.dias_restantes !== null && docs.dias_restantes <= diasMinimos) {
+        const cuando = docs.dias_restantes <= 0 ? 'vence hoy' : `vence en ${docs.dias_restantes} día(s)`;
+        bloqueos.push(`${etiqueta} tiene "${docs.documento_critico}" que ${cuando}`);
+      }
+    }
+    if (bloqueos.length > 0) {
+      throw new BadRequestException(`No se puede asignar el viaje: ${bloqueos.join('; ')}`);
+    }
   }
 
 
