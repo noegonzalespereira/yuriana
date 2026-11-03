@@ -15,7 +15,7 @@ import {
   uploadDocumentoConductor,
 } from "@/lib/api/conductor.api";
 import { toast } from "sonner";
-import { Conductor, EstadoLaboral } from "@/types/conductor.types";
+import { Conductor, EstadoLaboral, EstadoOperativo } from "@/types/conductor.types";
 import { Users, CheckCircle, XCircle } from "lucide-react";
 import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
 import { TablePagination } from "@/components/molecules/TablePagination";
@@ -218,6 +218,7 @@ export default function ConductoresPage() {
               <h2 className="font-bold text-gray-700 uppercase tracking-tighter text-sm px-2">Listado de Conductores</h2>
               <div className="flex items-center gap-3">
                 <FilterSelect placeholder="Estado Laboral" value={filters.estado_laboral} options={[{ value: EstadoLaboral.ACTIVO, label: "Activo" }, { value: EstadoLaboral.INACTIVO, label: "Inactivo" }]} onChange={(v) => setFilters({ ...filters, estado_laboral: v })} />
+                <FilterSelect placeholder="Estado Operativo" value={filters.estado_operativo} options={[{ value: EstadoOperativo.DISPONIBLE, label: "Disponible" }, { value: EstadoOperativo.ASIGNADO, label: "Asignado" }, { value: EstadoOperativo.VIAJE, label: "En Viaje" }]} onChange={(v) => setFilters({ ...filters, estado_operativo: v })} />
                 <FilterSelect placeholder="Documentos" value={filters.estado_documentos} options={[{ value: "vencido", label: "Vencidos" }, { value: "por_vencer", label: "Por Vencer" }, { value: "vigente", label: "Vigentes" }]} onChange={(v) => setFilters({ ...filters, estado_documentos: v })} />
                 <ResetFiltersButton onClick={handleResetFilters} />
               </div>
