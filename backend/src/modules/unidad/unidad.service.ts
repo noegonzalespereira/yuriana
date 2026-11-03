@@ -198,13 +198,17 @@ async registrarConDocumentos(
     if (filters.placa) query.andWhere('unidad.placa LIKE :placa', { placa: `%${filters.placa.toUpperCase()}%` });
 
     const unidades = await query.orderBy('unidad.createdAt', 'DESC').getMany();
-    return await Promise.all(
+    const unidadesEnriquecidas = await Promise.all(
       unidades.map(async (unidad) => {
         unidad.fotos = (unidad.fotos || []).filter(f => f.status === true);
         const estadoDoc = await this.documentoService.getEstadoDocumentosPorEntidad(unidad.id_unidad, 'unidad');
         return { ...unidad, ...estadoDoc };
       }),
     );
+    if (filters.estado_documentos) {
+      return unidadesEnriquecidas.filter(u => u.estado === filters.estado_documentos);
+    }
+    return unidadesEnriquecidas;
   }
 
   async findOne(placa: string): Promise<Unidad> {
