@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { PlusCircle, Trash2, Info, Layers } from "lucide-react";
+import { PlusCircle, Trash2, Pencil, X, Info, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { FormActions } from "../atoms/FormActions";
 import { TipoGastoGeneral, GastoGeneral, ItemGastoForm } from "@/types/gasto.types";
@@ -9,8 +9,8 @@ import { guardarGastoGeneral, editarGastoGeneral } from "@/lib/api/gasto.api";
 const TIPOS_GASTO = Object.values(TipoGastoGeneral);
 
 const TIPO_COLOR: Record<string, string> = {
-  [TipoGastoGeneral.TALLER]:  "text-amber-500",
-  [TipoGastoGeneral.LLANTAS]: "text-blue-500",
+  [TipoGastoGeneral.EQUIPAMIENTO_TALLER]:  "text-amber-500",
+  [TipoGastoGeneral.GASTOS_DE_ESCRITORIO]: "text-blue-500",
   [TipoGastoGeneral.OTROS]:   "text-slate-500",
 };
 
@@ -40,9 +40,10 @@ export const GastoGeneralForm = ({ initialData, isReadOnly = false, onCancel, on
 
   const [items, setItems] = useState<ItemGastoForm[]>([]);
   const [newFecha, setNewFecha] = useState("");
-  const [newTipo, setNewTipo] = useState<string>(TipoGastoGeneral.TALLER);
+  const [newTipo, setNewTipo] = useState<string>(TipoGastoGeneral.EQUIPAMIENTO_TALLER);
   const [newDescripcion, setNewDescripcion] = useState("");
   const [newMonto, setNewMonto] = useState<number>(0);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -57,10 +58,32 @@ export const GastoGeneralForm = ({ initialData, isReadOnly = false, onCancel, on
     }
   }, [initialData]);
 
+  const resetInputs = () => {
+    setNewDescripcion("");
+    setNewMonto(0);
+    setNewFecha("");
+    setEditingKey(null);
+  };
+
+  const handleStartEdit = (item: ItemGastoForm) => {
+    setEditingKey(item._key);
+    setNewFecha(item.fecha);
+    setNewTipo(item.tipo_gasto);
+    setNewDescripcion(item.descripcion);
+    setNewMonto(Number(item.monto));
+  };
+
   const handleAddItem = () => {
     if (!newFecha) return toast.error("Selecciona una fecha");
     if (!newDescripcion.trim()) return toast.error("Ingresa una descripción");
     if (newMonto <= 0) return toast.error("El monto debe ser mayor a 0");
+    if (editingKey) {
+      setItems((prev) => prev.map((i) => i._key === editingKey
+        ? { ...i, fecha: newFecha, tipo_gasto: newTipo, descripcion: newDescripcion.trim(), monto: newMonto }
+        : i));
+      resetInputs();
+      return;
+    }
     setItems((prev) => [...prev, {
       _key: `${Date.now()}-${Math.random()}`,
       fecha: newFecha,
@@ -74,6 +97,7 @@ export const GastoGeneralForm = ({ initialData, isReadOnly = false, onCancel, on
   };
 
   const handleRemoveItem = (key: string) => {
+    if (key === editingKey) resetInputs();
     setItems((prev) => prev.filter((i) => i._key !== key));
   };
 
@@ -139,7 +163,7 @@ export const GastoGeneralForm = ({ initialData, isReadOnly = false, onCancel, on
           </div>
 
           <div className="p-6 space-y-4">
-            {!isReadOnly && (
+            {!isReadOnly && (!isEdit || editingKey) && (
               <div className="grid grid-cols-[130px_160px_1fr_120px_auto] gap-3 items-end">
                 <div className="flex flex-col gap-1">
                   <label className="text-[9px] font-black uppercase tracking-widest text-[var(--yuriana-input-label)] ml-1">Fecha</label>
@@ -163,11 +187,19 @@ export const GastoGeneralForm = ({ initialData, isReadOnly = false, onCancel, on
                   <input type="number" min={0} step="any" value={newMonto || ""} onChange={(e) => setNewMonto(Number(e.target.value))}
                     placeholder="0" className={INPUT_CLASS} />
                 </div>
-                <button type="button" onClick={handleAddItem}
-                  className="flex items-center gap-1.5 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black px-4 py-2 rounded-xl shadow-sm transition-all active:scale-95 whitespace-nowrap text-xs h-[34px]">
-                  <PlusCircle size={14} />
-                  Añadir
-                </button>
+                <div className="flex gap-2">
+                  <button type="button" onClick={handleAddItem}
+                    className="flex items-center gap-1.5 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black px-4 py-2 rounded-xl shadow-sm transition-all active:scale-95 whitespace-nowrap text-xs h-[34px]">
+                    {editingKey ? <Pencil size={14} /> : <PlusCircle size={14} />}
+                    {editingKey ? "Actualizar" : "Añadir"}
+                  </button>
+                  {editingKey && (
+                    <button type="button" onClick={resetInputs} title="Cancelar edición"
+                      className="flex items-center justify-center border border-[var(--yuriana-input-border)] text-slate-500 hover:bg-slate-50 px-2.5 rounded-xl h-[34px] transition-colors">
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -202,10 +234,18 @@ export const GastoGeneralForm = ({ initialData, isReadOnly = false, onCancel, on
                         <td className="px-4 py-2.5 text-right font-black text-[var(--yuriana-base-gray-dark)]">{fmt(item.monto)}</td>
                         {!isReadOnly && (
                           <td className="px-4 py-2.5 text-center">
-                            <button type="button" onClick={() => handleRemoveItem(item._key)}
-                              className="text-[var(--yuriana-input-error)] hover:scale-110 transition-transform">
-                              <Trash2 size={13} />
-                            </button>
+                            <div className="flex items-center justify-center gap-3">
+                              <button type="button" onClick={() => handleStartEdit(item)} title="Editar"
+                                className="text-[var(--yuriana-base-orange)] hover:scale-110 transition-transform">
+                                <Pencil size={13} />
+                              </button>
+                              {!isEdit && (
+                                <button type="button" onClick={() => handleRemoveItem(item._key)} title="Eliminar"
+                                  className="text-[var(--yuriana-input-error)] hover:scale-110 transition-transform">
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
+                            </div>
                           </td>
                         )}
                       </tr>

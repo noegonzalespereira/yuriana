@@ -1,8 +1,8 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { Gasto } from "../entities/gasto.entity";
 export enum TipoGastoGeneral {
-  TALLER = 'TALLER',
-  LLANTAS = 'LLANTAS',
+  EQUIPAMIENTO_TALLER = 'EQUIPAMIENTO_DE_TALLER',
+  GASTOS_DE_ESCRITORIO = 'GASTOS_DE_ESCRITORIO',
   OTROS = 'OTROS',
 }
 @Entity('gasto_general')

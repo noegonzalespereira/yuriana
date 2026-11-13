@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { XCircle, TrendingDown, Wrench, Building2, Layers } from "lucide-react";
+import { XCircle, TrendingDown, Wrench, Building2, Layers, Wallet } from "lucide-react";
 import { ResetFiltersButton } from "@/components/atoms/ResetFiltersButton";
 import { FilterSelect } from "@/components/atoms/FilterSelect";
 import { TablePagination } from "@/components/molecules/TablePagination";
@@ -499,11 +499,12 @@ export default function GastosPage() {
         /* ── Vista LIST ── */
         <div className="space-y-6">
           {/* Stat cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
             <StatCard label="Total Gastos de Viaje"         value={`${fmt(totales.totalGastosViaje)} Bs`}           icon={<TrendingDown size={22} />} borderColor="border-[var(--yuriana-card-border)]" iconBg="bg-orange-50"  iconColor="text-[var(--yuriana-base-orange)]" />
             <StatCard label="Total Gastos Operativos"       value={`${fmt(totales.totalGastosOperativos)} Bs`}       icon={<Wrench size={22} />}      borderColor="border-blue-200"   iconBg="bg-blue-50"   iconColor="text-blue-500" />
             <StatCard label="Total Gastos Administrativos"  value={`${fmt(totales.totalGastosAdministrativos)} Bs`}  icon={<Building2 size={22} />}   borderColor="border-purple-200" iconBg="bg-purple-50" iconColor="text-purple-500" />
             <StatCard label="Total Gastos Generales"        value={`${fmt(totales.totalGastosGenerales)} Bs`}        icon={<Layers size={22} />}      borderColor="border-amber-200"  iconBg="bg-amber-50"  iconColor="text-[var(--yuriana-base-yellow)]" />
+            <StatCard label="Total de Gastos"       value={`${fmt(totales.totalGastosViaje + totales.totalGastosOperativos + totales.totalGastosAdministrativos + totales.totalGastosGenerales)} Bs`} icon={<Wallet size={22} />} borderColor="border-emerald-200" iconBg="bg-emerald-50" iconColor="text-emerald-600" />
           </div>
 
           {/* Tab panel */}
@@ -582,6 +583,8 @@ export default function GastosPage() {
                         { value: TipoGastoOperativo.MANTENIMIENTO, label: "Mantenimiento" },
                         { value: TipoGastoOperativo.COMBUSTIBLE, label: "Combustible" },
                         { value: TipoGastoOperativo.REPUESTOS, label: "Repuestos" },
+                        { value: TipoGastoOperativo.TALLER, label: "Taller" },
+                        { value: TipoGastoOperativo.LLANTAS, label: "Llantas" },
                       ]}
                       onChange={(v) => setFiltersOperativo((f) => ({ ...f, tipo_gasto: v }))}
                     />
@@ -667,9 +670,9 @@ export default function GastosPage() {
                       placeholder="Tipo de Gasto"
                       value={filtersGeneral.tipo_gasto ?? ""}
                       options={[
-                        { value: TipoGastoGeneral.TALLER, label: "Taller" },
-                        { value: TipoGastoGeneral.LLANTAS, label: "Llantas" },
-                        { value: TipoGastoGeneral.OTROS, label: "Otros" },
+                        { value: TipoGastoGeneral.EQUIPAMIENTO_TALLER, label: "EQUIPAMIENTO_DE_TALLER" },
+                        { value: TipoGastoGeneral.GASTOS_DE_ESCRITORIO, label: "GASTOS_DE_ESCRITORIO" },
+                        { value: TipoGastoGeneral.OTROS, label: "OTROS" },
                       ]}
                       onChange={(v) => setFiltersGeneral((f) => ({ ...f, tipo_gasto: v }))}
                     />

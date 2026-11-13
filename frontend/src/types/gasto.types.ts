@@ -17,6 +17,8 @@ export enum TipoGastoOperativo {
   MANTENIMIENTO = 'MANTENIMIENTO',
   COMBUSTIBLE = 'COMBUSTIBLE',
   REPUESTOS = 'REPUESTOS',
+  TALLER = 'TALLER',
+  LLANTAS = 'LLANTAS',
 }
 
 export enum TipoGastoAdministrativo {
@@ -28,8 +30,8 @@ export enum TipoGastoAdministrativo {
 }
 
 export enum TipoGastoGeneral {
-  TALLER = 'TALLER',
-  LLANTAS = 'LLANTAS',
+  EQUIPAMIENTO_TALLER = 'EQUIPAMIENTO_DE_TALLER',
+  GASTOS_DE_ESCRITORIO = 'GASTOS_DE_ESCRITORIO',
   OTROS = 'OTROS',
 }
 
@@ -66,6 +68,12 @@ export interface ServicioResumen {
         correo?: string;
       };
     };
+    tracto?: { placa: string };
+  };
+  asignacion_otros?: { placa: string } | null;
+  cliente?: {
+    razon_social?: string;
+    persona?: { nombre: string };
   };
 }
 
@@ -94,6 +102,8 @@ export interface TotalesPaneles {
 
 export interface ItemGastoForm {
   _key: string;
+  /** Present only for items already persisted in the database. */
+  id_detalle?: number;
   fecha: string;
   tipo_gasto: string;
   descripcion: string;

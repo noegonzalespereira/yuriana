@@ -70,21 +70,32 @@ export class GastosService {
           const fechasItems = dto.items.map(item => parseDateOnlyBolivia(item.fecha) ?? new Date());
           const fechaMasReciente = new Date(Math.max.apply(null, fechasItems.map(date => date.getTime())));
 
-          // Creamos la cabecera de la rendición del viaje
-          const cabeceraGasto = queryRunner.manager.create(GastosServicio, {
-            id_servicio: viajeExistente.id_servicio,
-            tipo_cambio: tCambio,
-            moneda: dto.moneda || 'bolivianos',
-            viatico_entregado: viaticoOriginal,
-            viatico_bs: viaticoEnBs,
-            total_gastos: acumuladoGastosOriginal,
-            total_gastos_bs: acumuladoGastosBs,
-            saldo: saldoRestanteOriginal,
-            saldo_bs: saldoRestanteBs,
-            fecha_registro: fechaMasReciente, // <-- CAMBIO CLAVE
-            CreatedId: userId
+          // Un viaje tiene una sola rendición: si ya existe, los gastos nuevos se agregan a ella
+          const cabeceraExistente = await queryRunner.manager.findOne(GastosServicio, {
+            where: { id_servicio: viajeExistente.id_servicio, status: true },
           });
-          const cabeceraGuardada = await queryRunner.manager.save(cabeceraGasto);
+          const tCambioItems = cabeceraExistente ? Number(cabeceraExistente.tipo_cambio) : tCambio;
+
+          let cabeceraGuardada: GastosServicio;
+          if (cabeceraExistente) {
+            cabeceraGuardada = cabeceraExistente;
+          } else {
+            // Creamos la cabecera de la rendición del viaje
+            const cabeceraGasto = queryRunner.manager.create(GastosServicio, {
+              id_servicio: viajeExistente.id_servicio,
+              tipo_cambio: tCambio,
+              moneda: dto.moneda || 'bolivianos',
+              viatico_entregado: viaticoOriginal,
+              viatico_bs: viaticoEnBs,
+              total_gastos: acumuladoGastosOriginal,
+              total_gastos_bs: acumuladoGastosBs,
+              saldo: saldoRestanteOriginal,
+              saldo_bs: saldoRestanteBs,
+              fecha_registro: fechaMasReciente, // <-- CAMBIO CLAVE
+              CreatedId: userId
+            });
+            cabeceraGuardada = await queryRunner.manager.save(cabeceraGasto);
+          }
 
           // Insertamos todas las filas en el Detalle relacionándolas también a la tabla general Gasto
           for (const item of dto.items) {
@@ -104,10 +115,29 @@ export class GastosService {
               id_gasto_servicio: cabeceraGuardada.id_gasto_servicio,
               id_gasto: gastoMaestroGuardado.id_gasto,
               tipo_gasto: item.tipo_gasto as TipoGastoServicio, // Casteo seguro de Enum
-              monto_bs: item.monto * tCambio,
+              monto_bs: item.monto * tCambioItems,
               CreatedId: userId
             });
             await queryRunner.manager.save(detalle);
+          }
+
+          // Si se agregó a una rendición existente, recalcular sus totales con todos los detalles activos
+          if (cabeceraExistente) {
+            const activos = await queryRunner.manager.find(DetalleGastoServicio, {
+              where: { id_gasto_servicio: cabeceraGuardada.id_gasto_servicio, status: true },
+              relations: ['gasto'],
+            });
+            const totalActivo = activos.reduce((acc, d) => acc + Number(d.gasto?.monto || 0), 0);
+            const tc = Number(cabeceraGuardada.tipo_cambio);
+            const fechasActivas = activos.map(d => new Date(d.gasto.fecha).getTime());
+
+            cabeceraGuardada.total_gastos = totalActivo;
+            cabeceraGuardada.total_gastos_bs = totalActivo * tc;
+            cabeceraGuardada.saldo = Number(cabeceraGuardada.viatico_entregado) - totalActivo;
+            cabeceraGuardada.saldo_bs = cabeceraGuardada.saldo * tc;
+            cabeceraGuardada.fecha_registro = new Date(Math.max(...fechasActivas));
+            cabeceraGuardada.UpdatedId = userId;
+            await queryRunner.manager.save(cabeceraGuardada);
           }
           break;
         }
@@ -205,13 +235,16 @@ export class GastosService {
     }
   }
 
-  /**
-   * READ ALL (findAll): Carga los datos de las tablas aplicando búsquedas por texto inteligible e ILIKE
-   */
+  
   async obtenerRegistros(pestana: TipoPestaña, filters: FilterGastoDto) {
     if (pestana === TipoPestaña.SERVICIO) {
       const query = this.gastosServicioRepo.createQueryBuilder('gs')
         .leftJoinAndSelect('gs.servicio', 'servicio')
+        .leftJoinAndSelect('servicio.asignacion', 'asignacion')
+        .leftJoinAndSelect('asignacion.tracto', 'tracto')
+        .leftJoinAndSelect('servicio.asignacion_otros', 'asignacion_otros')
+        .leftJoinAndSelect('servicio.cliente', 'cliente')
+        .leftJoinAndSelect('cliente.persona', 'cliente_persona')
         .where('gs.status = :status', { status: true });
 
       if (filters.buscar) {
@@ -328,12 +361,27 @@ export class GastosService {
       const detalle = await this.detalleGastoRepo.findOne({ where: { id_detalle_servicio: id, status: true }, relations: ['gasto'] });
       if (!detalle) throw new NotFoundException('Detalle de viaje no encontrado');
       
-      if (datosModificados.monto || datosModificados.descripcion || datosModificados.fecha) {
-        Object.assign(detalle.gasto, { ...datosModificados, UpdatedId: userId });
+      const { fecha, monto, descripcion, tipo_gasto } = datosModificados;
+
+      if (monto !== undefined || descripcion !== undefined || fecha) {
+        if (descripcion !== undefined) detalle.gasto.descripcion = descripcion;
+        if (monto !== undefined) detalle.gasto.monto = monto;
+        const nuevaFecha = fecha ? parseDateOnlyBolivia(fecha) : null;
+        if (nuevaFecha) {
+          detalle.gasto.fecha = nuevaFecha;
+          detalle.gasto.mes = (nuevaFecha.getMonth() + 1).toString().padStart(2, '0');
+          detalle.gasto.anio = nuevaFecha.getFullYear();
+        }
+        detalle.gasto.UpdatedId = userId;
         await this.gastoRepo.save(detalle.gasto);
       }
-      
-      Object.assign(detalle, { ...datosModificados, UpdatedId: userId });
+
+      if (tipo_gasto) detalle.tipo_gasto = tipo_gasto;
+      if (monto !== undefined) {
+        const cabecera = await this.gastosServicioRepo.findOne({ where: { id_gasto_servicio: detalle.id_gasto_servicio } });
+        detalle.monto_bs = Number(monto) * Number(cabecera?.tipo_cambio ?? 1);
+      }
+      detalle.UpdatedId = userId;
       await this.detalleGastoRepo.save(detalle);
       
       await this.recalcularCabeceraServicio(detalle.id_gasto_servicio, userId);

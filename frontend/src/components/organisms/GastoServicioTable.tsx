@@ -25,8 +25,8 @@ export const GastoServicioTable = ({ data, onView, onEdit, onDelete, offset = 0 
             <th className="w-12 px-3 py-2.5 text-center">#</th>
             <th className="px-4 py-2.5">Fecha</th>
             <th className="px-4 py-2.5">ID Viaje</th>
-            <th className="px-4 py-2.5">Moneda</th>
-            <th className="px-4 py-2.5 text-right">Viático Bs</th>
+            <th className="px-4 py-2.5">Placa</th>
+            <th className="px-4 py-2.5">Cliente</th>
             <th className="px-4 py-2.5 text-right">Monto Total Bs</th>
             <th className="px-4 py-2.5 text-right">Saldo Bs</th>
             <th className="px-4 py-2.5 text-center">Acciones</th>
@@ -55,13 +55,13 @@ export const GastoServicioTable = ({ data, onView, onEdit, onDelete, offset = 0 
                     </span>
                   </td>
                   <td className="px-4 py-2.5">
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-slate-100 text-slate-600 border border-slate-200">
-                    {item.moneda}
-                  </span>
-                </td>
-                <td className="px-4 py-2.5 text-right font-bold text-gray-700">
-                  {fmt(item.viatico_bs)}
-                </td>
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-slate-100 text-slate-600 border border-slate-200">
+                      {item.servicio?.asignacion?.tracto?.placa ?? item.servicio?.asignacion_otros?.placa ?? "-"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 font-bold text-gray-700">
+                    {item.servicio?.cliente?.razon_social ?? item.servicio?.cliente?.persona?.nombre ?? "-"}
+                  </td>
                   <td className="px-4 py-2.5 text-right font-bold text-[var(--yuriana-base-gray-dark)]">
                     {fmt(item.total_gastos_bs)}
                   </td>

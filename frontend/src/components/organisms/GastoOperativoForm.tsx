@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { PlusCircle, Trash2, Info, Truck } from "lucide-react";
+import { PlusCircle, Trash2, Pencil, X, Info, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { FormActions } from "@/components/atoms/FormActions";
 import { TipoGastoOperativo, GastoOperativo, ItemGastoForm } from "@/types/gasto.types";
@@ -29,6 +29,8 @@ const TIPO_COLOR: Record<string, string> = {
   [TipoGastoOperativo.MANTENIMIENTO]: "text-amber-500",
   [TipoGastoOperativo.COMBUSTIBLE]: "text-blue-500",
   [TipoGastoOperativo.REPUESTOS]: "text-slate-500",
+  [TipoGastoOperativo.TALLER]: "text-orange-500",
+  [TipoGastoOperativo.LLANTAS]: "text-zinc-500",
 };
 
 interface Props {
@@ -68,6 +70,7 @@ export const GastoOperativoForm = ({ initialData, isReadOnly = false, onCancel, 
   const [newTipo, setNewTipo] = useState<string>(TipoGastoOperativo.MANTENIMIENTO);
   const [newDescripcion, setNewDescripcion] = useState("");
   const [newMonto, setNewMonto] = useState<number>(0);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
 
@@ -101,10 +104,32 @@ export const GastoOperativoForm = ({ initialData, isReadOnly = false, onCancel, 
     setValue("marca", u.marca ?? "");
   };
 
+  const resetInputs = () => {
+    setNewDescripcion("");
+    setNewMonto(0);
+    setNewFecha("");
+    setEditingKey(null);
+  };
+
+  const handleStartEdit = (item: ItemGastoForm) => {
+    setEditingKey(item._key);
+    setNewFecha(item.fecha);
+    setNewTipo(item.tipo_gasto);
+    setNewDescripcion(item.descripcion);
+    setNewMonto(Number(item.monto));
+  };
+
   const handleAddItem = () => {
     if (!newFecha) return toast.error("Selecciona una fecha");
     if (!newDescripcion.trim()) return toast.error("Ingresa una descripción");
     if (newMonto <= 0) return toast.error("El monto debe ser mayor a 0");
+    if (editingKey) {
+      setItems((prev) => prev.map((i) => i._key === editingKey
+        ? { ...i, fecha: newFecha, tipo_gasto: newTipo, descripcion: newDescripcion.trim(), monto: newMonto }
+        : i));
+      resetInputs();
+      return;
+    }
     setItems((prev) => [...prev, {
       _key: `${Date.now()}-${Math.random()}`,
       fecha: newFecha,
@@ -118,6 +143,7 @@ export const GastoOperativoForm = ({ initialData, isReadOnly = false, onCancel, 
   };
 
   const handleRemoveItem = (key: string) => {
+    if (key === editingKey) resetInputs();
     setItems((prev) => prev.filter((i) => i._key !== key));
   };
 
@@ -221,7 +247,7 @@ export const GastoOperativoForm = ({ initialData, isReadOnly = false, onCancel, 
           </div>
 
           <div className="p-6 space-y-4">
-            {!isReadOnly && (
+            {!isReadOnly && (!isEdit || editingKey) && (
               <div className="grid grid-cols-[130px_150px_1fr_120px_auto] gap-3 items-end">
                 <div className="flex flex-col gap-1">
                   <label className="text-[9px] font-black uppercase tracking-widest text-[var(--yuriana-input-label)] ml-1">Fecha</label>
@@ -266,14 +292,26 @@ export const GastoOperativoForm = ({ initialData, isReadOnly = false, onCancel, 
                     className={INPUT_CLASS}
                   />
                 </div>
-                <button
-                  type="button"
-                  onClick={handleAddItem}
-                  className="flex items-center gap-1.5 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black px-4 py-2 rounded-xl shadow-sm transition-all active:scale-95 whitespace-nowrap text-xs h-[34px]"
-                >
-                  <PlusCircle size={14} />
-                  Añadir Gasto
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleAddItem}
+                    className="flex items-center gap-1.5 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black px-4 py-2 rounded-xl shadow-sm transition-all active:scale-95 whitespace-nowrap text-xs h-[34px]"
+                  >
+                    {editingKey ? <Pencil size={14} /> : <PlusCircle size={14} />}
+                    {editingKey ? "Actualizar" : "Añadir Gasto"}
+                  </button>
+                  {editingKey && (
+                    <button
+                      type="button"
+                      onClick={resetInputs}
+                      title="Cancelar edición"
+                      className="flex items-center justify-center border border-[var(--yuriana-input-border)] text-slate-500 hover:bg-slate-50 px-2.5 rounded-xl h-[34px] transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -309,9 +347,16 @@ export const GastoOperativoForm = ({ initialData, isReadOnly = false, onCancel, 
                         </td>
                         {!isReadOnly && (
                           <td className="px-4 py-2.5 text-center">
-                            <button type="button" onClick={() => handleRemoveItem(item._key)} className="text-[var(--yuriana-input-error)] hover:scale-110 transition-transform">
-                              <Trash2 size={13} />
-                            </button>
+                            <div className="flex items-center justify-center gap-3">
+                              <button type="button" onClick={() => handleStartEdit(item)} title="Editar" className="text-[var(--yuriana-base-orange)] hover:scale-110 transition-transform">
+                                <Pencil size={13} />
+                              </button>
+                              {!isEdit && (
+                                <button type="button" onClick={() => handleRemoveItem(item._key)} title="Eliminar" className="text-[var(--yuriana-input-error)] hover:scale-110 transition-transform">
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
+                            </div>
                           </td>
                         )}
                       </tr>

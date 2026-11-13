@@ -20,6 +20,8 @@ const TIPO_BADGE: Record<string, string> = {
   [TipoGastoOperativo.MANTENIMIENTO]: "bg-amber-50 text-amber-600 border-amber-200",
   [TipoGastoOperativo.COMBUSTIBLE]: "bg-blue-50 text-blue-600 border-blue-200",
   [TipoGastoOperativo.REPUESTOS]: "bg-slate-50 text-slate-600 border-slate-200",
+  [TipoGastoOperativo.TALLER]: "bg-orange-50 text-orange-600 border-orange-200",
+  [TipoGastoOperativo.LLANTAS]: "bg-zinc-50 text-zinc-700 border-zinc-200",
 };
 
 export const GastoOperativoTable = ({ data, onView, onEdit, onDelete, offset = 0 }: Props) => {

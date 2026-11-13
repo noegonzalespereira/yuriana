@@ -5,6 +5,8 @@ export enum TipoGastoOperativo {
   MANTENIMIENTO = 'MANTENIMIENTO',
   COMBUSTIBLE = 'COMBUSTIBLE',
   REPUESTOS = 'REPUESTOS',
+  TALLER = 'TALLER',
+  LLANTAS = "LLANTAS"
 }
 @Entity('gasto_operativo')
 export class GastoOperativo {

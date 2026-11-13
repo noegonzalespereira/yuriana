@@ -1,12 +1,12 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { PlusCircle, Trash2, Info, Users, Wallet, ClipboardList } from "lucide-react";
+import { PlusCircle, Trash2, Pencil, X, Info, Users, Wallet, ClipboardList } from "lucide-react";
 import { SearchableCombobox } from "@/components/molecules/SearchableCombobox";
 import { FormActions } from "@/components/atoms/FormActions";
 import { toast } from "sonner";
 import { TipoGastoServicio, ItemGastoForm, ServicioResumen, GastosServicio } from "@/types/gasto.types";
 import { ServicioItem } from "@/types/servicio.types";
-import { guardarGastoServicio } from "@/lib/api/gasto.api";
+import { guardarGastoServicio, editarGastoServicio } from "@/lib/api/gasto.api";
 import { getServicios } from "@/lib/api/servicio.api";
 
 const MONEDAS = [
@@ -45,12 +45,19 @@ const ReadField = ({ label, value }: { label: string; value: string }) => (
 const fmt = (n: number, decimals = 2) =>
   new Intl.NumberFormat("es-BO", { maximumFractionDigits: decimals }).format(n);
 
+// "YYYY-MM-DD" -> "DD/MM/YYYY" without going through Date (avoids timezone shifts)
+const fmtFecha = (iso: string) => {
+  const [y, m, d] = iso.split("-");
+  return y && m && d ? `${d}/${m}/${y}` : "-";
+};
+
 export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, onSuccess }: Props) => {
   const [servicios, setServicios] = useState<ServicioItem[]>([]);
   const [selectedServicio, setSelectedServicio] = useState<ServicioItem | null>(null);
 
-  const [moneda, setMoneda] = useState("UYU");
-  const [tipoCambio, setTipoCambio] = useState<number>(0.17);
+  const [moneda, setMoneda] = useState("BS");
+  const [tipoCambio, setTipoCambio] = useState<number>(1);
+  const [tipoCambioText, setTipoCambioText] = useState("1");
   const [viatico, setViatico] = useState<number>(0);
 
   const [items, setItems] = useState<ItemGastoForm[]>([]);
@@ -58,6 +65,7 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
   const [newTipo, setNewTipo] = useState<string>(TipoGastoServicio.PEAJES);
   const [newDescripcion, setNewDescripcion] = useState("");
   const [newMonto, setNewMonto] = useState<number>(0);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
 
@@ -86,11 +94,13 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
       setSelectedServicio(s);
       setMoneda(initialData.moneda);
       setTipoCambio(Number(initialData.tipo_cambio));
+      setTipoCambioText(String(Number(initialData.tipo_cambio)));
       setViatico(Number(initialData.viatico_entregado));
       if (initialData.detalles) {
         setItems(
           initialData.detalles.map((d) => ({
             _key: String(d.id_detalle_servicio),
+            id_detalle: d.id_detalle_servicio,
             fecha: d.gasto?.fecha?.slice(0, 10) ?? "",
             tipo_gasto: d.tipo_gasto,
             descripcion: d.gasto?.descripcion ?? "",
@@ -102,7 +112,10 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
   }, [initialData, servicios]);
 
   useEffect(() => {
-    if (moneda === "BS") setTipoCambio(1);
+    if (moneda === "BS") {
+      setTipoCambio(1);
+      setTipoCambioText("1");
+    }
   }, [moneda]);
 
   const handleSelectServicio = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -111,10 +124,55 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
     setSelectedServicio(sv);
   };
 
-  const handleAddItem = () => {
+  const resetInputs = () => {
+    setNewDescripcion("");
+    setNewMonto(0);
+    setNewFecha("");
+    setNewTipo(TipoGastoServicio.PEAJES);
+    setEditingKey(null);
+  };
+
+  const handleStartEdit = (item: ItemGastoForm) => {
+    setEditingKey(item._key);
+    setNewFecha(item.fecha);
+    setNewTipo(item.tipo_gasto);
+    setNewDescripcion(item.descripcion);
+    setNewMonto(Number(item.monto));
+  };
+
+  const handleAddItem = async () => {
     if (!newFecha) return toast.error("Selecciona una fecha");
     if (!newDescripcion.trim()) return toast.error("Ingresa una descripción");
     if (newMonto <= 0) return toast.error("El monto debe ser mayor a 0");
+
+    if (editingKey) {
+      const target = items.find((i) => i._key === editingKey);
+      if (!target) return resetInputs();
+      const updated: ItemGastoForm = {
+        ...target,
+        fecha: newFecha,
+        tipo_gasto: newTipo,
+        descripcion: newDescripcion.trim().toUpperCase(),
+        monto: newMonto,
+      };
+      try {
+        // Items already stored in the DB are updated right away; unsaved ones only change locally.
+        if (target.id_detalle) {
+          await editarGastoServicio(target.id_detalle, {
+            fecha: updated.fecha,
+            tipo_gasto: updated.tipo_gasto,
+            descripcion: updated.descripcion,
+            monto: updated.monto,
+          });
+        }
+        setItems((prev) => prev.map((i) => (i._key === editingKey ? updated : i)));
+        toast.success("Gasto actualizado");
+        resetInputs();
+      } catch (err: any) {
+        toast.error("No se pudo actualizar el gasto", { description: err.message });
+      }
+      return;
+    }
 
     setItems((prev) => [
       ...prev,
@@ -132,6 +190,7 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
   };
 
   const handleRemoveItem = (key: string) => {
+    if (key === editingKey) resetInputs();
     setItems((prev) => prev.filter((i) => i._key !== key));
   };
 
@@ -139,6 +198,13 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
     if (!selectedServicio) return toast.error("Selecciona un servicio/viaje");
     if (viatico <= 0) return toast.error("El viático debe ser mayor a 0");
     if (items.length === 0) return toast.error("Agrega al menos un gasto");
+
+    // Editing an existing rendición: persisted items are already in the DB, send only the new ones.
+    const itemsToSend = initialData ? items.filter((i) => !i.id_detalle) : items;
+    if (initialData && itemsToSend.length === 0) {
+      toast.success("Cambios guardados");
+      return onSuccess();
+    }
 
     try {
       setSaving(true);
@@ -148,7 +214,7 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
         moneda: moneda.toUpperCase(),
         tipo_cambio: tipoCambio,
         viatico_entregado: viatico,
-        items: items.map(({ fecha, tipo_gasto, descripcion, monto }) => ({
+        items: itemsToSend.map(({ fecha, tipo_gasto, descripcion, monto }) => ({
           fecha,
           tipo_gasto,
           descripcion: descripcion.trim().toUpperCase(),
@@ -261,12 +327,16 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
                 T/C
               </label>
               <input
-                type="number"
-                min={0.0001}
-                step="any"
+                type="text"
+                inputMode="decimal"
                 disabled={isReadOnly || moneda === "BS"}
-                value={tipoCambio || ""}
-                onChange={(e) => setTipoCambio(Number(e.target.value))}
+                value={tipoCambioText}
+                onChange={(e) => {
+                  const text = e.target.value.replace(",", ".");
+                  if (!/^\d*\.?\d*$/.test(text)) return;
+                  setTipoCambioText(text);
+                  setTipoCambio(Number(text) || 0);
+                }}
                 placeholder="0.17"
                 title="Tipo de cambio a Bolivianos"
                 className="bg-[var(--yuriana-input-bg)] border border-[var(--yuriana-input-border)] rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-[var(--yuriana-input-border-focus)] transition-colors disabled:bg-slate-100 disabled:text-slate-400 text-center"
@@ -363,14 +433,26 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
                     </select>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleAddItem}
-                  className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black px-4 py-2 rounded-xl shadow-sm transition-all active:scale-95 whitespace-nowrap text-sm h-[42px]"
-                >
-                  <PlusCircle size={16} />
-                  Añadir Gasto
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleAddItem}
+                    className="flex items-center gap-2 bg-[var(--yuriana-base-yellow)] hover:opacity-90 text-black font-black px-4 py-2 rounded-xl shadow-sm transition-all active:scale-95 whitespace-nowrap text-sm h-[42px]"
+                  >
+                    {editingKey ? <Pencil size={16} /> : <PlusCircle size={16} />}
+                    {editingKey ? "Actualizar" : "Añadir Gasto"}
+                  </button>
+                  {editingKey && (
+                    <button
+                      type="button"
+                      onClick={resetInputs}
+                      title="Cancelar edición"
+                      className="flex items-center justify-center border border-[var(--yuriana-input-border)] text-slate-500 hover:bg-slate-50 px-3 rounded-xl h-[42px] transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -379,6 +461,7 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
               <table className="w-full text-left border-collapse">
                 <thead className="bg-[var(--yuriana-base-orange)] text-white uppercase text-[9px] font-black tracking-widest">
                   <tr>
+                    <th className="px-5 py-3">Fecha</th>
                     <th className="px-5 py-3">Gasto</th>
                     <th className="px-5 py-3">Descripción</th>
                     <th className="px-5 py-3 text-right">Monto</th>
@@ -389,13 +472,16 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
                 <tbody className="bg-white divide-y divide-orange-100 text-sm">
                   {items.length === 0 ? (
                     <tr>
-                      <td colSpan={isReadOnly ? 4 : 5} className="py-8 text-center text-[var(--yuriana-input-placeholder)] italic text-xs">
+                      <td colSpan={isReadOnly ? 5 : 6} className="py-8 text-center text-[var(--yuriana-input-placeholder)] italic text-xs">
                         Sin gastos registrados
                       </td>
                     </tr>
                   ) : (
                     items.map((item) => (
-                      <tr key={item._key} className="hover:bg-orange-50/30 transition-colors">
+                      <tr key={item._key} className={`hover:bg-orange-50/30 transition-colors ${editingKey === item._key ? "bg-orange-50" : ""}`}>
+                        <td className="px-5 py-3 text-xs font-semibold text-[var(--yuriana-base-gray-dark)] whitespace-nowrap">
+                          {fmtFecha(item.fecha)}
+                        </td>
                         <td className="px-5 py-3">
                           <span className="font-black text-[10px] uppercase text-[var(--yuriana-base-orange)]">{item.tipo_gasto}</span>
                         </td>
@@ -408,9 +494,14 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
                         </td>
                         {!isReadOnly && (
                           <td className="px-5 py-3 text-center">
-                            <button type="button" onClick={() => handleRemoveItem(item._key)} className="text-[var(--yuriana-input-error)] hover:scale-110 transition-transform">
-                              <Trash2 size={14} />
-                            </button>
+                            <div className="flex items-center justify-center gap-3">
+                              <button type="button" onClick={() => handleStartEdit(item)} title="Editar" className="text-[var(--yuriana-base-orange)] hover:scale-110 transition-transform">
+                                <Pencil size={14} />
+                              </button>
+                              <button type="button" onClick={() => handleRemoveItem(item._key)} title="Eliminar" className="text-[var(--yuriana-input-error)] hover:scale-110 transition-transform">
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </td>
                         )}
                       </tr>
@@ -418,7 +509,7 @@ export const GastoServicioForm = ({ initialData, isReadOnly = false, onCancel, o
                   )}
                   {items.length > 0 && (
                     <tr className="bg-[var(--yuriana-base-orange)]/10 font-black">
-                      <td colSpan={2} className="px-5 py-3 text-[10px] uppercase tracking-widest text-[var(--yuriana-base-orange)]">
+                      <td colSpan={3} className="px-5 py-3 text-[10px] uppercase tracking-widest text-[var(--yuriana-base-orange)]">
                         Total Gastos
                       </td>
                       <td className="px-5 py-3 text-right text-[var(--yuriana-base-gray-dark)]">

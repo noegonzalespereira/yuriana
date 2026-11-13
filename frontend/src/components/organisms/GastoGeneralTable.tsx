@@ -17,8 +17,8 @@ const fmt = (n: number) =>
   new Intl.NumberFormat("es-BO", { maximumFractionDigits: 2 }).format(n);
 
 const TIPO_BADGE: Record<string, string> = {
-  [TipoGastoGeneral.TALLER]:  "bg-amber-50 text-amber-600 border-amber-200",
-  [TipoGastoGeneral.LLANTAS]: "bg-blue-50 text-blue-600 border-blue-200",
+  [TipoGastoGeneral.EQUIPAMIENTO_TALLER]:  "bg-amber-50 text-amber-600 border-amber-200",
+  [TipoGastoGeneral.GASTOS_DE_ESCRITORIO]: "bg-blue-50 text-blue-600 border-blue-200",
   [TipoGastoGeneral.OTROS]:   "bg-slate-50 text-slate-500 border-slate-200",
 };
 
